@@ -26,6 +26,7 @@ func _init() -> void:
 		"test_guarantee",
 		"test_rivals",
 		"test_embargo",
+		"test_hall_of_fame",
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
@@ -1043,6 +1044,31 @@ func test_embargo() -> void:
 	g._rivals_monthly(g.nations.ENG)
 	g._rivals_monthly(g.nations.FRA)
 	check(g.nations.ENG.embargoes.is_empty() and not g.nations.FRA.bonus.has("embargo"), "the embargo ends with the rivalry")
+
+
+func test_hall_of_fame() -> void:
+	var path := "user://test_hall.json"
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	var g = new_game("FRA", 3)
+	for m in 24:
+		g.tick()
+	var e: Dictionary = HallOfFame.entry_for(g)
+	check(e.tag == "FRA" and e.score > 0 and e.rank >= 1 and e.alive and e.year == 1446, "entry describes the game")
+	check(HallOfFame.add(e, path) == 1, "first game is the record")
+	var better := e.duplicate()
+	better.score = e.score + 100
+	check(HallOfFame.add(better, path) == 1, "a better game takes the first place")
+	var same_place: int = HallOfFame.add(e.duplicate(), path)
+	check(same_place >= 2 and same_place <= 3, "an equal game ranks behind the record (place %d)" % same_place)
+	for i in HallOfFame.MAX_ENTRIES + 5:
+		var low := e.duplicate()
+		low.score = 1
+		HallOfFame.add(low, path)
+	check(HallOfFame.load_entries(path).size() == HallOfFame.MAX_ENTRIES, "the hall keeps at most %d games" % HallOfFame.MAX_ENTRIES)
+	g.nations.FRA.alive = false
+	check(HallOfFame.entry_for(g).rank == 0 and not HallOfFame.entry_for(g).alive, "a destroyed nation has no rank")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
 func _count_rivalries(g) -> int:

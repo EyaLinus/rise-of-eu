@@ -576,6 +576,8 @@ func _show_start_menu() -> void:
 		top.append(_btn("💾 Weiterspielen", _load_game.bind("auto")))
 	if _has_manual_save():
 		top.append(_btn("📂 Laden", _show_slots.bind(false)))
+	if FileAccess.file_exists(HallOfFame.PATH):
+		top.append(_btn("🏆 Ruhmeshalle", _show_hall))
 	top.append(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
 	if top.size() % 2 == 1:
 		top.append(Control.new())
@@ -1359,6 +1361,10 @@ func _show_game_over() -> void:
 		if ranking[i][1] == game.player and i >= 10:
 			text += "…\n%d. %s – %d Punkte\n" % [i + 1, nname(game.player), int(ranking[i][0])]
 	modal_box.add_child(_lbl(text, 18))
+	if not game.stats.has("hall_place"):
+		game.stats.hall_place = HallOfFame.add(HallOfFame.entry_for(game))
+	var place: int = int(game.stats.hall_place)
+	modal_box.add_child(_lbl(("🏆 Neuer Rekord: Platz 1 in deiner Ruhmeshalle!" if place == 1 else "🏆 Platz %d in deiner Ruhmeshalle" % place), 18, Color(1, 0.9, 0.6)))
 	modal_box.add_child(_lbl(_summary_text(), 16, Color(0.85, 0.85, 0.75)))
 	if game.history.size() >= 2:
 		modal_box.add_child(_history_chart(260))
@@ -1367,7 +1373,37 @@ func _show_game_over() -> void:
 		modal_box.add_child(_score_chart(260))
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
-	modal_box.add_child(_btn("🏠 Hauptmenü", func(): game = null; _show_start_menu()))
+	modal_box.add_child(_grid([_btn("🏆 Ruhmeshalle", _show_hall), _btn("🏠 Hauptmenü", func(): game = null; _show_start_menu())]))
+
+
+## All finished games, best first: nation, difficulty, points, final rank, year, date.
+func _show_hall() -> void:
+	var had_game: bool = game != null and not game.game_over
+	_open_modal()
+	modal_box.add_child(_lbl("🏆 Ruhmeshalle", 32))
+	var entries := HallOfFame.load_entries()
+	if entries.is_empty():
+		modal_box.add_child(_lbl("Noch keine beendete Partie. Spiele bis 1644 (oder bis zum Untergang), dann steht dein Ergebnis hier.", 16, Color(0.8, 0.8, 0.8)))
+	else:
+		modal_box.add_child(_lbl("Deine beendeten Partien, beste zuerst.", 16, Color(0.8, 0.8, 0.8)))
+		var i := 0
+		for e in entries:
+			i += 1
+			var nd: Dictionary = data.nations.get(str(e.tag), {})
+			var name: String = "%s %s" % [PixelEmoji.nation(str(e.tag), nd.get("emoji", "")), nd.get("name", str(e.tag))]
+			var fate: String = ("Rang %d" % int(e.rank)) if bool(e.get("alive", true)) else "☠️ vernichtet"
+			var row := _lbl("%d. %s · %d Punkte · %s · %s · %d 🏘️ · %d Prov. · %s" % [
+					i, name, int(e.score), Game.DIFFICULTY_NAMES.get(str(e.difficulty), str(e.difficulty)), fate, int(e.get("dev", 0)), int(e.get("provinces", 0)), str(e.get("date", ""))], 16,
+					Color(1, 0.9, 0.6) if i == 1 else Color(0.92, 0.92, 0.95))
+			row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			modal_box.add_child(row)
+	modal_box.add_child(_btn("◀ Zurück", func():
+		if had_game:
+			_close_modal()
+		elif game != null and game.game_over:
+			_show_game_over()
+		else:
+			_show_start_menu()))
 
 
 # ---------------------------------------------------------------- side panel
