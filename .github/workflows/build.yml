@@ -11,6 +11,11 @@ on:
         description: "Create a GitHub release with this tag (e.g. v0.1.0); empty = build only"
         required: false
         default: ""
+      web:
+        description: "Also export the browser build (RiseOfEU-web.zip); off by default since 2026-11-13, releases are APK + EXE"
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -77,6 +82,7 @@ jobs:
       # browser build: single-threaded (no SharedArrayBuffer), so it runs on any plain web host or in an iframe
       # without COOP/COEP headers; the .htaccess only sets the wasm MIME type on Apache hosts
       - name: Export Web (HTML5)
+        if: github.event.inputs.web == 'true'
         run: |
           command -v zip >/dev/null || (apt-get update -qq && apt-get install -y -qq zip >/dev/null)
           mkdir -p build/web
@@ -85,6 +91,7 @@ jobs:
           (cd build/web && zip -q -9 -r ../RiseOfEU-web.zip .)
           ls -la build/web build/RiseOfEU-web.zip
       - uses: actions/upload-artifact@v4
+        if: github.event.inputs.web == 'true'
         with:
           name: RiseOfEU-web
           path: build/RiseOfEU-web.zip
@@ -120,4 +127,5 @@ jobs:
             dist/RiseOfEU.exe
             dist/RiseOfEU.apk
             dist/RiseOfEU-web.zip
+          fail_on_unmatched_files: false
           generate_release_notes: false

@@ -1,0 +1,1 @@
+- Releases enthalten nur noch APK und EXE. Der Browser-Build wird nicht mehr automatisch gebaut; er lässt sich beim manuellen Start des Build-Workflows per Schalter „web“ wieder dazunehmen.
