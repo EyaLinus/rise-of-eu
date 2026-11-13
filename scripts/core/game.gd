@@ -96,6 +96,8 @@ class Nation:
 	var marriages: Array = []  # royal marriages: lasting good relations, a chance of personal union
 	var access := {}  # nations whose land our armies may cross (military access)
 	var guarantees := {}  # nations whose independence we defend
+	var rivals: Array = []  # declared rivals: cheaper wars against them, power projection from beating them
+	var power_proj: float = 0.0  # power projection 0..pp_max, earned against rivals, decays yearly
 	var religion: String = "catholic"  # state religion
 	var monuments := {}  # finished great works (Monuments)
 	var monument_build := {}  # {"id", "months"} while one is being built
@@ -698,6 +700,7 @@ func _economy(n: Nation) -> void:
 		n.expenses += tribute
 		nations[n.overlord].gold += tribute
 	n.gold += n.income - n.expenses
+	_rivals_monthly(n)
 	var cap := float(bal.power_cap)
 	n.adm = minf(cap, n.adm + monthly_power(n, "adm"))
 	n.dip = minf(cap, n.dip + monthly_power(n, "dip"))
@@ -1304,7 +1307,7 @@ func declare_war(att: String, def: String, coalition_members: Array = []) -> Str
 	if n.guarantees.has(def):
 		n.guarantees.erase(def)
 		log_msg("🛡️ %s bricht die Garantie für %s." % [n.name, nations[def].name], [att, def])
-	var has_cb := coalition_members.size() > 0 or has_claim_on(att, def)
+	var has_cb := coalition_members.size() > 0 or has_claim_on(att, def) or n.rivals.has(def)
 	if not has_cb:
 		if n.dip < float(bal.nocb_war_dip):
 			return "Zu wenig Diplomatie für einen Krieg ohne Kriegsgrund."
@@ -1430,6 +1433,8 @@ func make_peace(w: War, winner_att: bool, pids: Array, vassalize: bool = false) 
 		n.prestige += p.dev * float(bal.prestige_per_dev_taken)
 		n.claims.erase(pid)
 		var old := p.owner
+		if n.rivals.has(old):
+			add_power_proj(to, float(bal.pp_province))
 		p.owner = to
 		p.controller = to
 		p.prev_owner = old
@@ -1535,6 +1540,9 @@ func leave_war(tag: String, w: War) -> String:
 func _vassalize(lord: String, tag: String, reduced_ae: bool) -> void:
 	var v: Nation = nations[tag]
 	var l: Nation = nations[lord]
+	if l.rivals.has(tag):
+		add_power_proj(lord, float(bal.pp_humbled))
+	_end_rivalry_both(lord, tag)
 	var ae: float = v.dev_total * float(bal.ae_per_dev) * float(bal.vassal_ae_mult)
 	if reduced_ae:
 		ae *= 0.3
@@ -1634,6 +1642,10 @@ func _check_alive(tag: String) -> void:
 	for o in nations.values():
 		o.access.erase(tag)
 		o.guarantees.erase(tag)
+		if o.rivals.has(tag):
+			o.rivals.erase(tag)
+			add_power_proj(o.tag, float(bal.pp_humbled))
+	n.rivals.clear()
 	for ally in n.allies:
 		nations[ally].allies.erase(tag)
 	n.allies.clear()
@@ -1725,7 +1737,7 @@ func _coalitions_yearly() -> void:
 				var o: Nation = nations[t]
 				if not o.alive or n.coalition.has(t) or is_allied(t, tag) or t == player or o.overlord != "":
 					continue
-				if rng.randf() < 0.3 + (n.ae - thr) / thr:
+				if rng.randf() < 0.3 + (n.ae - thr) / thr + (float(bal.rival_coalition_bonus) if o.rivals.has(tag) else 0.0):
 					n.coalition.append(t)
 					add_rel(t, tag, -30.0)
 					log_msg("⚠️ %s tritt der Koalition gegen %s bei!" % [o.name, n.name], [tag, t])
@@ -2158,6 +2170,84 @@ func end_guarantee(tag: String, target: String) -> void:
 		add_rel(target, tag, -float(bal.guarantee_rel))
 
 
+# ---- rivals
+
+func rival_block_reason(tag: String, target: String) -> String:
+	var n: Nation = nations[tag]
+	if tag == target or not nations.has(target) or not nations[target].alive:
+		return "Ungültiges Ziel."
+	if n.rivals.has(target):
+		return "Ist schon dein Rivale."
+	if n.overlord != "" or nations[target].overlord != "":
+		return "Vasallen haben keine eigenen Rivalen."
+	if is_allied(tag, target):
+		return "Ihr seid verbündet."
+	if n.rivals.size() >= int(bal.max_rivals):
+		return "Höchstens %d Rivalen." % int(bal.max_rivals)
+	var cd: int = int(n.flags.get("rival_cd_" + target, 0))
+	if cd > month:
+		return "Erst wieder ab %s." % date_string(cd)
+	if strength(target) < strength(tag) * float(bal.rival_min_strength) and nations[target].dev_total < n.dev_total * float(bal.rival_min_strength):
+		return "%s ist zu schwach, um ein würdiger Rivale zu sein." % nations[target].name
+	if not nations_in_range(tag, int(bal.rival_range)).has(target):
+		return "Zu weit entfernt (höchstens %d Länder dazwischen)." % int(bal.rival_range)
+	return ""
+
+
+## Declares `target` a rival: wars against it need no claim, beating it earns power projection.
+func set_rival(tag: String, target: String) -> String:
+	var r := rival_block_reason(tag, target)
+	if r != "":
+		return r
+	nations[tag].rivals.append(target)
+	add_rel(tag, target, -float(bal.rival_rel))
+	log_msg("🎯 %s erklärt %s zum Rivalen." % [nations[tag].name, nations[target].name], [tag, target])
+	fire_event(target, "dip_rivaled")
+	return ""
+
+
+## Giving up a rivalry costs prestige and blocks the same rival for a while.
+func end_rival(tag: String, target: String, free: bool = false) -> void:
+	var n: Nation = nations[tag]
+	if not n.rivals.has(target):
+		return
+	n.rivals.erase(target)
+	if not free:
+		n.prestige -= float(bal.rival_end_prestige)
+		n.flags["rival_cd_" + target] = month + int(bal.rival_cooldown_months)
+
+
+func _end_rivalry_both(a: String, b: String) -> void:
+	end_rival(a, b, true)
+	end_rival(b, a, true)
+
+
+func add_power_proj(tag: String, v: float) -> void:
+	var n: Nation = nations[tag]
+	n.power_proj = clampf(n.power_proj + v, 0.0, float(bal.pp_max))
+
+
+## Rivals who see us as a rival, for the UI.
+func rivaled_by(tag: String) -> Array:
+	var r := []
+	for t in order:
+		if nations[t].alive and nations[t].rivals.has(tag):
+			r.append(t)
+	return r
+
+
+func _rivals_monthly(n: Nation) -> void:
+	for t in n.rivals.duplicate():
+		if not nations[t].alive or nations[t].overlord != "" or n.overlord != "":
+			end_rival(n.tag, t, true)
+	n.power_proj = maxf(0.0, n.power_proj - float(bal.pp_decay_per_year) / 12.0)
+	if n.power_proj > 0.0:
+		var f: float = n.power_proj / float(bal.pp_max)
+		n.bonus["rivals"] = {"mil": f * float(bal.pp_mil), "prestige": f * float(bal.pp_prestige), "ae_decay": f * float(bal.pp_ae_decay)}
+	else:
+		n.bonus.erase("rivals")
+
+
 # ---- royal marriages
 
 func marriage_block_reason(tag: String, target: String) -> String:
@@ -2230,6 +2320,7 @@ func propose_alliance(tag: String, target: String) -> String:
 
 
 func _ally(a: String, b: String) -> void:
+	_end_rivalry_both(a, b)
 	if not nations[a].allies.has(b):
 		nations[a].allies.append(b)
 	if not nations[b].allies.has(a):
@@ -2763,7 +2854,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "monuments": n.monuments.keys(), "monument_build": n.monument_build,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "monuments": n.monuments.keys(), "monument_build": n.monument_build,
 				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n)}
 	d.nations = ns
 	var ar := []
@@ -2904,6 +2995,10 @@ func from_dict(d: Dictionary) -> void:
 		n.guarantees = {}
 		for t in e.get("guarantees", []):
 			n.guarantees[str(t)] = true
+		n.rivals = []
+		for t in e.get("rivals", []):
+			n.rivals.append(str(t))
+		n.power_proj = float(e.get("power_proj", 0.0))
 		n.loans = []
 		for l in e.get("loans", []):
 			n.loans.append(float(l))

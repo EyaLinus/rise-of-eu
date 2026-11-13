@@ -336,6 +336,19 @@ static func finish(g, b: Battle, war, att_wins: bool) -> void:
 	var ws: float = lost * float(g.bal.battle_ws_per_reg)
 	var cap := float(g.bal.battle_ws_cap)
 	war.battle_score = clampf(war.battle_score + (ws if att_wins else -ws), -cap, cap)
+	# beating a declared rival in the field is power projection
+	var losers := {}
+	for a in lose:
+		losers[a.owner] = true
+	var pp_done := {}
+	for a in win:
+		if pp_done.has(a.owner):
+			continue
+		pp_done[a.owner] = true
+		for t in g.nations[a.owner].rivals:
+			if losers.has(t):
+				g.add_power_proj(a.owner, float(g.bal.pp_battle))
+				break
 	if g.player != "":
 		for a in win:
 			if a.owner == g.player:
