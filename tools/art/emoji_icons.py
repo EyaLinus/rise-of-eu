@@ -130,6 +130,10 @@ add("🛤", "road", layer(["lLlL.HH.lLlL", "LlL.HOOH.LlL", "lLl.HOwOH.lL", "Ll.H
 
 add("⛪", "church", layer([".....YY.....", "....YYYY....", ".....YD.....", "....RRRE....", "...RRRRRE...", "...PPkPPQ...", ".RRRRRRRRRE.", "RRRRRRRRRRRE", "PPPPPPPPPPPQ", "PPkPPHHPPkPQ", "PPPPPHHPPPPQ", "QQQQQHHQQQQQ"], 2, 2))
 
+# red ring with a diagonal bar: embargo / forbidden
+add("🚫", "no_entry", layer(["....RRRR....", "..RRrrrrRR..", ".RrrRR..rrR.", ".Rr..RR..rR.", "Rr....RR..rR", "Rr.....RR.rR",
+                            "Rr......RRrR", "Rr.......RRR", ".Rr.......RE", ".RrR....rRE.", "..RRrrrrRE..", "....EEEE...."], 2, 2))
+
 # ---- tech tree states
 add("🔒", "lock", layer(["...aaaa...", "..ag..ga..", "..a....g..", "..a....g..", "YYYYYYYYYD", "YGGGGGGGGD", "YGGGkkGGGD", "YGGGkkGGGD", "YGGGGkGGGD", "DDDDDDDDDD"], 3, 3))
 add("✓", "tick", layer([".........ll", "........lLF", ".......lLF.", "ll....lLF..", "lLl..lLF...", ".lLllLF....", "..lLLF.....", "...LF......"], 2, 4))

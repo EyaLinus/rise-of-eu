@@ -25,6 +25,7 @@ func _init() -> void:
 		"test_military_access",
 		"test_guarantee",
 		"test_rivals",
+		"test_embargo",
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
@@ -1022,6 +1023,26 @@ func test_rivals() -> void:
 	for t in g3.order:
 		for r in g3.nations[t].rivals:
 			check(g3.nations[r].alive and not g3.is_allied(t, r), "AI rivals are alive and not allies")
+
+
+func test_embargo() -> void:
+	var g = new_game("ENG", 5)
+	check(g.set_embargo("ENG", "FRA") != "", "no embargo without rivalry")
+	g.set_rival("ENG", "FRA")
+	g.nations.ENG.dip = 100.0
+	check(g.set_embargo("ENG", "FRA") == "", "embargo against a rival")
+	check(g.set_embargo("ENG", "FRA") != "", "no double embargo")
+	g._rivals_monthly(g.nations.FRA)
+	g._rivals_monthly(g.nations.ENG)
+	check(g.nations.FRA.bonus.has("embargo") and g.nations.FRA.bonus.embargo.trade < 0.0, "the target loses trade")
+	check(g.nations.ENG.bonus.has("embargo") and g.nations.ENG.bonus.embargo.trade < 0.0 and g.nations.ENG.bonus.embargo.trade > g.nations.FRA.bonus.embargo.trade, "the embargoing side loses a little too")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.ENG.embargoes.has("FRA"), "embargoes are saved")
+	g.end_rival("ENG", "FRA")
+	g._rivals_monthly(g.nations.ENG)
+	g._rivals_monthly(g.nations.FRA)
+	check(g.nations.ENG.embargoes.is_empty() and not g.nations.FRA.bonus.has("embargo"), "the embargo ends with the rivalry")
 
 
 func _count_rivalries(g) -> int:

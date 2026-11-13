@@ -2169,7 +2169,7 @@ func _panel_nation() -> void:
 
 
 const MOD_SOURCES := {"": "Nationalgeist & Ereignisse", "goods": "Handelsgüter", "buildings": "Gebäude", "rank": "Rang",
-		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "rivals": "Rivalen"}
+		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "rivals": "Rivalen", "embargo": "Embargos"}
 const MOD_GROUPS := [
 	["💰 Wirtschaft", ["income", "tax", "production", "trade", "merchants", "build_cost", "develop_cost"]],
 	["⚔️ Militär", ["combat", "army_power", "army_power_regen", "manpower", "force_limit", "maintenance", "siege", "naval"]],
@@ -2381,6 +2381,8 @@ func _panel_other(tag: String) -> void:
 		chips.append(_chip("🚶 Durchmarsch", "Deine Armeen dürfen durch %s ziehen." % o.name, "good"))
 	if mn.rivals.has(tag):
 		chips.append(_chip("🎯 dein Rivale", "Kriege gegen %s brauchen keinen Anspruch. Siege, eroberte Provinzen und seine Unterwerfung bringen Machtprojektion." % o.name, "gold"))
+	if o.embargoes.has(me):
+		chips.append(_chip("🚫 Embargo gegen dich", "%s sperrt deine Händler: −%d %% Handelseinkommen." % [o.name, int(float(game.bal.embargo_trade) * 100)], "bad"))
 	if o.rivals.has(me):
 		chips.append(_chip("🎯 sieht dich als Rivalen", "%s hat dich zum Rivalen erklärt: es greift dich eher an und tritt Koalitionen gegen dich bei." % o.name, "bad"))
 	if chips.size() % 2 == 1:
@@ -2417,6 +2419,14 @@ func _panel_other(tag: String) -> void:
 	if mn.rivals.has(tag):
 		acts.append(_btn("🎯 Rivalität beenden", func(): game.end_rival(me, tag); _act("", "🎯 Rivalität beendet"),
 				"Kostet %d ⭐ Prestige. %s kann danach %d Jahre lang nicht wieder Rivale werden." % [int(b.rival_end_prestige), o.name, int(b.rival_cooldown_months) / 12]))
+		if mn.embargoes.has(tag):
+			acts.append(_btn("🚫 Embargo aufheben", func(): game.end_embargo(me, tag); _act("", "🚫 Embargo aufgehoben"),
+					"Die Händler von %s dürfen wieder in deine Märkte." % o.name))
+		else:
+			var er: String = game.embargo_block_reason(me, tag)
+			acts.append(_btn("🚫 Embargo %d🕊️" % int(b.embargo_cost), func(): _act(game.set_embargo(me, tag), "🚫 Embargo verhängt"),
+					"Handelsembargo gegen den Rivalen: %s verliert %d %% Handelseinkommen, du selbst %d %%. −%d Beziehung. Endet mit der Rivalität.%s" % [
+					o.name, int(float(b.embargo_trade) * 100), int(float(b.embargo_own) * 100), int(b.embargo_rel), ("\n❌ " + er) if er != "" else ""], er != ""))
 	elif o.overlord == "" and not game.is_allied(me, tag):
 		var rr: String = game.rival_block_reason(me, tag)
 		acts.append(_btn("🎯 Rivale erklären", func(): _act(game.set_rival(me, tag), "🎯 %s ist jetzt dein Rivale" % o.name),
