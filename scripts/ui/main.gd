@@ -2340,8 +2340,9 @@ func _panel_diplomacy() -> void:
 	var me: String = game.player
 	side_title.text = "🤝 Diplomatie"
 	side_box.add_child(_row([_btn("🏆 Rangliste", _open_panel.bind("ranking")), _btn("👑 Reich", _open_panel.bind("hre"))]))
-	var groups := [["Vasallen", []], ["Verbündete", []], ["Feinde", []], ["Nachbarn", []], ["Andere", []]]
+	var groups := [["Vasallen", []], ["Verbündete", []], ["Feinde", []], ["Rivalen", []], ["Nachbarn", []], ["Andere", []]]
 	var nbs: Array = game.neighbors_of(me)
+	var mn = game.nations[me]
 	for tag in game.order:
 		if tag == me or not game.nations[tag].alive:
 			continue
@@ -2351,10 +2352,12 @@ func _panel_diplomacy() -> void:
 			groups[1][1].append(tag)
 		elif game.at_war(me, tag):
 			groups[2][1].append(tag)
-		elif nbs.has(tag):
+		elif mn.rivals.has(tag) or game.nations[tag].rivals.has(me):
 			groups[3][1].append(tag)
-		else:
+		elif nbs.has(tag):
 			groups[4][1].append(tag)
+		else:
+			groups[5][1].append(tag)
 	for g in groups:
 		if g[1].is_empty():
 			continue
@@ -2947,8 +2950,9 @@ func _panel_ranking() -> void:
 	for i in mini(20 if more else 10, tags.size()):
 		var t: String = tags[i]
 		var o = game.nations[t]
-		var b := _nation_btn(t, " · %d" % game.score(t), _open_panel.bind("other", t) if t != game.player else _open_panel.bind("nation"), "%d. " % (i + 1))
-		b.tooltip_text = "%s: %d Punkte · 🏘️ %d Entwicklung · 🛡️ %.0f Regimenter%s" % [o.name, game.score(t), o.dev_total, game.army_regs(t), " · ⛓️ Vasall" if o.overlord != "" else ""]
+		var rival: bool = t != game.player and (game.nations[game.player].rivals.has(t) or o.rivals.has(game.player))
+		var b := _nation_btn(t, " · %d%s" % [game.score(t), " 🎯" if rival else ""], _open_panel.bind("other", t) if t != game.player else _open_panel.bind("nation"), "%d. " % (i + 1))
+		b.tooltip_text = "%s: %d Punkte · 🏘️ %d Entwicklung · 🛡️ %.0f Regimenter%s%s" % [o.name, game.score(t), o.dev_total, game.army_regs(t), " · ⛓️ Vasall" if o.overlord != "" else "", " · 🎯 Rivale" if rival else ""]
 		b.clip_text = true
 		if t == game.player:
 			b.modulate = Color(1.0, 0.95, 0.6)
