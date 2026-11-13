@@ -968,7 +968,7 @@ const MODE_LEGENDS := [
 ## Color keys per map mode: [color, text]
 const MODE_KEYS := {
 	1: [["3a9d4a", "du"], ["7fc98a", "deine Vasallen"], ["4a7fd0", "Verbündete"], ["c0392b", "Feinde"],
-		["e0a030", "Ansprüche"], ["8e3a8e", "Koalition gegen dich"], ["3fae9e", "Garantie"],
+		["e0a030", "Ansprüche"], ["8e3a8e", "Koalition gegen dich"], ["d9742b", "Rivalen"], ["3fae9e", "Garantie"],
 		["c08ab8", "verheiratet"], ["b09a62", "Durchmarschrecht"], ["9aa7b0", "Waffenstillstand"]],
 	4: [["3a9d4a", "du"], ["4a7fd0", "Mitkämpfer"], ["c0392b", "Feinde"], ["5a5a52", "unbeteiligt"]],
 	9: [["f0c040", "Kaiser"], ["c87a2a", "Kurfürsten"], ["7a5a9a", "Reichsmitglieder"], ["3b3a40", "außerhalb des Reichs"]],
