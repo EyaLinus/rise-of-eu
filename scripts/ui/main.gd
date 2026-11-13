@@ -576,6 +576,8 @@ func _show_start_menu() -> void:
 		top.append(_btn("💾 Weiterspielen", _load_game.bind("auto")))
 	if _has_manual_save():
 		top.append(_btn("📂 Laden", _show_slots.bind(false)))
+	if FileAccess.file_exists(HallOfFame.PATH):
+		top.append(_btn("🏆 Ruhmeshalle", _show_hall))
 	top.append(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
 	if top.size() % 2 == 1:
 		top.append(Control.new())
@@ -1359,6 +1361,10 @@ func _show_game_over() -> void:
 		if ranking[i][1] == game.player and i >= 10:
 			text += "…\n%d. %s – %d Punkte\n" % [i + 1, nname(game.player), int(ranking[i][0])]
 	modal_box.add_child(_lbl(text, 18))
+	if not game.stats.has("hall_place"):
+		game.stats.hall_place = HallOfFame.add(HallOfFame.entry_for(game))
+	var place: int = int(game.stats.hall_place)
+	modal_box.add_child(_lbl(("🏆 Neuer Rekord: Platz 1 in deiner Ruhmeshalle!" if place == 1 else "🏆 Platz %d in deiner Ruhmeshalle" % place), 18, Color(1, 0.9, 0.6)))
 	modal_box.add_child(_lbl(_summary_text(), 16, Color(0.85, 0.85, 0.75)))
 	if game.history.size() >= 2:
 		modal_box.add_child(_history_chart(260))
@@ -1367,7 +1373,37 @@ func _show_game_over() -> void:
 		modal_box.add_child(_score_chart(260))
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
-	modal_box.add_child(_btn("🏠 Hauptmenü", func(): game = null; _show_start_menu()))
+	modal_box.add_child(_grid([_btn("🏆 Ruhmeshalle", _show_hall), _btn("🏠 Hauptmenü", func(): game = null; _show_start_menu())]))
+
+
+## All finished games, best first: nation, difficulty, points, final rank, year, date.
+func _show_hall() -> void:
+	var had_game: bool = game != null and not game.game_over
+	_open_modal()
+	modal_box.add_child(_lbl("🏆 Ruhmeshalle", 32))
+	var entries := HallOfFame.load_entries()
+	if entries.is_empty():
+		modal_box.add_child(_lbl("Noch keine beendete Partie. Spiele bis 1644 (oder bis zum Untergang), dann steht dein Ergebnis hier.", 16, Color(0.8, 0.8, 0.8)))
+	else:
+		modal_box.add_child(_lbl("Deine beendeten Partien, beste zuerst.", 16, Color(0.8, 0.8, 0.8)))
+		var i := 0
+		for e in entries:
+			i += 1
+			var nd: Dictionary = data.nations.get(str(e.tag), {})
+			var name: String = "%s %s" % [PixelEmoji.nation(str(e.tag), nd.get("emoji", "")), nd.get("name", str(e.tag))]
+			var fate: String = ("Rang %d" % int(e.rank)) if bool(e.get("alive", true)) else "☠️ vernichtet"
+			var row := _lbl("%d. %s · %d Punkte · %s · %s · %d 🏘️ · %d Prov. · %s" % [
+					i, name, int(e.score), Game.DIFFICULTY_NAMES.get(str(e.difficulty), str(e.difficulty)), fate, int(e.get("dev", 0)), int(e.get("provinces", 0)), str(e.get("date", ""))], 16,
+					Color(1, 0.9, 0.6) if i == 1 else Color(0.92, 0.92, 0.95))
+			row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			modal_box.add_child(row)
+	modal_box.add_child(_btn("◀ Zurück", func():
+		if had_game:
+			_close_modal()
+		elif game != null and game.game_over:
+			_show_game_over()
+		else:
+			_show_start_menu()))
 
 
 # ---------------------------------------------------------------- side panel
@@ -2169,7 +2205,7 @@ func _panel_nation() -> void:
 
 
 const MOD_SOURCES := {"": "Nationalgeist & Ereignisse", "goods": "Handelsgüter", "buildings": "Gebäude", "rank": "Rang",
-		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "rivals": "Rivalen"}
+		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "rivals": "Rivalen", "embargo": "Embargos"}
 const MOD_GROUPS := [
 	["💰 Wirtschaft", ["income", "tax", "production", "trade", "merchants", "build_cost", "develop_cost"]],
 	["⚔️ Militär", ["combat", "army_power", "army_power_regen", "manpower", "force_limit", "maintenance", "siege", "naval"]],
@@ -2381,6 +2417,8 @@ func _panel_other(tag: String) -> void:
 		chips.append(_chip("🚶 Durchmarsch", "Deine Armeen dürfen durch %s ziehen." % o.name, "good"))
 	if mn.rivals.has(tag):
 		chips.append(_chip("🎯 dein Rivale", "Kriege gegen %s brauchen keinen Anspruch. Siege, eroberte Provinzen und seine Unterwerfung bringen Machtprojektion." % o.name, "gold"))
+	if o.embargoes.has(me):
+		chips.append(_chip("🚫 Embargo gegen dich", "%s sperrt deine Händler: −%d %% Handelseinkommen." % [o.name, int(float(game.bal.embargo_trade) * 100)], "bad"))
 	if o.rivals.has(me):
 		chips.append(_chip("🎯 sieht dich als Rivalen", "%s hat dich zum Rivalen erklärt: es greift dich eher an und tritt Koalitionen gegen dich bei." % o.name, "bad"))
 	if chips.size() % 2 == 1:
@@ -2417,6 +2455,14 @@ func _panel_other(tag: String) -> void:
 	if mn.rivals.has(tag):
 		acts.append(_btn("🎯 Rivalität beenden", func(): game.end_rival(me, tag); _act("", "🎯 Rivalität beendet"),
 				"Kostet %d ⭐ Prestige. %s kann danach %d Jahre lang nicht wieder Rivale werden." % [int(b.rival_end_prestige), o.name, int(b.rival_cooldown_months) / 12]))
+		if mn.embargoes.has(tag):
+			acts.append(_btn("🚫 Embargo aufheben", func(): game.end_embargo(me, tag); _act("", "🚫 Embargo aufgehoben"),
+					"Die Händler von %s dürfen wieder in deine Märkte." % o.name))
+		else:
+			var er: String = game.embargo_block_reason(me, tag)
+			acts.append(_btn("🚫 Embargo %d🕊️" % int(b.embargo_cost), func(): _act(game.set_embargo(me, tag), "🚫 Embargo verhängt"),
+					"Handelsembargo gegen den Rivalen: %s verliert %d %% Handelseinkommen, du selbst %d %%. −%d Beziehung. Endet mit der Rivalität.%s" % [
+					o.name, int(float(b.embargo_trade) * 100), int(float(b.embargo_own) * 100), int(b.embargo_rel), ("\n❌ " + er) if er != "" else ""], er != ""))
 	elif o.overlord == "" and not game.is_allied(me, tag):
 		var rr: String = game.rival_block_reason(me, tag)
 		acts.append(_btn("🎯 Rivale erklären", func(): _act(game.set_rival(me, tag), "🎯 %s ist jetzt dein Rivale" % o.name),

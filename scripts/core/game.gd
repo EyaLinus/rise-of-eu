@@ -98,6 +98,7 @@ class Nation:
 	var guarantees := {}  # nations whose independence we defend
 	var rivals: Array = []  # declared rivals: cheaper wars against them, power projection from beating them
 	var power_proj: float = 0.0  # power projection 0..pp_max, earned against rivals, decays yearly
+	var embargoes: Array = []  # rivals whose trade we block (costs us a little trade too)
 	var religion: String = "catholic"  # state religion
 	var monuments := {}  # finished great works (Monuments)
 	var monument_build := {}  # {"id", "months"} while one is being built
@@ -2224,7 +2225,10 @@ func _end_rivalry_both(a: String, b: String) -> void:
 
 func add_power_proj(tag: String, v: float) -> void:
 	var n: Nation = nations[tag]
+	var before: float = n.power_proj
 	n.power_proj = clampf(n.power_proj + v, 0.0, float(bal.pp_max))
+	if before < float(bal.pp_max) * 0.5 and n.power_proj >= float(bal.pp_max) * 0.5:
+		fire_event(tag, "riv_power_shown")
 
 
 ## Rivals who see us as a rival, for the UI.
@@ -2236,10 +2240,56 @@ func rivaled_by(tag: String) -> Array:
 	return r
 
 
+func embargo_block_reason(tag: String, target: String) -> String:
+	var n: Nation = nations[tag]
+	if tag == target or not nations.has(target) or not nations[target].alive:
+		return "Ungültiges Ziel."
+	if n.embargoes.has(target):
+		return "Embargo besteht schon."
+	if not n.rivals.has(target):
+		return "Nur gegen Rivalen."
+	if n.dip < float(bal.embargo_cost):
+		return "Zu wenig Diplomatie (%d)." % int(bal.embargo_cost)
+	return ""
+
+
+## Blocks a rival's merchants: it loses trade income, we lose a little ourselves.
+func set_embargo(tag: String, target: String) -> String:
+	var r := embargo_block_reason(tag, target)
+	if r != "":
+		return r
+	nations[tag].dip -= float(bal.embargo_cost)
+	nations[tag].embargoes.append(target)
+	add_rel(tag, target, -float(bal.embargo_rel))
+	log_msg("🚫 %s verhängt ein Handelsembargo gegen %s." % [nations[tag].name, nations[target].name], [tag, target])
+	return ""
+
+
+func end_embargo(tag: String, target: String) -> void:
+	nations[tag].embargoes.erase(target)
+
+
+## Nations currently embargoing `tag`.
+func embargoed_by(tag: String) -> Array:
+	var r := []
+	for t in order:
+		if nations[t].alive and nations[t].embargoes.has(tag):
+			r.append(t)
+	return r
+
+
 func _rivals_monthly(n: Nation) -> void:
 	for t in n.rivals.duplicate():
 		if not nations[t].alive or nations[t].overlord != "" or n.overlord != "":
 			end_rival(n.tag, t, true)
+	for t in n.embargoes.duplicate():
+		if not n.rivals.has(t):
+			n.embargoes.erase(t)
+	var hit: int = embargoed_by(n.tag).size()
+	if hit > 0 or not n.embargoes.is_empty():
+		n.bonus["embargo"] = {"trade": -float(bal.embargo_trade) * hit - float(bal.embargo_own) * n.embargoes.size()}
+	else:
+		n.bonus.erase("embargo")
 	n.power_proj = maxf(0.0, n.power_proj - float(bal.pp_decay_per_year) / 12.0)
 	if n.power_proj > 0.0:
 		var f: float = n.power_proj / float(bal.pp_max)
@@ -2447,6 +2497,11 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 			"army_power":
 				for a in armies_of(tag):
 					a.power = clampf(a.power + float(v) * power_max(tag), 0.0, power_max(tag))
+			"power_proj":
+				add_power_proj(tag, float(v))
+			"rival_rel":
+				for t in n.rivals:
+					add_rel(tag, t, float(v))
 			"loan":
 				for i in int(v):
 					Economy.take_loan(self, tag)
@@ -2709,6 +2764,22 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 				# flavor that would only dilute the AI's event pool (and cost it gold, see court_events.py)
 				if (tag == player) != bool(v):
 					return false
+			"rivals_min":
+				if n.rivals.size() < int(v):
+					return false
+			"rivaled":
+				if rivaled_by(tag).is_empty() == bool(v):
+					return false
+			"power_proj_min":
+				if n.power_proj < float(v):
+					return false
+			"rival_at_war":
+				var fighting := false
+				for t in n.rivals:
+					if at_war(tag, t):
+						fighting = true
+				if fighting != bool(v):
+					return false
 			"married":
 				if n.marriages.is_empty() == bool(v):
 					return false
@@ -2854,7 +2925,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "monuments": n.monuments.keys(), "monument_build": n.monument_build,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "embargoes": n.embargoes, "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "monuments": n.monuments.keys(), "monument_build": n.monument_build,
 				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n)}
 	d.nations = ns
 	var ar := []
@@ -2999,6 +3070,9 @@ func from_dict(d: Dictionary) -> void:
 		for t in e.get("rivals", []):
 			n.rivals.append(str(t))
 		n.power_proj = float(e.get("power_proj", 0.0))
+		n.embargoes = []
+		for t in e.get("embargoes", []):
+			n.embargoes.append(str(t))
 		n.loans = []
 		for l in e.get("loans", []):
 			n.loans.append(float(l))

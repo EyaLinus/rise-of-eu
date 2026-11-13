@@ -25,6 +25,8 @@ func _init() -> void:
 		"test_military_access",
 		"test_guarantee",
 		"test_rivals",
+		"test_embargo",
+		"test_hall_of_fame",
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
@@ -1022,6 +1024,51 @@ func test_rivals() -> void:
 	for t in g3.order:
 		for r in g3.nations[t].rivals:
 			check(g3.nations[r].alive and not g3.is_allied(t, r), "AI rivals are alive and not allies")
+
+
+func test_embargo() -> void:
+	var g = new_game("ENG", 5)
+	check(g.set_embargo("ENG", "FRA") != "", "no embargo without rivalry")
+	g.set_rival("ENG", "FRA")
+	g.nations.ENG.dip = 100.0
+	check(g.set_embargo("ENG", "FRA") == "", "embargo against a rival")
+	check(g.set_embargo("ENG", "FRA") != "", "no double embargo")
+	g._rivals_monthly(g.nations.FRA)
+	g._rivals_monthly(g.nations.ENG)
+	check(g.nations.FRA.bonus.has("embargo") and g.nations.FRA.bonus.embargo.trade < 0.0, "the target loses trade")
+	check(g.nations.ENG.bonus.has("embargo") and g.nations.ENG.bonus.embargo.trade < 0.0 and g.nations.ENG.bonus.embargo.trade > g.nations.FRA.bonus.embargo.trade, "the embargoing side loses a little too")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.ENG.embargoes.has("FRA"), "embargoes are saved")
+	g.end_rival("ENG", "FRA")
+	g._rivals_monthly(g.nations.ENG)
+	g._rivals_monthly(g.nations.FRA)
+	check(g.nations.ENG.embargoes.is_empty() and not g.nations.FRA.bonus.has("embargo"), "the embargo ends with the rivalry")
+
+
+func test_hall_of_fame() -> void:
+	var path := "user://test_hall.json"
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	var g = new_game("FRA", 3)
+	for m in 24:
+		g.tick()
+	var e: Dictionary = HallOfFame.entry_for(g)
+	check(e.tag == "FRA" and e.score > 0 and e.rank >= 1 and e.alive and e.year == 1446, "entry describes the game")
+	check(HallOfFame.add(e, path) == 1, "first game is the record")
+	var better := e.duplicate()
+	better.score = e.score + 100
+	check(HallOfFame.add(better, path) == 1, "a better game takes the first place")
+	var same_place: int = HallOfFame.add(e.duplicate(), path)
+	check(same_place >= 2 and same_place <= 3, "an equal game ranks behind the record (place %d)" % same_place)
+	for i in HallOfFame.MAX_ENTRIES + 5:
+		var low := e.duplicate()
+		low.score = 1
+		HallOfFame.add(low, path)
+	check(HallOfFame.load_entries(path).size() == HallOfFame.MAX_ENTRIES, "the hall keeps at most %d games" % HallOfFame.MAX_ENTRIES)
+	g.nations.FRA.alive = false
+	check(HallOfFame.entry_for(g).rank == 0 and not HallOfFame.entry_for(g).alive, "a destroyed nation has no rank")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
 func _count_rivalries(g) -> int:

@@ -23,6 +23,11 @@ func _run(tags: Array, years: int) -> void:
 	var m = load("res://scenes/main.tscn").instantiate()
 	root.add_child(m)
 	await create_timer(0.2).timeout
+	if m.get_script() == null or m.get("settings") == null:
+		# main.gd did not parse (see the SCRIPT ERROR above): fail fast instead of hanging until CI times out
+		push_error("SMOKE main.gd failed to load")
+		quit(1)
+		return
 	m.settings.tips = true
 	m.settings.tips_seen = []
 	m.settings.sound = false
@@ -60,6 +65,7 @@ func _run(tags: Array, years: int) -> void:
 				push_error("SMOKE slot 3 round trip broken")
 			g = m.game
 		m._show_game_over()
+		m._show_hall()
 		m._close_modal()
 		print("SMOKE %s ok: %s, alive=%s, panels=%d" % [tag, g.date_string(), g.nations[tag].alive, opened])
 	quit()

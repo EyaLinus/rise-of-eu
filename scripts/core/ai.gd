@@ -330,6 +330,12 @@ func _rivals(g, n) -> void:
 		var o = g.nations[t]
 		if not o.alive or o.overlord != "" or g.is_allied(tag, t) or g.strength(t) < g.strength(tag) * float(g.bal.rival_min_strength) * 0.5:
 			g.end_rival(tag, t)
+	# a realm with spare diplomacy blocks the trade of a rival that earns much from it
+	if n.dip > float(g.bal.embargo_cost) + 120.0:
+		for t in n.rivals:
+			if not n.embargoes.has(t) and g.nations[t].trade_income > n.trade_income * 0.5 and g.rng.randf() < 0.5:
+				g.set_embargo(tag, t)
+				break
 	if n.rivals.size() >= int(g.bal.max_rivals) or g.rng.randf() > float(g.bal.ai_rival_chance):
 		return
 	var best := ""
