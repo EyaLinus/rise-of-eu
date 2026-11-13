@@ -24,6 +24,7 @@ func _init() -> void:
 		"test_ai_war_odds",
 		"test_military_access",
 		"test_guarantee",
+		"test_rivals",
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
@@ -957,6 +958,77 @@ func test_guarantee() -> void:
 	g.nations[target].truces.erase("FRA")
 	g.declare_war("FRA", target)
 	check(not g.nations.FRA.guarantees.has(target), "attacking the protected state breaks the guarantee")
+
+
+func test_rivals() -> void:
+	var g = new_game("ENG", 5)
+	check(g.rival_block_reason("ENG", "FRA") == "", "England may rival France: " + g.rival_block_reason("ENG", "FRA"))
+	check(g.set_rival("ENG", "FRA") == "", "rivalry declared")
+	check(g.set_rival("ENG", "FRA") != "", "no double rivalry")
+	check(g.get_rel("ENG", "FRA") <= -60.0 - float(g.bal.rival_rel) + 0.01, "rivalry sours relations")
+	var weak := ""
+	for t in g.nations_in_range("ENG", int(g.bal.rival_range)):
+		if t != "FRA" and g.nations[t].dev_total < g.nations.ENG.dev_total * 0.3 and g.strength(t) < g.strength("ENG") * 0.3:
+			weak = t
+			break
+	if weak != "":
+		check(g.set_rival("ENG", weak) != "", "a far weaker realm is no worthy rival")
+	check(g.rival_block_reason("ENG", "TUR") != "", "a realm out of reach cannot be rivalled")
+	# rivalry is a casus belli: no dip cost, no no-CB aggressive expansion
+	g.nations.ENG.truces.erase("FRA")
+	g.nations.FRA.truces.erase("ENG")
+	var dip0: float = g.nations.ENG.dip
+	var ae0: float = g.nations.ENG.ae
+	check(g.declare_war("ENG", "FRA") == "", "war on a rival")
+	check(is_equal_approx(g.nations.ENG.dip, dip0) and is_equal_approx(g.nations.ENG.ae, ae0), "no no-CB penalty against a rival")
+	# power projection: provinces taken from a rival, mil bonus, decay
+	var w = g.wars[0]
+	var pid: int = g.provinces_of("FRA")[0]
+	g.provinces[pid].controller = "ENG"
+	g.make_peace(w, true, [pid])
+	check(g.nations.ENG.power_proj >= float(g.bal.pp_province) - 0.01, "a province from a rival projects power")
+	g.add_power_proj("ENG", 1000.0)
+	check(g.nations.ENG.power_proj == float(g.bal.pp_max), "power projection is capped")
+	g._rivals_monthly(g.nations.ENG)
+	check(g.nations.ENG.bonus.has("rivals") and g.nations.ENG.bonus.rivals.mil > 1.0, "high power projection gives military power")
+	var pp: float = g.nations.ENG.power_proj
+	check(pp < float(g.bal.pp_max), "power projection decays")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.ENG.rivals.has("FRA") and is_equal_approx(g2.nations.ENG.power_proj, pp), "rivals and power projection are saved")
+	# ending a rivalry costs prestige and blocks the same rival for a while
+	var pr: float = g.nations.ENG.prestige
+	g.end_rival("ENG", "FRA")
+	check(not g.nations.ENG.rivals.has("FRA") and g.nations.ENG.prestige < pr, "ending a rivalry costs prestige")
+	check(g.rival_block_reason("ENG", "FRA") != "", "cooldown after ending a rivalry")
+	# an alliance ends the rivalry on both sides
+	g.set_rival("FRA", "ENG")
+	g._ally("FRA", "ENG")
+	check(not g.nations.FRA.rivals.has("ENG"), "allies are no rivals")
+	# AI picks rivals within a few years
+	var g3 = new_game("", 11)
+	for m in 10 * 12:
+		g3.tick()
+	var with_rivals := 0
+	var powers := 0
+	for t in g3.order:
+		var n = g3.nations[t]
+		if n.alive and n.overlord == "":
+			powers += 1
+			if not n.rivals.is_empty():
+				with_rivals += 1
+	print("    rivals after 10 years: %d of %d realms, %d rivalries, TUR rivalled by %d" % [with_rivals, powers, _count_rivalries(g3), g3.rivaled_by("TUR").size()])
+	check(with_rivals >= powers / 3, "most AI realms pick a rival within ten years")
+	for t in g3.order:
+		for r in g3.nations[t].rivals:
+			check(g3.nations[r].alive and not g3.is_allied(t, r), "AI rivals are alive and not allies")
+
+
+func _count_rivalries(g) -> int:
+	var c := 0
+	for t in g.order:
+		c += g.nations[t].rivals.size()
+	return c
 
 
 func test_religion() -> void:

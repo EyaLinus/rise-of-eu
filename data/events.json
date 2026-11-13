@@ -2903,6 +2903,12 @@
      {"text": "Das Volk zur Verteidigung rufen.", "effects": {"manpower": 2000, "estate": {"buerger": -2}}},
      {"text": "Einen Keil zwischen sie treiben.", "effects": {"dip": 25}},
      {"text": "Die Festungen rüsten.", "effects": {"mil": 20, "gold": -20}, "ai": 8}]},
+  {"id": "dip_rivaled", "manual": true, "tag": "*", "title": "Ein erklärter Rivale", "text": "Ein Nachbar hat dich öffentlich zum Rivalen erklärt. Seine Gesandten werben an den Höfen gegen dich, seine Generäle studieren deine Grenzen.", "image": "diet",
+   "trigger": {},
+   "options": [
+     {"text": "Die Grenze befestigen.", "effects": {"mil": 15}},
+     {"text": "Mit eigenen Gesandten antworten.", "effects": {"dip": 15, "prestige": 2}},
+     {"text": "Das Volk aufrütteln.", "effects": {"manpower": 1000, "prestige": -2}}]},
   {"id": "dip_first_vassal", "manual": true, "tag": "*", "title": "Der erste Vasall", "text": "Ein fremder Fürst hat dir den Treueid geleistet. Er herrscht weiter in seinem Land, aber nach deinem Willen.", "image": "coronation",
    "trigger": {},
    "options": [

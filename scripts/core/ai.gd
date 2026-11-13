@@ -250,6 +250,7 @@ func _diplomacy(g, n) -> void:
 	_marriage(g, n)
 	_war_access(g, n)
 	_guarantee(g, n)
+	_rivals(g, n)
 	if n.allies.size() >= 2:
 		return
 	var best := ""
@@ -321,6 +322,41 @@ func _war_access(g, n) -> void:
 				return
 
 
+## Rivals: the biggest realm within reach is the natural rival (balance of power), claims and bad blood add to it.
+## Rivalries that no longer fit (ally, vassal, dead, far too weak) are dropped.
+func _rivals(g, n) -> void:
+	var tag: String = n.tag
+	for t in n.rivals.duplicate():
+		var o = g.nations[t]
+		if not o.alive or o.overlord != "" or g.is_allied(tag, t) or g.strength(t) < g.strength(tag) * float(g.bal.rival_min_strength) * 0.5:
+			g.end_rival(tag, t)
+	if n.rivals.size() >= int(g.bal.max_rivals) or g.rng.randf() > float(g.bal.ai_rival_chance):
+		return
+	var best := ""
+	var best_score := 0.0
+	for t in g.nations_in_range(tag, int(g.bal.rival_range)):
+		if g.rival_block_reason(tag, t) != "" or g.has_truce(tag, t):
+			continue
+		var o = g.nations[t]
+		var s: float = minf(2.0, float(o.dev_total) / maxf(1.0, float(n.dev_total)))
+		if g.has_claim_on(tag, t) or g.has_claim_on(t, tag):
+			s += 0.5
+		if o.rivals.has(tag):
+			s += 0.5
+		var rel: float = g.get_rel(tag, t)
+		if rel > 40.0:
+			s -= 1.0
+		elif rel < 0.0:
+			s += 0.25
+		if t == g.player:
+			s -= 0.25  # the player is rivalled a little less eagerly
+		if s > best_score:
+			best_score = s
+			best = t
+	if best != "" and best_score >= 0.6:
+		g.set_rival(tag, best)
+
+
 ## A great power now and then guarantees a small friendly neighbour (keeps minors alive, buys influence).
 func _guarantee(g, n) -> void:
 	if not n.major or n.guarantees.size() >= int(g.bal.ai_max_guarantees) \
@@ -353,6 +389,8 @@ func accepts_alliance(g, target: String, from: String) -> bool:
 	if t.allies.size() >= int(g.bal.max_allies):
 		return false
 	if g.has_claim_on(from, target) or g.has_claim_on(target, from):
+		return false
+	if t.rivals.has(from) or g.nations[from].rivals.has(target):
 		return false
 	var s: float = g.get_rel(target, from)
 	var my_str: float = g.strength(target)
@@ -387,17 +425,20 @@ func _consider_war(g, n) -> void:
 		if not o.alive or g.is_allied(tag, t) or g.has_truce(tag, t) or g.at_war(tag, t) or g.govt.landfriede(g, tag, t):
 			continue
 		var claim: bool = g.has_claim_on(tag, t)
-		if not claim and n.dip < float(g.bal.nocb_war_dip) + 10.0:
+		var rival: bool = n.rivals.has(t)
+		if not claim and not rival and n.dip < float(g.bal.nocb_war_dip) + 10.0:
 			continue
 		var ratio := war_odds(g, tag, t)
 		var need: float = float(g.bal.ai_war_ratio) / aggression * (0.85 if claim else 1.0)
+		if rival:
+			need *= float(g.bal.ai_rival_war_need)
 		if rich:
 			need *= float(g.bal.ai_rich_war_need)  # a war chest buys mercenaries and outlasts the enemy
 		if t == g.player:
 			need /= g.diff("ai_vs_player")
 		if ratio < need:
 			continue
-		var s: float = ratio + (1.0 if claim else 0.0)
+		var s: float = ratio + (1.0 if claim else 0.0) + (0.75 if rival else 0.0)
 		if s > best_score:
 			best_score = s
 			best = t

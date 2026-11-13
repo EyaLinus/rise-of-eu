@@ -2131,6 +2131,7 @@ func _panel_nation() -> void:
 		_chip("😩 Müdigkeit %.1f" % n.we, "Kriegsmüdigkeit (höchstens %d): erhöht Unruhe, Gegner nehmen Frieden leichter an." % int(game.bal.we_max), "bad" if n.we >= 5.0 else ""),
 		_chip("😠 AE %d / %d" % [n.ae, thr], "Aggressive Expansion; ab %d drohen Koalitionen.\nKoalition gegen dich: %s" % [int(thr), ", ".join(co) if not co.is_empty() else "keine"], "bad" if not co.is_empty() or n.ae >= thr else ""),
 		_chip("⛪ %s %d %%" % [Faith.faith_name(n.religion), int(Faith.share(game, me, n.religion) * 100)], "Staatsglaube und Anteil deines Landes, der ihn teilt."),
+		_chip("🎯 Rivalen %d/%d · %.0f" % [n.rivals.size(), int(game.bal.max_rivals), n.power_proj], _rival_tip(n), "good" if n.power_proj >= 25.0 else ""),
 	]
 	side_box.add_child(_grid(chips))
 	var nav := [_btn("🔬 Technik", _open_panel.bind("tech"), "Technologie: 📜%d 🕊️%d ⚔️%d" % [n.tech.adm, n.tech.dip, n.tech.mil]),
@@ -2168,13 +2169,26 @@ func _panel_nation() -> void:
 
 
 const MOD_SOURCES := {"": "Nationalgeist & Ereignisse", "goods": "Handelsgüter", "buildings": "Gebäude", "rank": "Rang",
-		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte"}
+		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "rivals": "Rivalen"}
 const MOD_GROUPS := [
 	["💰 Wirtschaft", ["income", "tax", "production", "trade", "merchants", "build_cost", "develop_cost"]],
 	["⚔️ Militär", ["combat", "army_power", "army_power_regen", "manpower", "force_limit", "maintenance", "siege", "naval"]],
 	["📜 Staat", ["adm", "dip", "mil", "tech_cost", "coring", "unrest", "ae_gen", "ae_decay", "prestige", "advisor_slots", "company_slots"]],
 	["⚖️ Stände", ["estate_adel", "estate_klerus", "estate_buerger"]],
 ]
+
+
+func _rival_tip(n) -> String:
+	var names := []
+	for t in n.rivals:
+		names.append(game.nations[t].name)
+	var by := []
+	for t in game.rivaled_by(n.tag):
+		by.append(game.nations[t].name)
+	var f: float = n.power_proj / float(game.bal.pp_max)
+	return "Deine Rivalen: %s\nSehen dich als Rivalen: %s\n🎯 Machtprojektion %.0f/%d: +%.2f ⚔️ im Monat, %+.2f ⭐ im Jahr, AE-Abbau +%d %%. Sie steigt durch Siege über Rivalen und zerfällt um %d im Jahr." % [
+			", ".join(names) if not names.is_empty() else "keine", ", ".join(by) if not by.is_empty() else "niemand",
+			n.power_proj, int(game.bal.pp_max), f * float(game.bal.pp_mil), f * float(game.bal.pp_prestige), int(f * float(game.bal.pp_ae_decay) * 100), int(game.bal.pp_decay_per_year)]
 
 
 ## Gold sinks for rich realms: a court feast and one great work at a time in the capital.
@@ -2326,6 +2340,8 @@ func _panel_diplomacy() -> void:
 				txt += "  🚶"
 			if game.nations[me].guarantees.has(tag) or o.guarantees.has(me):
 				txt += "  🛡️"
+			if game.nations[me].rivals.has(tag) or o.rivals.has(me):
+				txt += "  🎯"
 			side_box.add_child(_nation_btn(tag, txt, _open_panel.bind("other", tag)))
 
 
@@ -2363,6 +2379,10 @@ func _panel_other(tag: String) -> void:
 		chips.append(_chip("👑 verheiratet", "Eure Häuser sind verheiratet: die Beziehung bleibt mindestens bei %d." % int(game.bal.marriage_rel_floor), "gold"))
 	if mn.access.has(tag):
 		chips.append(_chip("🚶 Durchmarsch", "Deine Armeen dürfen durch %s ziehen." % o.name, "good"))
+	if mn.rivals.has(tag):
+		chips.append(_chip("🎯 dein Rivale", "Kriege gegen %s brauchen keinen Anspruch. Siege, eroberte Provinzen und seine Unterwerfung bringen Machtprojektion." % o.name, "gold"))
+	if o.rivals.has(me):
+		chips.append(_chip("🎯 sieht dich als Rivalen", "%s hat dich zum Rivalen erklärt: es greift dich eher an und tritt Koalitionen gegen dich bei." % o.name, "bad"))
 	if chips.size() % 2 == 1:
 		chips.append(Control.new())
 	side_box.add_child(_grid(chips))
@@ -2394,6 +2414,14 @@ func _panel_other(tag: String) -> void:
 		acts.append(_btn("🛡️ Garantie %d🕊️" % int(b.guarantee_cost), func(): _act(game.guarantee(me, tag), "🛡️ Garantie ausgesprochen"),
 				"Unabhängigkeit garantieren: +%d Beziehung. Wer %s den Krieg erklärt, hat dich automatisch als Gegner. So schützt du kleine Nachbarn vor deinen Rivalen. Höchstens %d Garantien.%s" % [
 				int(b.guarantee_rel), o.name, int(b.max_guarantees), ("\n❌ " + gr) if gr != "" else ""], gr != ""))
+	if mn.rivals.has(tag):
+		acts.append(_btn("🎯 Rivalität beenden", func(): game.end_rival(me, tag); _act("", "🎯 Rivalität beendet"),
+				"Kostet %d ⭐ Prestige. %s kann danach %d Jahre lang nicht wieder Rivale werden." % [int(b.rival_end_prestige), o.name, int(b.rival_cooldown_months) / 12]))
+	elif o.overlord == "" and not game.is_allied(me, tag):
+		var rr: String = game.rival_block_reason(me, tag)
+		acts.append(_btn("🎯 Rivale erklären", func(): _act(game.set_rival(me, tag), "🎯 %s ist jetzt dein Rivale" % o.name),
+				"Rivalen (höchstens %d, ähnlich stark, in der Nähe): −%d Beziehung. Kriege gegen Rivalen brauchen keinen Anspruch und kosten keine Extra-AE. Gewonnene Schlachten (+%d), eroberte Provinzen (+%d) und seine Unterwerfung (+%d) bringen Machtprojektion: bis +%.1f ⚔️ im Monat, Prestige und schnelleren AE-Abbau. Sie zerfällt um %d im Jahr.%s" % [
+				int(b.max_rivals), int(b.rival_rel), int(b.pp_battle), int(b.pp_province), int(b.pp_humbled), float(b.pp_mil), int(b.pp_decay_per_year), ("\n❌ " + rr) if rr != "" else ""], rr != ""))
 	if o.overlord == me:
 		var left: int = game.annex_months_left(tag)
 		acts.append(_btn("📜 Annektieren %d🕊️ %d📜" % [int(game.annex_cost(tag)), int(game.annex_adm_cost(tag))], func(): _act(game.annex_vassal(me, tag), "📜 %s annektiert!" % o.name),
@@ -2941,6 +2969,13 @@ func _advice() -> Array:
 	var Eco = game.Economy
 	if not n.merchant_auto and n.merchants.size() < Eco.merchant_count(game, n):
 		add.call("🏬 Händler frei", "Schick ihn unter 💰 Wirtschaft → Handel in einen reichen Markt.", "", "economy")
+	if n.rivals.is_empty() and n.overlord == "" and game.year() >= int(game.bal.start_year) + 2:
+		var cand := ""
+		for t in game.nations_in_range(me, int(game.bal.rival_range)):
+			if game.rival_block_reason(me, t) == "" and (cand == "" or game.nations[t].dev_total > game.nations[cand].dev_total):
+				cand = t
+		if cand != "":
+			add.call("🎯 Kein Rivale gewählt", "Erkläre einen ähnlich starken Nachbarn zum Rivalen (etwa %s): Kriege gegen ihn brauchen keinen Anspruch, Siege bringen Machtprojektion." % game.nations[cand].name, "", "other", cand)
 	if not n.autobuild and not game.is_at_war(me):
 		var best: Array = Eco.best_building(game, n, false)
 		if not best.is_empty() and n.gold >= Eco.building_cost(game, me, best[0], best[1]) + 50.0:
