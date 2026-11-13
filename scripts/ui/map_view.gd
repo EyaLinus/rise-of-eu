@@ -561,6 +561,8 @@ func province_color(p) -> Color:
 				return Color("e0a030")
 			if n.coalition.has(p.owner):
 				return Color("8e3a8e")
+			if n.rivals.has(p.owner) or game.nations[p.owner].rivals.has(me):
+				return Color("d9742b")
 			if n.guarantees.has(p.owner) or game.nations[p.owner].guarantees.has(me):
 				return Color("3fae9e")
 			if n.marriages.has(p.owner):
