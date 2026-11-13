@@ -2225,7 +2225,10 @@ func _end_rivalry_both(a: String, b: String) -> void:
 
 func add_power_proj(tag: String, v: float) -> void:
 	var n: Nation = nations[tag]
+	var before: float = n.power_proj
 	n.power_proj = clampf(n.power_proj + v, 0.0, float(bal.pp_max))
+	if before < float(bal.pp_max) * 0.5 and n.power_proj >= float(bal.pp_max) * 0.5:
+		fire_event(tag, "riv_power_shown")
 
 
 ## Rivals who see us as a rival, for the UI.
@@ -2494,6 +2497,11 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 			"army_power":
 				for a in armies_of(tag):
 					a.power = clampf(a.power + float(v) * power_max(tag), 0.0, power_max(tag))
+			"power_proj":
+				add_power_proj(tag, float(v))
+			"rival_rel":
+				for t in n.rivals:
+					add_rel(tag, t, float(v))
 			"loan":
 				for i in int(v):
 					Economy.take_loan(self, tag)
@@ -2755,6 +2763,22 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"is_player":
 				# flavor that would only dilute the AI's event pool (and cost it gold, see court_events.py)
 				if (tag == player) != bool(v):
+					return false
+			"rivals_min":
+				if n.rivals.size() < int(v):
+					return false
+			"rivaled":
+				if rivaled_by(tag).is_empty() == bool(v):
+					return false
+			"power_proj_min":
+				if n.power_proj < float(v):
+					return false
+			"rival_at_war":
+				var fighting := false
+				for t in n.rivals:
+					if at_war(tag, t):
+						fighting = true
+				if fighting != bool(v):
 					return false
 			"married":
 				if n.marriages.is_empty() == bool(v):
