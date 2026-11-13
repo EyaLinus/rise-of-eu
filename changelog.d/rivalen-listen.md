@@ -1,0 +1,1 @@
+- Diplomatie-Liste: Rivalen (deine und die, die dich als Rivalen sehen) stehen in einer eigenen Gruppe „Rivalen“; in der Rangliste tragen sie ein 🎯.
