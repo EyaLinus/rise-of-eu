@@ -1,1 +1,0 @@
-- **Ruhmeshalle:** Jede beendete Partie (Spielende 1644 oder Untergang) landet mit Nation, Schwierigkeit, Punkten, Endrang, Entwicklung und Datum in der Ruhmeshalle (🏆 im Hauptmenü, bis zu 30 Einträge, beste zuerst). Das Spielende zeigt deinen Platz darin und feiert einen neuen Rekord.

@@ -1,1 +1,0 @@
-- **Handelsembargo:** Gegen einen Rivalen kannst du für 20 🕊️ ein Embargo verhängen: er verliert 10 % Handelseinkommen, du selbst 3 %. Es endet mit der Rivalität. Die KI sperrt Rivalen mit starkem Handel ebenfalls aus. Embargos gegen dich stehen im Fenster der Nation und in der Modifikator-Übersicht.
