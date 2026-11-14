@@ -62,12 +62,30 @@
   "ai_navy_share_war": 0.6,
   "ai_navy_gold_reserve": 60.0,
   "terrain": {
-    "plains": {"move": 1.0, "defense": 0.0},
-    "forest": {"move": 1.25, "defense": 0.1},
-    "hills": {"move": 1.35, "defense": 0.15},
-    "mountains": {"move": 1.75, "defense": 0.3},
-    "desert": {"move": 1.3, "defense": 0.05},
-    "marsh": {"move": 1.5, "defense": 0.15}
+    "plains": {
+      "move": 1.0,
+      "defense": 0.0
+    },
+    "forest": {
+      "move": 1.25,
+      "defense": 0.1
+    },
+    "hills": {
+      "move": 1.35,
+      "defense": 0.15
+    },
+    "mountains": {
+      "move": 1.75,
+      "defense": 0.3
+    },
+    "desert": {
+      "move": 1.3,
+      "defense": 0.05
+    },
+    "marsh": {
+      "move": 1.5,
+      "defense": 0.15
+    }
   },
   "home_defense": 0.1,
   "siege_base": 6.0,
@@ -171,10 +189,44 @@
   "building_level_exp": 1.6,
   "building_cost_mult": 0.5,
   "difficulty": {
-    "easy": {"player": {"income": 0.25, "combat": 0.1, "manpower": 0.25, "unrest": -1.5, "tech_cost": -0.1}, "ai": {}, "ai_aggression": 0.75, "ai_vs_player": 0.6},
-    "normal": {"player": {"income": 0.1, "combat": 0.05, "unrest": -0.5}, "ai": {}, "ai_aggression": 1.0, "ai_vs_player": 0.85},
-    "hard": {"player": {}, "ai": {}, "ai_aggression": 1.0, "ai_vs_player": 1.0},
-    "very_hard": {"player": {}, "ai": {"income": 0.15, "combat": 0.1, "manpower": 0.15}, "ai_aggression": 1.15, "ai_vs_player": 1.3}
+    "easy": {
+      "player": {
+        "income": 0.25,
+        "combat": 0.1,
+        "manpower": 0.25,
+        "unrest": -1.5,
+        "tech_cost": -0.1
+      },
+      "ai": {},
+      "ai_aggression": 0.75,
+      "ai_vs_player": 0.6
+    },
+    "normal": {
+      "player": {
+        "income": 0.1,
+        "combat": 0.05,
+        "unrest": -0.5
+      },
+      "ai": {},
+      "ai_aggression": 1.0,
+      "ai_vs_player": 0.85
+    },
+    "hard": {
+      "player": {},
+      "ai": {},
+      "ai_aggression": 1.0,
+      "ai_vs_player": 1.0
+    },
+    "very_hard": {
+      "player": {},
+      "ai": {
+        "income": 0.15,
+        "combat": 0.1,
+        "manpower": 0.15
+      },
+      "ai_aggression": 1.15,
+      "ai_vs_player": 1.3
+    }
   },
   "army_cost_per_mil_tech": 0.08,
   "ai_max_marriages": 2,
@@ -255,5 +307,34 @@
   "feast_min_cost": 50.0,
   "feast_income_months": 4.0,
   "feast_prestige": 10.0,
-  "feast_we": 2.0
+  "feast_we": 2.0,
+  "urban_start_dev": 10,
+  "urban_min_dev": 10,
+  "urban_cost_base": 120.0,
+  "urban_cost_per_dev": 6.0,
+  "rural_cost": 60.0,
+  "urban_months": 24,
+  "rural_months": 12,
+  "urban_slots": 1,
+  "goods_fit_production": 0.15,
+  "urban_demand_shift": 0.5,
+  "ai_urban_share": 0.3,
+  "urban_local": {
+    "tax": 0.2,
+    "trade_power": 0.25,
+    "manpower": -0.3,
+    "unrest": 0.5
+  },
+  "rural_local": {
+    "manpower": 0.3,
+    "unrest": -0.5
+  },
+  "urban_goods": [
+    "cloth",
+    "wine",
+    "salt",
+    "iron",
+    "copper",
+    "silver"
+  ]
 }

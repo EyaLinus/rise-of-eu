@@ -11,6 +11,7 @@ const Religion = preload("res://scripts/core/religion.gd")
 const Monuments = preload("res://scripts/core/monuments.gd")
 const Warfare = preload("res://scripts/core/warfare.gd")
 const Naval = preload("res://scripts/core/naval.gd")
+const Urban = preload("res://scripts/core/urban.gd")
 
 const POWERS := ["adm", "dip", "mil"]
 const MONTH_NAMES := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
@@ -39,6 +40,8 @@ class Province:
 	var religion: String = "catholic"  # faith of the people (Religion)
 	var convert_months: int = 0  # a missionary is at work
 	var terrain: String = "plains"  # data/terrain.json: march time and defence (Warfare)
+	var urban: bool = false  # city (Stadt) or countryside (Land), see scripts/core/urban.gd
+	var urban_months: int = 0  # months until a running change of that status finishes
 
 
 class Nation:
@@ -190,6 +193,7 @@ var prev_prices := {}
 var base_supply := {}
 var goods_leader := {}
 var shocks := {}  # good -> {"mult": price factor, "years": left}: harvest failures, gluts
+var urban_start: Array = []  # [rural, urban] province counts at the start (demand baseline, Urban)
 var market_cache := {}
 
 
@@ -274,6 +278,9 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	Religion.setup(self, data)
 	monument_defs = data.get("monuments", {})
 	Economy.setup(self, data)
+	Urban.setup(self)
+	for p in provinces:
+		Economy.refresh_local(self, p)
 	tree.set_unlocks(buildings_def)
 	Economy.refresh_goods_leaders(self)
 	Economy.update_markets(self)
@@ -686,6 +693,7 @@ func _economy(n: Nation) -> void:
 	n.trade_income = Economy.trade_income(self, n)
 	n.income = n.tax_income + n.prod_income + n.trade_income
 	Economy.construction_tick(self, n)
+	Urban.tick(self, n)
 	var maint: float = army_regs(n.tag) * regiment_upkeep(n.tag) * maxf(0.2, 1.0 + mod(n, "maintenance"))
 	var war := is_at_war(n.tag)
 	if not war:
@@ -2907,11 +2915,11 @@ func to_dict() -> Dictionary:
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
 			"pending_peace": pending_peace, "peace_offer_memo": peace_offer_memo, "log": log_lines, "stats": stats, "game_over": game_over, "emperor": emperor,
 			"hre_authority": hre_authority, "hre_reforms": hre_reforms,
-			"history": history, "score_history": score_history, "prices": prices, "prev_prices": prev_prices, "shocks": shocks, "goods_leader": goods_leader}
+			"history": history, "score_history": score_history, "prices": prices, "prev_prices": prev_prices, "shocks": shocks, "goods_leader": goods_leader, "urban_start": urban_start}
 	var ps := []
 	for p in provinces:
 		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort, p.prev_owner, p.suppress_months,
-				p.buildings, p.constructing, p.religion, p.convert_months])
+				p.buildings, p.constructing, p.religion, p.convert_months, p.urban, p.urban_months])
 	d.provinces = ps
 	var ns := {}
 	for tag in order:
@@ -2986,6 +2994,7 @@ func from_dict(d: Dictionary) -> void:
 		prices[k] = float(d.prices[k])
 	for k in d.get("prev_prices", {}):
 		prev_prices[k] = float(d.prev_prices[k])
+	urban_start = d.get("urban_start", urban_start)
 	shocks = {}
 	for k in d.get("shocks", {}):
 		shocks[k] = {"mult": float(d.shocks[k].mult), "years": int(d.shocks[k].years)}
@@ -3010,6 +3019,9 @@ func from_dict(d: Dictionary) -> void:
 			p.constructing = {"id": e[9].id, "months": int(e[9].months)}
 		p.religion = str(e[10]) if e.size() > 10 else nations[p.owner].religion
 		p.convert_months = int(e[11]) if e.size() > 11 else 0
+		p.urban = bool(e[12]) if e.size() > 12 else Urban.default_urban(self, p)
+		p.urban_months = int(e[13]) if e.size() > 13 else 0
+		Economy.refresh_local(self, p)
 	for tag in d.nations:
 		var e: Dictionary = d.nations[tag]
 		var n: Nation = nations[tag]

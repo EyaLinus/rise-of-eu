@@ -25,6 +25,7 @@ func _init() -> void:
 		"test_military_access",
 		"test_guarantee",
 		"test_rivals",
+		"test_urban",
 		"test_embargo",
 		"test_hall_of_fame",
 		"test_religion",
@@ -1024,6 +1025,97 @@ func test_rivals() -> void:
 	for t in g3.order:
 		for r in g3.nations[t].rivals:
 			check(g3.nations[r].alive and not g3.is_allied(t, r), "AI rivals are alive and not allies")
+
+
+func test_urban() -> void:
+	var g = new_game("FRA", 9)
+	var Eco = g.Economy
+	var Urb = g.Urban
+	var cities: int = Urb.count(g, true)
+	check(cities >= 25 and cities <= 60, "a plausible number of starting cities (%d)" % cities)
+	check(g.provinces[g.key_to_pid["paris"]].urban, "Paris starts as a city")
+	check(g.provinces[g.key_to_pid["london"]].urban, "London starts as a city")
+	var n = g.nations.FRA
+	n.gold = 10000.0
+	# pick a rural province of France and compare with itself as a city
+	var pid := -1
+	for q in g.provinces_of("FRA"):
+		if not g.provinces[q].urban and g.provinces[q].core_months == 0:
+			pid = q
+			break
+	check(pid >= 0, "France has countryside")
+	var p = g.provinces[pid]
+	var tax0: float = Eco.tax(g, p)
+	var mp0: float = Eco.local_manpower(g, p)
+	var slots0: int = Eco.slots(g, p)
+	var u0: float = g.unrest_parts(pid).buildings
+	p.dev = 4
+	check(Urb.block_reason(g, "FRA", pid, true) != "", "too little development for a city")
+	p.dev = int(g.bal.urban_min_dev)
+	check(Urb.block_reason(g, "FRA", pid, false) != "", "countryside cannot become countryside")
+	var gold0: float = n.gold
+	check(Urb.change(g, "FRA", pid, true) == "", "founding a city is allowed")
+	check(n.gold < gold0, "founding a city costs gold")
+	check(p.urban_months == int(g.bal.urban_months) and not p.urban, "the change takes months")
+	check(Urb.block_reason(g, "FRA", pid, true) != "", "no second change while one runs")
+	for i in int(g.bal.urban_months) + 1:
+		Urb.tick(g, n)
+	check(p.urban and p.urban_months == 0, "the province became a city")
+	tax0 = Eco.tax(g, p)  # recompute at the same dev
+	p.urban = false
+	Eco.refresh_local(g, p)
+	var tax_rural: float = Eco.tax(g, p)
+	var mp_rural: float = Eco.local_manpower(g, p)
+	var slots_rural: int = Eco.slots(g, p)
+	var u_rural: float = g.unrest_parts(pid).buildings
+	p.urban = true
+	Eco.refresh_local(g, p)
+	check(Eco.tax(g, p) > tax_rural * 1.1, "a city pays more tax")
+	check(Eco.local_manpower(g, p) < mp_rural, "a city raises fewer men")
+	check(Eco.slots(g, p) == slots_rural + int(g.bal.urban_slots), "a city has an extra building slot")
+	check(g.unrest_parts(pid).buildings > u_rural, "a city is more restless than the countryside")
+	check(mp0 > 0.0 and slots0 > 0 and u0 <= 0.0, "rural baseline sane")
+	# back to the countryside
+	check(Urb.change(g, "FRA", pid, false) == "", "turning back into countryside is allowed")
+	for i in int(g.bal.rural_months) + 1:
+		Urb.tick(g, n)
+	check(not p.urban, "the province is countryside again")
+	# goods fit: a city producing cloth gets the production bonus, a city producing grain does not
+	p.urban = true
+	p.good = "cloth"
+	Eco.refresh_local(g, p)
+	var prod_fit: float = Eco.local(g, p, "production")
+	p.good = "grain"
+	Eco.refresh_local(g, p)
+	check(prod_fit > Eco.local(g, p, "production"), "city goods are produced better in a city")
+	# demand follows the number of cities
+	var dm0: float = Urb.demand_mult(g, "cloth")
+	for q in g.provinces_of("FRA"):
+		g.provinces[q].urban = true
+	check(Urb.demand_mult(g, "cloth") > dm0, "more cities raise demand for city goods")
+	check(Urb.demand_mult(g, "grain") < 1.0, "more cities lower demand for country goods")
+	# save roundtrip keeps the status
+	var d := g.to_dict()
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(d)
+	check(g2.provinces[pid].urban, "urban status survives a save")
+	check(g2.urban_start == g.urban_start, "demand baseline survives a save")
+	# AI founds a city when rich
+	var ai = g.nations.ENG
+	ai.gold = 5000.0
+	var before: int = 0
+	for q in g.provinces_of("ENG"):
+		if g.provinces[q].urban or g.provinces[q].urban_months > 0:
+			before += 1
+	for q in g.provinces_of("ENG"):
+		g.provinces[q].dev = maxi(g.provinces[q].dev, int(g.bal.urban_min_dev))
+		g.provinces[q].core_months = 0
+	Urb.ai_found_city(g, ai)
+	var after: int = 0
+	for q in g.provinces_of("ENG"):
+		if g.provinces[q].urban or g.provinces[q].urban_months > 0:
+			after += 1
+	check(after == before + 1 or float(before) >= ceilf(g.provinces_of("ENG").size() * float(g.bal.ai_urban_share)), "the AI founds a city when it has few")
 
 
 func test_embargo() -> void:
@@ -2667,7 +2759,8 @@ func test_income_bonus_and_army_cost() -> void:
 	var base_tax: float = g.Economy.tax(g, p)
 	n.tech.adm = 10
 	var ib: float = g.Economy.income_bonus(g, n)
-	check(absf(g.Economy.tax(g, p) - base_tax * (1.0 + ib + g.mod(n, "tax")) / (1.0 + ib - 10 * float(g.bal.adm_tech_income) + g.mod(n, "tax"))) < 0.001,
+	var lt: float = g.Economy.local(g, p, "tax")  # the capital is a city: local tax bonus
+	check(absf(g.Economy.tax(g, p) - base_tax * (1.0 + lt + ib + g.mod(n, "tax")) / (1.0 + lt + ib - 10 * float(g.bal.adm_tech_income) + g.mod(n, "tax"))) < 0.001,
 			"admin tech adds to the tax bonus instead of multiplying it")
 	var c0: float = g.regiment_cost("FRA")
 	n.tech.mil += 5
