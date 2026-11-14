@@ -1373,7 +1373,16 @@ func _show_game_over() -> void:
 		modal_box.add_child(_score_chart(260))
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
-	modal_box.add_child(_grid([_btn("🏆 Ruhmeshalle", _show_hall), _btn("🏠 Hauptmenü", func(): game = null; _show_start_menu())]))
+	var row := [_btn("🏆 Ruhmeshalle", _show_hall), _btn("🏠 Hauptmenü", func(): game = null; _show_start_menu())]
+	if game.can_play_on():
+		row.insert(0, _btn("▶️ Weiterspielen", _play_on, "Ohne Enddatum weiterspielen. Wertung und Ruhmeshalle bleiben wie sie sind."))
+	modal_box.add_child(_grid(row))
+
+
+func _play_on() -> void:
+	if game.play_on():
+		_close_modal()
+		_set_speed(1)
 
 
 ## All finished games, best first: nation, difficulty, points, final rank, year, date.

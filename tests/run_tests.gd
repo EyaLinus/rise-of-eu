@@ -29,6 +29,7 @@ func _init() -> void:
 		"test_embargo",
 		"test_hall_of_fame",
 		"test_rival_missions",
+		"test_play_on",
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
@@ -3021,3 +3022,20 @@ func test_court_content() -> void:
 	g.apply_effects("FRA", {"spouse_rel": 20})
 	check(g.check_conditions("FRA", {"married": true}) and g.get_rel("FRA", "ENG") > r0, "spouse_rel improves relations with in-laws")
 
+
+
+func test_play_on() -> void:
+	var g = new_game()
+	check(not g.can_play_on(), "play on only after the end")
+	g.month = int(g.bal.total_months) - 1
+	g.tick()
+	check(g.game_over and g.can_play_on(), "game ends at the final month")
+	var m: int = g.month
+	check(g.play_on() and not g.game_over and g.endless, "play on reopens the game")
+	for i in 14:
+		g.tick()
+	check(not g.game_over and g.month == m + 14, "endless game keeps ticking past the end")
+	check(not g.play_on(), "play on only once")
+	var g2 = new_game()
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.endless and not g2.game_over, "endless survives save/load")
