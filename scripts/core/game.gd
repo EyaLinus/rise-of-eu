@@ -885,6 +885,7 @@ func _yearly() -> void:
 				if mission_ready(tag, m):
 					complete_mission(tag, m.id)
 	Economy.yearly(self)
+	Urban.yearly(self)
 	Progression.yearly(self)
 	Religion.yearly(self)
 	_coalitions_yearly()

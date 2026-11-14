@@ -336,5 +336,6 @@
     "iron",
     "copper",
     "silver"
-  ]
+  ],
+  "city_growth_chance": 0.03
 }
