@@ -66,6 +66,9 @@ static func refresh_local(g, p) -> void:
 		var loc: Dictionary = g.buildings_def[b].get("local", {})
 		for k in loc:
 			c[k] = c.get(k, 0.0) + float(loc[k]) * int(p.buildings[b])
+	var ue: Dictionary = g.Urban.local_effects(g, p)
+	for k in ue:
+		c[k] = c.get(k, 0.0) + float(ue[k])
 	p.loc = c
 
 
@@ -89,7 +92,7 @@ static func building_gain(g, p, bid: String) -> float:
 
 
 static func slots(g, p) -> int:
-	return mini(int(g.bal.building_slots_max), 2 + p.dev / int(g.bal.dev_per_building_slot))
+	return mini(int(g.bal.building_slots_max), 2 + p.dev / int(g.bal.dev_per_building_slot)) + g.Urban.slot_bonus(g, p)
 
 
 ## Cost of the next level of `bid` in `pid` (level 1 = new building).
@@ -346,7 +349,7 @@ static func yearly(g) -> void:
 	var years: float = g.year() - int(g.bal.start_year)
 	g.prev_prices = g.prices.duplicate()
 	for k in g.goods_def:
-		var demand: float = float(g.base_supply.get(k, 1.0)) * (1.0 + float(g.bal.demand_growth) * years)
+		var demand: float = float(g.base_supply.get(k, 1.0)) * (1.0 + float(g.bal.demand_growth) * years) * g.Urban.demand_mult(g, k)
 		var ratio: float = sqrt(demand / maxf(0.01, s[k]))
 		var shock: float = float(g.shocks[k].mult) if g.shocks.has(k) else 1.0
 		g.prices[k] = snappedf(float(g.goods_def[k].price) * clampf(ratio, float(g.bal.price_min), float(g.bal.price_max)) * shock, 0.001)

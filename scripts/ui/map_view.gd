@@ -348,6 +348,7 @@ func _draw_world(ci: CanvasItem) -> void:
 				_draw_hatch(ci, poly, bboxes[p.id], cc)
 	_draw_borders(ci)
 	_draw_roads(ci)
+	_draw_cities(ci)
 	_realm_labels.clear()
 	for tag in game.order:
 		var owned: Array = game.provinces_of(tag)
@@ -374,6 +375,32 @@ func _draw_roads(ci: CanvasItem) -> void:
 			var w := (1.2 + 0.8 * mini(lv, lo)) / zoom
 			ci.draw_line(p.center, o.center, Color(0.1, 0.07, 0.04, 0.7), w + 2.0 / zoom)
 			ci.draw_dashed_line(p.center, o.center, ROAD, w, 7.0 / zoom)
+
+
+## Settlements: a walled city, a town or a village sprite in every province that has grown enough
+## (urban provinces always, countryside from `city_village_dev`), so development shows on the map.
+const CITY_VILLAGE_DEV := 8
+const CITY_BIG_DEV := 16
+func _draw_cities(ci: CanvasItem) -> void:
+	if zoom < 0.55 or map_mode == MODE_WAR:
+		return
+	var village := Icons.texture("city_village")
+	var town := Icons.texture("city_town")
+	var city := Icons.texture("city_city")
+	if village == null or town == null or city == null:
+		return
+	for p in game.provinces:
+		var tex: Texture2D = null
+		if p.urban:
+			tex = city if p.dev >= CITY_BIG_DEV or p.buildings.get("fortress", 0) > 0 else town
+		elif p.dev >= CITY_VILLAGE_DEV:
+			tex = village
+		if tex == null:
+			continue
+		var sz: Vector2 = tex.get_size() * 0.5
+		var pos: Vector2 = p.center + Vector2(-sz.x / 2.0, 6.0)
+		ci.draw_rect(Rect2(pos + Vector2(1, sz.y - 1), Vector2(sz.x, 2)), Color(0, 0, 0, 0.35))
+		ci.draw_texture_rect(tex, Rect2(pos, sz), false)
 
 
 ## Sea crossings: a dotted ferry line; red while an enemy fleet rules that sea for the player.

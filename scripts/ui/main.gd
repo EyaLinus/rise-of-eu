@@ -1698,7 +1698,18 @@ func _panel_province(pid: int) -> void:
 	var chips: Array = []
 	chips.append(_chip("🏘️ Entwicklung %d" % p.dev,
 			"Entwicklung erhöht Steuern, Güterproduktion, Handelsmacht und Mannschaften. Alle %d Stufen gibt es einen Bauplatz mehr (höchstens %d)." % [int(game.bal.dev_per_building_slot), int(game.bal.building_slots_max)]))
-	chips.append(_chip("🏗️ Bauplätze %d / %d" % [p.buildings.size(), Eco.slots(game, p)], "Belegte und mögliche Gebäudeplätze. Mehr Entwicklung bringt mehr Plätze."))
+	chips.append(_chip("🏗️ Bauplätze %d / %d" % [p.buildings.size(), Eco.slots(game, p)], "Belegte und mögliche Gebäudeplätze. Mehr Entwicklung bringt mehr Plätze, eine Stadt einen zusätzlichen."))
+	var Urb = game.Urban
+	var city_good: bool = Urb.is_city_good(game, p.good)
+	var fit: bool = city_good == p.urban
+	chips.append(_chip(("🏙️ Stadt" if p.urban else "🌾 Land") + (" · Umbau %d Mon." % p.urban_months if p.urban_months > 0 else ""),
+			("Stadt: +%d %% Steuern, +%d %% Handelsmacht, ein Bauplatz mehr, aber %d %% weniger Mannschaften und +%.1f Unruhe. Stadtgüter (Tuch, Wein, Salz, Metalle) werden hier +%d %% besser hergestellt%s." % [
+				int(float(game.bal.urban_local.tax) * 100), int(float(game.bal.urban_local.trade_power) * 100), int(-float(game.bal.urban_local.manpower) * 100), float(game.bal.urban_local.unrest), int(float(game.bal.goods_fit_production) * 100),
+				(" – passt zu %s" % gd.name) if fit else (" – %s ist ein Landgut und passt nicht" % gd.name)]) if p.urban else
+			("Land: +%d %% Mannschaften und %.1f Unruhe. Landgüter (Getreide, Vieh, Wolle, Fisch, Holz, Pelze) werden hier +%d %% besser hergestellt%s. Ab Entwicklung %d kann die Provinz zur Stadt ausgebaut werden." % [
+				int(float(game.bal.rural_local.manpower) * 100), float(game.bal.rural_local.unrest), int(float(game.bal.goods_fit_production) * 100),
+				(" – passt zu %s" % gd.name) if fit else (" – %s ist ein Stadtgut und passt nicht" % gd.name), int(game.bal.urban_min_dev)]),
+			"" if fit else "bad"))
 	chips.append(_chip("%s %s %.2f 💰" % [gd.emoji, gd.name, Eco.production_value(game, p)],
 			"%s: %.1f Einheiten × Marktpreis %.2f = %.2f Gold im Monat. Die Menge wächst mit Entwicklung, Werkstatt, Manufaktur und Hafen; der Preis ändert sich jährlich mit Angebot und Nachfrage. Marktführer bei %s erhält: %s." % [
 			gd.name, Eco.units(game, p), price, Eco.production_value(game, p), gd.name, gd.bonus_text]))
@@ -1789,6 +1800,15 @@ func _panel_province(pid: int) -> void:
 			acts.append(_btn("⛪ Missionar %d 💰" % int(Faith.convert_cost(game, p)), func(): _act(Faith.send_missionary(game, me, pid), "⛪ Der Missionar ist unterwegs"),
 					"In %d Monaten nimmt die Provinz deinen Glauben (%s) an: −%.0f Unruhe. Höchstens %d Missionare gleichzeitig.%s" % [
 					int(game.bal.convert_months), Faith.faith_name(game.nations[me].religion), float(game.bal.religion_unrest), int(game.bal.max_missionaries), ("\n❌ " + cv) if cv != "" else ""], cv != ""))
+		if p.urban_months == 0:
+			var to_city: bool = not p.urban
+			var ub: String = Urb.block_reason(game, me, pid, to_city)
+			var uc: int = int(Urb.change_cost(game, p, to_city))
+			acts.append(_btn(("🏙️ Stadt gründen %d 💰" % uc) if to_city else ("🌾 Zum Land %d 💰" % uc),
+					func(): _act(Urb.change(game, me, pid, to_city), "🏙️ Die Stadt wächst" if to_city else "🌾 Die Stadt wird aufgelöst"),
+					(("Baut die Provinz in %d Monaten zur Stadt aus: mehr Steuern, Handel und ein Bauplatz, weniger Mannschaften, etwas Unruhe. Lohnt sich bei Stadtgütern und am Markt." % int(game.bal.urban_months)) if to_city
+					else ("Macht die Stadt in %d Monaten wieder zu Land: mehr Mannschaften und Ruhe, weniger Steuern und Handel." % int(game.bal.rural_months)))
+					+ (("\n❌ " + ub) if ub != "" else ""), ub != ""))
 		if acts.size() % 2 == 1:
 			acts.append(_btn("🏗️ Bauen", func(): prov_tab = "build"; _refresh(), "Gebäude dieser Provinz"))
 		side_box.add_child(_grid(acts))
@@ -2175,7 +2195,7 @@ func _panel_nation() -> void:
 			_btn("📈 Boni", _open_panel.bind("modifiers"), "Jeder Modifikator mit Gesamtwert und woher er kommt")]
 	side_box.add_child(_grid(nav, 3))
 	if _section("nat_power", "👑 Macht einsetzen", true,
-			"Außerdem: 🏘️ Entwickeln (mit 📜, 🕊️ oder ⚔️), ✊ Unruhe unterdrücken (⚔️) und 🤝 Integrieren (🕊️) im Provinzfenster, 🔥 Drill (⚔️) im Armeefenster, ❤️ Beziehungen, Bündnisse, Ansprüche und Handelsabkommen (🕊️) bei anderen Nationen, Technologie mit allen drei."):
+			"Außerdem: 🏘️ Entwickeln (mit 📜, 🕊️ oder ⚔️), 🏙️ Stadt gründen (💰), ✊ Unruhe unterdrücken (⚔️) und 🤝 Integrieren (🕊️) im Provinzfenster, 🔥 Drill (⚔️) im Armeefenster, ❤️ Beziehungen, Bündnisse, Ansprüche und Handelsabkommen (🕊️) bei anderen Nationen, Technologie mit allen drei."):
 		var cr: int = game.conscript_ready_in(me)
 		var acts := [
 			_btn("😩 −2 · %d🕊️" % int(game.bal.we_reduce_cost), func(): _act(game.reduce_we(me), "🕊️ Das Volk ist beruhigt"),
@@ -2995,6 +3015,19 @@ func _advice() -> Array:
 	if worst >= 0:
 		add.call("✊ Aufstand droht: %s%s" % [game.provinces[worst].name, (" (+%d weitere)" % (restless - 1)) if restless > 1 else ""],
 				"Unruhe %.1f. Unterdrücken (⚔️), eine Armee hinschicken oder die Ursachen beseitigen (Tooltip der Unruhe-Kachel)." % worst_u, "bad", "province", worst)
+	var city_cand := -1
+	var city_v := 0.0
+	for pid in game.provinces_of(me):
+		var cp = game.provinces[pid]
+		if cp.urban or cp.urban_months > 0 or game.Urban.block_reason(game, me, pid, true) != "":
+			continue
+		var v: float = cp.dev + (4.0 if game.Urban.is_city_good(game, cp.good) else 0.0)
+		if v > city_v:
+			city_v = v
+			city_cand = pid
+	if city_cand >= 0 and n.gold >= game.Urban.change_cost(game, game.provinces[city_cand], true) * 2.0:
+		add.call("🏙️ %s könnte eine Stadt werden" % game.provinces[city_cand].name,
+				"Entwickelte Provinzen mit Stadtgütern (Tuch, Wein, Salz, Metalle) bringen als Stadt mehr Steuern, Handel und einen Bauplatz. Im Provinzfenster: Stadt gründen.", "", "province", city_cand)
 	if not n.coalition.is_empty():
 		add.call("⚠️ Koalition gegen dich (%d)" % n.coalition.size(), "Senke die aggressive Expansion: Zeit, 😠 Ruf verbessern im Nationsfenster, Diplomatie-Technologie.", "bad", "nation")
 	if game.is_at_war(me) and n.manpower < 1.0:

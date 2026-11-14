@@ -73,6 +73,34 @@ assets:
     source: assets/src/pixel/icons/army_unit.txt
     status: done
     updated: '2026-10-25'
+  city_city:
+    created: '2026-11-14'
+    kind: icon
+    note: city_city – walled city sprite for big urban provinces on the map
+    outputs:
+    - assets/art/icons/city_city.png
+    source: assets/src/pixel/icons/city_city.txt
+    status: done
+    updated: '2026-11-14'
+  city_town:
+    created: '2026-11-14'
+    kind: icon
+    note: city_town – town sprite (church + houses) for urban provinces on the map
+    outputs:
+    - assets/art/icons/city_town.png
+    source: assets/src/pixel/icons/city_town.txt
+    status: done
+    updated: '2026-11-14'
+  city_village:
+    created: '2026-11-14'
+    kind: icon
+    note: city_village – village sprite (two cottages) for developed countryside on
+      the map
+    outputs:
+    - assets/art/icons/city_village.png
+    source: assets/src/pixel/icons/city_village.txt
+    status: done
+    updated: '2026-11-14'
   claim:
     created: '2026-10-24'
     kind: icon

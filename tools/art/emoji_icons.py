@@ -106,6 +106,20 @@ add("🙇", "broken_sword", layer([".........a", "........ag", ".......ag.", "..
 add("🗽", "torch", layer(["...Y....", "..YGr...", ".rGYGR..", ".RGGGR..", "..RRR...", "..aag...", "...OH...", "...OH...", "...OH...", "...HH..."], 4, 3))
 
 # ---- economy: goods, buildings, trade (requested by the economy update)
+add("🏙", "city", layer([
+    "....RE......",
+    "...PPPQ.....",
+    "...PGPQ.RE..",
+    ".PPPPPQPPPQ.",
+    ".PGPGPQPGPQ.",
+    ".PPPPPQPPPQ.",
+    "QPGPGPQPGPQQ",
+    "PPPPPPQPPPPQ",
+    "PGPGPGQGPGPQ",
+    "PPPPPPQPPPPQ",
+    "QQQQQQQQQQQQ",
+    "dddddddddddd",
+], 2, 2))
 add("🌾", "grain", layer(["..Y..Y..Y...", ".YGDYGDYGD..", "..YD.YD.YD..", ".YGDYGDYGD..", "..GD.GD.GD..", "...GDGDGD...", "....GGGD....", "....OHOH....", "...OOHHOH...", "...O.OH.H...", "....OOHH...."], 2, 2))
 add("🍷", "wine", layer(["..aaaaaa..", ".a......g.", ".aRRRRRRg.", ".arRRRREg.", "..aRRREg..", "...agg....", "....ag....", "....ag....", "..aaaggg..", "..dddddd.."], 3, 3))
 add("🐑", "sheep", layer(["....wwwwww..", "..wwwwwwwwwa", "ddwwwwwwwwwa", "dkdwwwwwwwwa", "dddwwwwwwwwa", ".d.aaaaaaaa.", "...d.d..d.d.", "...d.d..d.d."], 2, 4))
