@@ -82,6 +82,15 @@ assets:
     source: assets/src/pixel/icons/city_city.txt
     status: done
     updated: '2026-11-14'
+  city_harbor:
+    created: '2026-11-14'
+    kind: icon
+    note: city_harbor – pier with boat for harbor provinces on the map
+    outputs:
+    - assets/art/icons/city_harbor.png
+    source: assets/src/pixel/icons/city_harbor.txt
+    status: done
+    updated: '2026-11-14'
   city_town:
     created: '2026-11-14'
     kind: icon
