@@ -28,6 +28,7 @@ func _init() -> void:
 		"test_urban",
 		"test_embargo",
 		"test_hall_of_fame",
+		"test_rival_missions",
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
@@ -1477,6 +1478,32 @@ func test_save_roundtrip() -> void:
 		g2.tick()
 	# JSON keeps ~15 significant digits, so allow tiny float drift
 	check(g.month == g2.month and absf(g.nations.ENG.gold - g2.nations.ENG.gold) < 1.0, "game continues identically after load")
+
+
+func test_rival_missions() -> void:
+	var g = new_game("ENG", 5)
+	for tag in g.mission_defs:
+		var ids := []
+		for m in g.mission_defs[tag]:
+			ids.append(m.id)
+		check(ids.has(tag.to_lower() + "_riv_declare") and ids.has(tag.to_lower() + "_riv_power"), "%s has rival missions" % tag)
+	var declare := ""
+	var power := ""
+	for m in g.available_missions("ENG"):
+		if m.id == "eng_riv_declare":
+			declare = m.id
+		if m.id == "eng_riv_power":
+			power = m.id
+	check(declare != "" and power == "", "declare is open, power waits for its predecessor")
+	check(g.complete_mission("ENG", "eng_riv_declare") != "", "no rival, no mission")
+	check(g.set_rival("ENG", "FRA") == "", "rivalry declared")
+	var mil_before: float = g.nations.ENG.mil
+	check(g.complete_mission("ENG", "eng_riv_declare") == "", "rival mission completes")
+	check(g.nations.ENG.mil > mil_before, "mission pays military points")
+	check(g.complete_mission("ENG", "eng_riv_power") != "", "power projection too low")
+	g.add_power_proj("ENG", 60.0)
+	check(g.complete_mission("ENG", "eng_riv_power") == "", "power mission completes at 50 pp")
+	check(g.mod(g.nations.ENG, "naval") > 0.0, "second mission grants its permanent modifier")
 
 
 func test_missions_complete() -> void:

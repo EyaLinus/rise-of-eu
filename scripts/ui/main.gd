@@ -3242,6 +3242,10 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["🍷 Nächstes Hoffest sofort möglich", 1])
 		elif k == "ships":
 			parts.append(["⚓ Schiffe %+d" % int(v), sgn.call(float(v))])
+		elif k == "power_proj":
+			parts.append(["🎯 Machtprojektion %+d" % int(v), sgn.call(float(v))])
+		elif k == "rival_rel":
+			parts.append(["❤️ Beziehungen zu Rivalen %+d" % int(v), sgn.call(float(v))])
 		elif k == "spouse_rel":
 			parts.append(["❤️ Verschwägerte %+d" % int(v), sgn.call(float(v))])
 		elif k == "convert_random":
@@ -3366,6 +3370,14 @@ func conditions_text(c: Dictionary) -> String:
 				lines.append(mark + ("Königliche Heirat besteht" if v else "Keine königliche Heirat"))
 			"province_faith":
 				lines.append(mark + "Eine deiner Provinzen ist %s" % game.Religion.faith_name(v).to_lower())
+			"rivals_min":
+				lines.append(mark + "Mindestens %d Rivalen erklärt (jetzt %d)" % [int(v), game.nations[me].rivals.size()])
+			"rivaled":
+				lines.append(mark + ("Jemand sieht dich als Rivalen" if v else "Niemand sieht dich als Rivalen"))
+			"power_proj_min":
+				lines.append(mark + "Machtprojektion ≥ %d (jetzt %d)" % [int(v), int(game.nations[me].power_proj)])
+			"rival_at_war":
+				lines.append(mark + ("Im Krieg mit einem Rivalen" if v else "Kein Krieg mit einem Rivalen"))
 			_:
 				lines.append(mark + k)
 	return "\n".join(lines)
