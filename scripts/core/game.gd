@@ -2532,6 +2532,16 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 				for t in n.marriages:
 					if nations.has(t):
 						add_rel(tag, t, float(v))
+			"urbanize":
+				# a charter: the most developed countryside provinces become cities at once
+				var rural := []
+				for pid in provinces_of(tag):
+					if not provinces[pid].urban and provinces[pid].urban_months == 0:
+						rural.append(pid)
+				rural.sort_custom(func(x, y): return provinces[x].dev > provinces[y].dev)
+				for i in mini(int(v), rural.size()):
+					provinces[rural[i]].urban = true
+					Economy.refresh_local(self, provinces[rural[i]])
 			"convert_random":
 				# provinces of another faith take up the state religion (largest first)
 				var other := []
@@ -2678,6 +2688,12 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 						return false
 			"no_building":
 				if Economy.building_total(self, tag, v) > 0:
+					return false
+			"cities_min":
+				if Urban.count_of(self, tag) < int(v):
+					return false
+			"cities_max":
+				if Urban.count_of(self, tag) > int(v):
 					return false
 			"coastal":
 				var any_coast := false

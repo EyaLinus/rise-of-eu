@@ -1094,6 +1094,19 @@ func test_urban() -> void:
 		g.provinces[q].urban = true
 	check(Urb.demand_mult(g, "cloth") > dm0, "more cities raise demand for city goods")
 	check(Urb.demand_mult(g, "grain") < 1.0, "more cities lower demand for country goods")
+	# event hooks: conditions and the charter effect
+	var mine: int = Urb.count_of(g, "FRA")
+	check(g.check_conditions("FRA", {"cities_min": mine}) and not g.check_conditions("FRA", {"cities_min": mine + 1}), "cities_min counts own cities")
+	check(g.check_conditions("FRA", {"cities_max": mine}) and not g.check_conditions("FRA", {"cities_max": mine - 1}), "cities_max counts own cities")
+	for q in g.provinces_of("FRA"):
+		g.provinces[q].urban = false
+	g.apply_effects("FRA", {"urbanize": 2})
+	check(Urb.count_of(g, "FRA") == 2, "a charter founds cities at once")
+	var urb_events := 0
+	for e in data.events:
+		if e.id.begins_with("urb_"):
+			urb_events += 1
+	check(urb_events >= 8, "urb_ events present (%d)" % urb_events)
 	# save roundtrip keeps the status
 	var d := g.to_dict()
 	var g2 = new_game("FRA", 9)

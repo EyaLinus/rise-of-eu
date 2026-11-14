@@ -31,6 +31,15 @@ static func count(g, urban: bool) -> int:
 	return c
 
 
+## Cities of one realm.
+static func count_of(g, tag: String) -> int:
+	var c := 0
+	for pid in g.provinces_of(tag):
+		if g.provinces[pid].urban:
+			c += 1
+	return c
+
+
 static func is_city_good(g, good: String) -> bool:
 	return g.bal.urban_goods.has(good)
 
@@ -124,7 +133,7 @@ static func tick(g, n) -> void:
 					g.log_msg("🏙️ %s ist jetzt eine Stadt: mehr Steuern, Handel und ein Bauplatz, weniger Mannschaften." % p.name, [n.tag])
 				else:
 					g.log_msg("🌾 %s ist wieder Land: mehr Mannschaften und Ruhe, weniger Steuern." % p.name, [n.tag])
-			g.fire_event(n.tag, "urban_city_founded" if p.urban else "urban_back_to_land")
+			g.fire_event(n.tag, "urb_city_founded" if p.urban else "urb_back_to_land")
 	if n.tag != g.player and (g.month + n.tag.hash()) % 12 == 5:
 		ai_found_city(g, n)
 

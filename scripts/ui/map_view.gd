@@ -387,9 +387,13 @@ func _draw_cities(ci: CanvasItem) -> void:
 	var village := Icons.texture("city_village")
 	var town := Icons.texture("city_town")
 	var city := Icons.texture("city_city")
+	var harbor := Icons.texture("city_harbor")
 	if village == null or town == null or city == null:
 		return
 	for p in game.provinces:
+		if harbor != null and p.buildings.get("harbor", 0) > 0:
+			var hs: Vector2 = harbor.get_size() * 0.5
+			ci.draw_texture_rect(harbor, Rect2(p.center + Vector2(-hs.x - 14.0, 8.0), hs), false)
 		var tex: Texture2D = null
 		if p.urban:
 			tex = city if p.dev >= CITY_BIG_DEV or p.buildings.get("fortress", 0) > 0 else town
@@ -601,7 +605,9 @@ func province_color(p) -> Color:
 			return Color("6b6b62")
 		2:
 			var t := clampf((p.dev - 3.0) / 37.0, 0.0, 1.0)
-			return Color("2d1b4e").lerp(Color("f4d35e"), t)
+			if p.urban:  # cities in a warm brick tone, the countryside in green-gold
+				return Color("4a1e1e").lerp(Color("f08a4a"), t)
+			return Color("1e3a2a").lerp(Color("d8d35e"), t)
 		3:
 			if p.owner != game.player:
 				return Color("4a4a44")

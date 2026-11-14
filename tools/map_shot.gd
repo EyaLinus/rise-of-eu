@@ -63,4 +63,9 @@ func _run(m) -> void:
 	await _shot("map_war")
 	m.map.focus(Vector2(1000, 700), 0.45)
 	await _shot("map_war_europe")
+	# development map mode: cities in brick tones, countryside green-gold
+	m.map.map_mode = 2
+	m.map.focus(paris, 1.0)
+	m.map.refresh()
+	await _shot("map_development")
 	quit()
