@@ -2,6 +2,8 @@ extends RefCounted
 ## AI for every nation the player does not control, plus auto-managed player armies.
 ## `g` is the game (scripts/core/game.gd); untyped to avoid a cyclic preload.
 
+const Warfare = preload("res://scripts/core/warfare.gd")
+
 var _no_tech := {}  # tag+category -> [year, techs owned] of the last search that found nothing to research
 
 
@@ -486,11 +488,13 @@ func _consider_peace(g, n) -> void:
 			if tired and dur > 12 and ws < 10.0 and g.leave_war_block_reason(n.tag, w) == "":
 				g.leave_war(n.tag, w)
 			continue
-		if ws >= 25.0 or (ws >= 8.0 and (dur > 36 or tired)):
-			if wants_vassal(g, w, att, ws):
+		# a beaten enemy under pressure (occupied, exhausted) gives more, a capitulated one everything occupied
+		var budget: float = Warfare.peace_budget(g, w, att)
+		if ws >= 25.0 or (ws >= 8.0 and (dur > 36 or tired)) or budget >= 9999.0:
+			if wants_vassal(g, w, att, budget):
 				g.offer_peace(n.tag, w, [], true, true)
 				continue
-			var pids := pick_demands(g, w, att, ws)
+			var pids := pick_demands(g, w, att, budget)
 			if not pids.is_empty():
 				g.offer_peace(n.tag, w, pids, true)
 				continue

@@ -1,0 +1,5 @@
+- Kriege enden jetzt: Wer sein ganzes Land (95 %) besetzt sieht oder bei 75 Kriegspunkten Rückstand erschöpft ist, kapituliert und gibt jede besetzte Provinz her, auch eine Totalannexion. Vorher zählt „Druck“ (Kriegsmüdigkeit und besetztes Land des Gegners) zu deinen Kriegspunkten dazu; das Friedensfenster zeigt beides an.
+- Besetztes eigenes Land treibt die Kriegsmüdigkeit nach oben, nach dem Frieden sinkt sie schneller, und sie erzeugt weniger Unruhe (weniger Revolten).
+- Koalitionen gegen den Spieler sind milder: Grenze 35 % höher, nur Nachbarn in kürzerer Reichweite, höchstens 3 Mitglieder, halbe Beitrittschance, Krieg erst bei gleicher Stärke. Ein Friedensschluss bringt dem Spieler höchstens 60 AE. KI-Koalitionen haben höchstens 5 Mitglieder.
+- Neues Marine-Fenster (⚓ in der linken Leiste): Schiffe bauen, Station per Liste wählen, Seekrieg je Meer und Blockaden in beide Richtungen auf einen Blick.
+- Flottenaufträge: Seeherrschaft (volle Kampfkraft), Blockade (deine Blockaden kosten den Gegner mehr Einkommen und beschleunigen Belagerungen stärker) und Handelsschutz (feindliche Blockaden treffen halb so hart, im Frieden +5 % Handel). Die KI nutzt sie auch.

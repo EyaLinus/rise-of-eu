@@ -435,3 +435,50 @@ static func load_save(g, arr: Array) -> void:
 		b.start = int(e.get("start", g.month))
 		if not b.att.is_empty() and not b.def.is_empty():
 			g.battles.append(b)
+
+
+# ---------------------------------------------------------------- surrender and peace pressure
+## A beaten war leader does not haggle forever: its own occupied land and its war exhaustion add to
+## what the winner may demand ("pressure"), and a leader whose land is (almost) all occupied, or who
+## is exhausted and far behind, capitulates and accepts any demand on occupied provinces.
+
+## Share 0..1 of the losing side leader's development held by the other side.
+static func occupied_share(g, w, loser_att: bool) -> float:
+	var lead: String = g.side_tags(w, loser_att)[0]
+	return g._occupation_pct([lead], g.side_tags(w, not loser_att)) / 100.0
+
+
+## Extra war points the winner may demand from the side `loser_att`.
+static func pressure(g, w, loser_att: bool) -> float:
+	var lead = g.nations[g.side_tags(w, loser_att)[0]]
+	return lead.we * float(g.bal.we_peace_factor) + occupied_share(g, w, loser_att) * float(g.bal.occupation_peace_bonus)
+
+
+## True if the side `loser_att` gives in to any demand on occupied land.
+static func capitulated(g, w, loser_att: bool) -> bool:
+	if occupied_share(g, w, loser_att) >= float(g.bal.surrender_occupied):
+		return true
+	var lead = g.nations[g.side_tags(w, loser_att)[0]]
+	var ws: float = g.warscore(w) * (-1.0 if loser_att else 1.0)  # from the winner's view
+	return ws >= float(g.bal.surrender_ws) and lead.we >= float(g.bal.surrender_we)
+
+
+## War points the side `for_att` may spend on demands: war score plus pressure, all of it on capitulation.
+static func peace_budget(g, w, for_att: bool) -> float:
+	if capitulated(g, w, not for_att):
+		return 9999.0
+	return g.warscore(w) * (1.0 if for_att else -1.0) + pressure(g, w, not for_att)
+
+
+## Monthly war exhaustion from own land held by the enemy (0 if nothing is occupied).
+static func occupation_we(g, n) -> float:
+	var total := 0
+	var occ := 0
+	for pid in g.provinces_of(n.tag):
+		var p = g.provinces[pid]
+		total += p.dev
+		if p.controller != n.tag and g.at_war(n.tag, p.controller):
+			occ += p.dev
+	if total == 0 or occ == 0:
+		return 0.0
+	return float(g.bal.we_occupied_monthly) * occ / total

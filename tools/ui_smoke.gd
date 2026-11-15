@@ -82,7 +82,7 @@ func _run(tags: Array, years: int) -> void:
 
 func _all_panels(m, g, tag: String, month: int) -> int:
 	var n := 0
-	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "missions", "log", "ranking", "hre", "advice"]:
+	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "navy", "missions", "log", "ranking", "hre", "advice"]:
 		m._open_panel(mode)
 		n += 1
 	if month % 108 == 36:  # beginner goals, a few passes only: every jump opens, finished ones get claimed
