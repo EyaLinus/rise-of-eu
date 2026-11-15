@@ -45,6 +45,7 @@ jobs:
           test "$(grep -c '^SMOKE' smoke.txt)" -eq 10
           ! grep -q "SCRIPT ERROR" smoke.txt
       - name: No cut-off UI text (140 % UI at 1280 and 1560 px, big touch UI)
+        shell: bash  # pipefail needs bash, the container's default sh is dash
         run: |
           set -o pipefail
           godot --headless --path . -s res://tools/clip_audit.gd -- --scale 1.4 --width 1280 --fail 2>&1 | grep CLIP
