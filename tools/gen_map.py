@@ -2,11 +2,12 @@
 """Generates data/map.json: province polygons (Voronoi cells clipped to land),
 adjacency and 1444 start ownership.
 
-Usage: python3 tools/gen_map.py path/to/ne_50m_land.geojson
-Land data: Natural Earth 1:50m land (public domain).
+Usage: python3 tools/gen_map.py path/to/ne_50m_land.geojson path/to/ne_50m_lakes.geojson
+Land and lakes: Natural Earth 1:50m (public domain, github.com/nvkelso/natural-earth-vector/geojson).
+Projection: tools/mapproj.py.
 """
 import json
-import math
+import os
 import sys
 
 from shapely import voronoi_polygons
@@ -260,6 +261,109 @@ PROVINCES = [
     ("crete", "Kreta", 24.9, 35.25, "VEN", 6),
     ("cyprus", "Zypern", 33.36, 35.1, "CYP", 6),
     ("rhodes", "Rhodos", 28.0, 36.2, "KNI", 4),
+    # --- the New World (added after the first 228 provinces; ids stay stable). Owner NAT = uncolonized
+    # native land (scripts/core/colonial.gd); AZT TLX ZAP TAR MAY KIC IRO are native realms.
+    # Mesoamerica
+    ("tenochtitlan", "Tenochtitlan", -99.1, 19.4, "AZT", 14),
+    ("tlaxcala", "Tlaxcala", -97.9, 19.1, "TLX", 6),
+    ("cempoala", "Cempoala", -96.6, 19.7, "AZT", 6),
+    ("huasteca", "Huasteca", -98.6, 21.7, "AZT", 5),
+    ("tlapan", "Tlapan", -99.6, 17.6, "AZT", 4),
+    ("oaxaca", "Oaxaca", -96.7, 17.0, "ZAP", 7),
+    ("tehuantepec", "Tehuantepec", -94.9, 16.6, "ZAP", 4),
+    ("michoacan", "Michoacán", -101.4, 19.4, "TAR", 9),
+    ("jalisco", "Jalisco", -103.0, 20.6, "NAT", 3),
+    ("bajio", "Bajío", -100.6, 21.3, "NAT", 2),
+    ("zacatecas", "Zacatecas", -102.0, 23.3, "NAT", 2),
+    ("tamaulipas", "Tamaulipas", -98.4, 23.8, "NAT", 2),
+    ("nuevo_leon", "Nuevo León", -100.0, 25.6, "NAT", 1),
+    ("coahuila", "Coahuila", -102.2, 27.6, "NAT", 1, 4.0),
+    ("tabasco", "Tabasco", -92.9, 18.0, "NAT", 3),
+    ("chiapas", "Chiapas", -92.5, 16.4, "NAT", 3),
+    ("yucatan", "Mayapán", -89.4, 20.6, "MAY", 6),
+    ("campeche", "Campeche", -90.4, 19.0, "MAY", 4),
+    ("chetumal", "Chetumal", -88.5, 18.6, "MAY", 3),
+    ("peten", "Petén", -89.9, 16.8, "MAY", 4),
+    ("guatemala", "Q'umarkaj", -91.2, 15.0, "KIC", 6),
+    ("cuscatlan", "Cuscatlán", -89.2, 13.8, "NAT", 3),
+    ("honduras", "Honduras", -87.2, 14.7, "NAT", 3),
+    ("mosquitia", "Mosquitia", -84.6, 14.5, "NAT", 1),
+    ("nicaragua", "Nicaragua", -85.9, 12.4, "NAT", 3),
+    ("costa_rica", "Costa Rica", -84.0, 10.0, "NAT", 2),
+    ("veragua", "Veragua", -81.5, 8.6, "NAT", 1),
+    ("darien", "Darién", -79.6, 8.9, "NAT", 2, 1.6),
+    # Caribbean
+    ("havana", "Havanna", -82.4, 22.8, "NAT", 3),
+    ("camaguey", "Camagüey", -78.4, 21.6, "NAT", 2),
+    ("oriente", "Oriente", -76.0, 20.3, "NAT", 3),
+    ("jamaica", "Jamaika", -77.3, 18.1, "NAT", 2),
+    ("ayiti", "Ayiti", -72.6, 19.0, "NAT", 3),
+    ("quisqueya", "Quisqueya", -70.0, 18.8, "NAT", 4),
+    ("boriken", "Borikén", -66.4, 18.2, "NAT", 3),
+    ("antilles", "Kleine Antillen", -61.4, 15.6, "NAT", 1),
+    ("lucayas", "Lucayas", -77.8, 24.4, "NAT", 1),
+    ("trinidad", "Trinidad", -61.3, 10.4, "NAT", 1, 0.7),
+    # North America: Gulf and the south-east
+    ("florida", "Florida", -81.4, 27.8, "NAT", 2),
+    ("apalachee", "Apalachee", -84.3, 30.6, "NAT", 2),
+    ("maubila", "Maubila", -87.9, 31.5, "NAT", 2),
+    ("natchez", "Natchez", -91.3, 32.0, "NAT", 3),
+    ("delta", "Mississippi-Delta", -90.6, 29.8, "NAT", 2),
+    ("caddo", "Caddo", -94.4, 32.4, "NAT", 3),
+    ("karankawa", "Karankawa", -96.9, 29.2, "NAT", 1),
+    ("hasinai", "Hasinai", -97.4, 32.4, "NAT", 1),
+    ("apacheria", "Apachería", -101.2, 31.0, "NAT", 1, 4.0),
+    ("llano", "Llano Estacado", -101.5, 34.6, "NAT", 1, 4.0),
+    ("coosa", "Coosa", -85.6, 33.6, "NAT", 3),
+    ("cofitachequi", "Cofitachequi", -80.8, 33.9, "NAT", 3),
+    ("cherokee", "Cherokee", -83.4, 35.7, "NAT", 3),
+    ("chickasaw", "Chickasaw", -88.8, 34.8, "NAT", 2),
+    ("quapaw", "Quapaw", -92.2, 35.2, "NAT", 2),
+    ("wichita", "Wichita", -97.6, 36.5, "NAT", 1),
+    # the east coast
+    ("secotan", "Secotan", -77.2, 35.6, "NAT", 2),
+    ("powhatan", "Powhatan", -77.4, 37.7, "NAT", 3),
+    ("susquehannock", "Susquehannock", -76.6, 40.2, "NAT", 2),
+    ("lenape", "Lenapehoking", -74.6, 40.6, "NAT", 2),
+    ("mahican", "Mahican", -73.7, 42.7, "NAT", 2),
+    ("massachusett", "Massachusett", -71.4, 42.2, "NAT", 3),
+    ("abenaki", "Abenaki", -69.6, 44.9, "NAT", 2),
+    ("mikmaq", "Mi'kma'ki", -63.6, 45.2, "NAT", 1),
+    ("gaspe", "Gaspé", -66.2, 48.0, "NAT", 1),
+    ("newfoundland", "Neufundland", -56.0, 48.6, "NAT", 1),
+    ("labrador", "Labrador", -61.0, 53.6, "NAT", 1, 4.0),
+    # Iroquoia, the Great Lakes and the St. Lawrence
+    ("onondaga", "Onondaga", -76.1, 43.0, "IRO", 5),
+    ("seneca", "Seneca", -78.0, 42.6, "IRO", 3),
+    ("stadacona", "Stadacona", -71.2, 46.9, "NAT", 2),
+    ("hochelaga", "Hochelaga", -73.6, 45.6, "NAT", 2),
+    ("saguenay", "Saguenay", -71.0, 49.6, "NAT", 1, 4.0),
+    ("wendake", "Wendake", -79.6, 44.6, "NAT", 3),
+    ("algonquin", "Algonkin", -77.4, 46.8, "NAT", 1),
+    ("nipissing", "Nipissing", -81.6, 47.3, "NAT", 1),
+    ("erie", "Erie", -81.8, 41.0, "NAT", 2),
+    ("shawnee", "Shawnee", -83.4, 38.6, "NAT", 2),
+    ("miami", "Miami", -86.0, 40.6, "NAT", 1),
+    ("cahokia", "Cahokia", -90.0, 38.6, "NAT", 3),
+    ("illinois", "Illinois", -89.2, 41.6, "NAT", 2),
+    ("osage", "Osage", -94.4, 37.9, "NAT", 1),
+    ("michigan", "Anishinaabe", -84.6, 43.6, "NAT", 1),
+    ("menominee", "Menominee", -89.0, 44.9, "NAT", 1),
+    ("ioway", "Ioway", -93.4, 41.8, "NAT", 1),
+    ("pawnee", "Pawnee", -98.6, 41.0, "NAT", 1, 4.0),
+    ("ojibwe", "Ojibwe", -93.4, 46.9, "NAT", 1),
+    ("lakota", "Lakota", -100.6, 44.6, "NAT", 1, 4.0),
+    ("dakota", "Dakota", -97.2, 47.6, "NAT", 1),
+    ("nipigon", "Nipigon", -87.4, 49.6, "NAT", 1, 4.0),
+    ("assiniboine", "Assiniboine", -98.0, 51.0, "NAT", 1, 4.0),
+    # the far north
+    ("cree", "Cree", -80.4, 51.0, "NAT", 1, 4.0),
+    ("eeyou", "Eeyou", -75.6, 51.6, "NAT", 1, 4.0),
+    ("nitassinan", "Nitassinan", -66.4, 51.4, "NAT", 1, 4.0),
+    ("moosonee", "Moosonee", -85.4, 53.8, "NAT", 1, 4.0),
+    ("kiwetinok", "Kiwetinok", -95.0, 55.4, "NAT", 1, 4.5),
+    ("ungava", "Ungava", -71.0, 57.4, "NAT", 1, 4.5),
+    ("nunavik", "Nunavik", -76.0, 60.6, "NAT", 1, 4.5),
 ]
 
 # Extra sea/strait connections (province keys)
@@ -273,19 +377,21 @@ STRAITS = [
     ("constantinople", "izmit"), ("edirne", "bursa"), ("crimea", "circassia"), ("sevilla", "tangier"),
     ("granada", "tangier"), ("sicily", "tunis"), ("sardinia", "tunis"), ("crete", "morea"),
     ("crete", "rhodes"), ("rhodes", "mentese"), ("cyprus", "icel"), ("cyprus", "tripoli_sy"),
+    # the New World
+    ("havana", "florida"), ("havana", "yucatan"), ("oriente", "ayiti"), ("oriente", "jamaica"),
+    ("quisqueya", "boriken"), ("boriken", "antilles"), ("antilles", "trinidad"), ("lucayas", "florida"),
+    ("lucayas", "camaguey"), ("newfoundland", "labrador"), ("newfoundland", "mikmaq"),
 ]
 
 # land borders the coarse polygons miss (isthmus, small gaps): adjacency only, not sea crossings
 LAND_LINKS = [("constantinople", "edirne"), ("morea", "thessaly"), ("crimea", "zaporozhia")]
 
-SCALE = 48.0  # pixels per degree latitude
-LON0, LAT0 = -11.0, 63.0
-COSLAT = math.cos(math.radians(50))
-MIN_LAT = 27.0
+sys.path.insert(0, os.path.dirname(__file__))
+from mapproj import LAT0, MIN_LAT, NEW_WORLD, OLD_WORLD, SCALE, proj, size  # noqa: E402
 
-
-def proj(lon, lat):
-    return ((lon - LON0) * SCALE * COSLAT, (LAT0 - lat) * SCALE)
+FIRST_NEW_WORLD = "tenochtitlan"  # provinces from here on are in the New World ("nw" in map.json)
+# big lakes cut out of the New World land (Natural Earth lakes); Europe keeps its old shapes
+LAKES = {"Lake Superior", "Lake Michigan", "Lake Huron", "Lake Erie", "Lake Ontario", "Lake Winnipeg", "Lago de Nicaragua"}
 
 
 def project_geom(g):
@@ -293,21 +399,34 @@ def project_geom(g):
     return shapely.transform(g, lambda c: [proj(x, y) for x, y in c])
 
 
-def main(land_path):
+def parts_of(g):
+    if g.geom_type == "Polygon":
+        return [g]
+    return [q for q in getattr(g, "geoms", []) if q.geom_type == "Polygon"]
+
+
+def main(land_path, lakes_path):
     with open(land_path) as f:
         gj = json.load(f)
-    window = box(-12.0, MIN_LAT, 52.0, 66.0)
+    with open(lakes_path) as f:
+        lakes_gj = json.load(f)
+    lakes = unary_union([shape(ft["geometry"]) for ft in lakes_gj["features"] if ft["properties"].get("name") in LAKES])
+    windows = [box(OLD_WORLD[0], MIN_LAT, OLD_WORLD[1], LAT0), box(NEW_WORLD[0], MIN_LAT, NEW_WORLD[1], LAT0)]
     land_parts = []
     for feat in gj["features"]:
         g = shape(feat["geometry"])
-        if g.intersects(window):
-            land_parts.append(g.intersection(window))
-    land_ll = unary_union(land_parts)
-    full_land = project_geom(land_ll).buffer(0)
-    land = project_geom(land_ll).buffer(0)
+        for wi, window in enumerate(windows):
+            if g.intersects(window):
+                part = g.intersection(window)
+                if wi == 1:
+                    part = part.difference(lakes)
+                land_parts.append(project_geom(part))
+    land = unary_union(land_parts).buffer(0)
+    full_land = land
 
     pts = [proj(p[2], p[3]) for p in PROVINCES]
-    vor = voronoi_polygons(MultiPoint(pts), extend_to=box(-500, -500, 4000, 3000))
+    W, H = size()
+    vor = voronoi_polygons(MultiPoint(pts), extend_to=box(-500, -500, W + 500, H + 500))
     cells_by_idx = {}
     for cell in vor.geoms:
         for i, pt in enumerate(pts):
@@ -315,24 +434,57 @@ def main(land_path):
                 cells_by_idx[i] = cell
                 break
 
+    nw_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_NEW_WORLD)
     max_r = 3.2 * SCALE
-    provinces = []
-    shapes = []
+    raw = []
     for i, p in enumerate(PROVINCES):
         cell = cells_by_idx[i]
         disc = Point(pts[i]).buffer(p[6] * SCALE if len(p) > 6 else max_r, 24)
         g = cell.intersection(disc).intersection(land)
-        g = g.simplify(1.2, preserve_topology=True)
-        if g.geom_type == "MultiPolygon":
-            polys = [q for q in g.geoms if q.area > 25.0]
-        elif g.geom_type == "Polygon":
-            polys = [g]
-        else:
-            polys = [q for q in getattr(g, "geoms", []) if q.geom_type == "Polygon" and q.area > 25.0]
+        polys = [q for q in parts_of(g) if q.area > 25.0]
         if not polys:
             raise SystemExit("empty province " + p[0])
+        raw.append(polys)
+    # A Voronoi cell reaches across water and can grab a strip of another coast (Kintyre went to Ulster,
+    # the heel of Apulia to Albania, the Finnish coast to Reval). Each province keeps its main part (the
+    # one holding its centre, else the largest); every other part goes to the province it touches
+    # (longest shared border) or, if it touches none, to the nearest main part (islands).
+    main_parts = []
+    frags = []
+    for i, polys in enumerate(raw):
+        c = Point(pts[i])
+        big = max(polys, key=lambda q: q.area)
+        mp = next((q for q in polys if q.buffer(0.5).contains(c)), None) or big
+        if mp.area < 0.25 * big.area:  # centre on a small island (Montreal): the mainland part counts
+            mp = big
+        main_parts.append(mp)
+        frags += [(i, q) for q in polys if q is not mp]
+    groups = [[mp] for mp in main_parts]
+    frags.sort(key=lambda f: -f[1].area)
+    moved = 0
+    for owner, q in frags:
+        cur = [unary_union(gs) for gs in groups]
+        best, best_len = -1, 0.0
+        for j, s in enumerate(cur):
+            if s.distance(q) < 1.0:
+                ln = q.buffer(1.0).intersection(s.buffer(1.0)).area
+                if ln > best_len:
+                    best, best_len = j, ln
+        if best < 0:
+            best = min(range(len(cur)), key=lambda j: main_parts[j].distance(q))
+        if best != owner:
+            moved += 1
+            if os.environ.get("GEN_MAP_VERBOSE"):
+                print("  fragment %s -> %s (%.0f px²)" % (PROVINCES[owner][0], PROVINCES[best][0], q.area))
+        groups[best].append(q)
+    print("moved fragments:", moved)
+    provinces = []
+    shapes = []
+    for i, p in enumerate(PROVINCES):
+        g = unary_union(groups[i]).simplify(1.2, preserve_topology=True)
+        polys = [q for q in parts_of(g) if q.area > 25.0]
         shapes.append(unary_union(polys))
-        provinces.append({
+        d = {
             "id": i,
             "key": p[0],
             "name": p[1],
@@ -340,7 +492,10 @@ def main(land_path):
             "dev": p[5],
             "center": [round(pts[i][0], 1), round(pts[i][1], 1)],
             "polys": [[[round(x, 1), round(y, 1)] for x, y in list(q.exterior.coords)[:-1]] for q in polys],
-        })
+        }
+        if i >= nw_first:
+            d["nw"] = True
+        provinces.append(d)
 
     key_to_id = {p[0]: i for i, p in enumerate(PROVINCES)}
     adj = [set() for _ in PROVINCES]
@@ -368,8 +523,7 @@ def main(land_path):
         if q.geom_type == "Polygon" and q.area > 200.0:
             bg.append([[round(x, 1), round(y, 1)] for x, y in list(q.exterior.coords)[:-1]])
 
-    minx, miny, maxx, maxy = land.bounds
-    out = {"size": [round(maxx, 1), round(min(maxy, (LAT0 - MIN_LAT - 0.5) * SCALE), 1)], "provinces": provinces, "background": bg}
+    out = {"size": [W, H], "provinces": provinces, "background": bg}
     with open("data/map.json", "w") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
     # sea crossings: slower marches, need sea control in war (scripts/core/warfare.gd)
@@ -379,4 +533,4 @@ def main(land_path):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2])
