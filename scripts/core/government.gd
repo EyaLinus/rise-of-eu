@@ -187,6 +187,10 @@ func trait_name(id: String) -> String:
 	return trait_by_id.get(id, {}).get("name", "")
 
 
+func trait_text(id: String) -> String:
+	return trait_by_id.get(id, {}).get("text", "")
+
+
 ## "Erbe" for hereditary rule, "Nachfolger" for republics, theocracies, orders and elective monarchies.
 func heir_title(tag: String) -> String:
 	return "Nachfolger" if cfg.get("elective_forms", []).has(form_name(tag)) else "Erbe"

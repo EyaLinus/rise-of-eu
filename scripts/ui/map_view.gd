@@ -386,7 +386,9 @@ func _draw() -> void:
 			_outline(f.pid, gc, 4.0)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_draw_labels()
+	_draw_colonies()
 	_draw_seas()
+	_draw_voyages()
 	_draw_armies()
 	_draw_hover_tip()
 
@@ -426,6 +428,11 @@ func _draw_world(ci: CanvasItem) -> void:
 				var fc := Color(Faith.FAITHS[own].color)
 				for poly in polys[p.id]:
 					_draw_hatch(ci, poly, bboxes[p.id], fc)
+		elif p.colonist != "" and known(p.id):
+			var sc: Color = game.nations[p.colonist].color
+			sc.a = 0.8
+			for poly in polys[p.id]:
+				_draw_hatch(ci, poly, bboxes[p.id], sc)
 		elif p.controller != p.owner:
 			var cc: Color = _occupier_color(p.controller)
 			cc.a = 0.6 if map_mode != MODE_WAR else 0.9
@@ -988,6 +995,77 @@ func _draw_armies() -> void:
 		_draw_power_bar(a, Rect2(s.x - ARMY_R, s.y + ARMY_R + 3, ARMY_R * 2, 4))
 	_draw_battles()
 	_draw_flashes()
+
+
+## Armies at sea (Naval.transport): a dashed course over the seas and a ship with the regiments.
+func _draw_voyages() -> void:
+	for v in game.voyages:
+		var a = v.army
+		var mine: bool = a.owner == game.player
+		if not mine and not (known(int(v.to)) and known(int(v.from))):
+			continue
+		var pts: Array = Naval.voyage_points(game, v)
+		var sp := PackedVector2Array()
+		for w in pts:
+			sp.append(to_screen(w))
+		var c: Color = game.nations[a.owner].color
+		if mine:
+			for i in sp.size() - 1:
+				draw_dashed_line(sp[i], sp[i + 1], Color(1, 1, 1, 0.7), 2.0, 8.0)
+		# position along the course
+		var total := 0.0
+		for i in sp.size() - 1:
+			total += sp[i].distance_to(sp[i + 1])
+		var want: float = total * Naval.voyage_done(v)
+		var at: Vector2 = sp[0]
+		for i in sp.size() - 1:
+			var seg: float = sp[i].distance_to(sp[i + 1])
+			if want <= seg or i == sp.size() - 2:
+				at = sp[i].lerp(sp[i + 1], clampf(want / maxf(seg, 0.01), 0.0, 1.0))
+				break
+			want -= seg
+		if not Rect2(Vector2(-30, -30), size + Vector2(60, 60)).has_point(at):
+			continue
+		draw_circle(at, 15.0, Color(0, 0, 0, 0.85))
+		draw_circle(at, 13.0, c.darkened(0.1))
+		var fs := 15
+		var g := "⛵"
+		draw_string(font, at + Vector2(-9, 6), g, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+		var txt := "%d · %d Mon." % [int(round(a.regs)), int(v.left)]
+		var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+		draw_string_outline(font, at + Vector2(-w / 2, 30), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 3, Color.BLACK)
+		draw_string(font, at + Vector2(-w / 2, 30), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
+
+
+## Colonies being settled: the settler nation's flag over the province and a progress bar with percent
+## (at every zoom level, so the race for the New World and Africa can be followed on the map).
+func _draw_colonies() -> void:
+	var fs := 12 if zoom < 0.8 else 14
+	for pid in range(game.nw_first, game.provinces.size()):
+		var p = game.provinces[pid]
+		if p.colonist == "" or not known(pid):
+			continue
+		var s := to_screen(p.center)
+		if not Rect2(Vector2(-40, -40), size + Vector2(80, 80)).has_point(s):
+			continue
+		var c: Color = game.nations[p.colonist].color
+		var prog: float = Colonial.progress(game, pid)
+		var bw := 44.0 if zoom >= 0.8 else 32.0
+		var top := s + Vector2(-bw / 2, 10.0)
+		var flag := Icons.flag(p.colonist)
+		var fsz := Vector2(bw * 0.5, bw * 0.34)
+		if flag != null:
+			draw_rect(Rect2(s + Vector2(-fsz.x / 2 - 1, -fsz.y - 1), fsz + Vector2(2, 2)), Color(0, 0, 0, 0.9))
+			draw_texture_rect(flag, Rect2(s + Vector2(-fsz.x / 2, -fsz.y), fsz), false)
+		var bar := Rect2(top, Vector2(bw, 6.0))
+		draw_rect(bar.grow(1.5), Color(0, 0, 0, 0.9))
+		draw_rect(bar, Color(0.2, 0.2, 0.2, 0.9))
+		draw_rect(Rect2(bar.position, Vector2(bw * prog, bar.size.y)), c.lightened(0.15))
+		var txt := "🏕 %d %%" % int(prog * 100.0)
+		var tw := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var tp := Vector2(s.x - tw / 2, bar.end.y + fs + 2)
+		draw_string_outline(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color.BLACK)
+		draw_string(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
 
 
 ## Running battles: crossed swords over the province, both sides' battle morale as bars.

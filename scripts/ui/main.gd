@@ -49,6 +49,7 @@ var econ_tab := "overview"  # sub-tab of the economy panel
 var prov_tab := "info"  # sub-tab of an own province: info, build, army
 var section_open := {}  # collapsible panel sections the player opened or closed (key -> bool)
 var selected_army := -1
+var sea_order := false  # the next province tap ships the selected army there (Naval.transport)
 var peace_selection := {}
 var last_log_count := 0
 var known_wars := {}
@@ -252,6 +253,7 @@ func _build_hud() -> void:
 	strip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	strip.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	strip.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	strip.resized.connect(func(): if game != null: _fit_top())  # window / UI size changed
 	hb.add_child(strip)
 	var res := HBoxContainer.new()
 	res.add_theme_constant_override("separation", 14)
@@ -437,9 +439,11 @@ func _btn(text: String, cb: Callable, tip: String = "", disabled: bool = false) 
 	b.disabled = disabled
 	b.custom_minimum_size = Vector2(64, 66) if _big() else Vector2(52, 52)
 	b.focus_mode = Control.FOCUS_NONE
-	# long labels are trimmed instead of widening the side panel past the screen edge
-	b.clip_text = true
+	# long labels wrap onto a second line instead of being cut off or widening the side panel past
+	# the screen edge (callers that need a one-line button set clip_text again)
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	b.tree_entered.connect(_word_floor.bind(b), CONNECT_ONE_SHOT)
 	# a press that turned into a scroll or a long-press tooltip is not a click
 	b.pressed.connect(func():
 		if _suppress_click:
@@ -447,6 +451,26 @@ func _btn(text: String, cb: Callable, tip: String = "", disabled: bool = false) 
 		_sfx("click", -14.0)
 		cb.call())
 	return b
+
+
+## A wrapping button may shrink, but never below its longest word ("Ändern" must not become "Änd/ern").
+static func _word_floor(b: Button) -> void:
+	if b.autowrap_mode == TextServer.AUTOWRAP_OFF or b.clip_text or b.text == "":
+		return
+	var font: Font = b.get_theme_font("font")
+	var fs: int = b.get_theme_font_size("font_size")
+	var w := 0.0
+	var words: Array = Array(b.text.split(" ", false))
+	if words.size() > 1 and words[0].length() <= 2:  # keep a leading emoji with its word
+		words[1] = words[0] + " " + words[1]
+	for word in words:
+		w = maxf(w, font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+	var sb: StyleBox = b.get_theme_stylebox("normal")
+	if sb != null:
+		w += sb.get_margin(SIDE_LEFT) + sb.get_margin(SIDE_RIGHT)
+	if b.icon != null and not b.expand_icon:
+		w += b.icon.get_width() + b.get_theme_constant("h_separation")
+	b.custom_minimum_size.x = maxf(b.custom_minimum_size.x, ceilf(w) + 2.0)
 
 
 ## Button with a title line and a BBCode line below (event options: green buffs, red nerfs).
@@ -576,10 +600,7 @@ func _chip(text: String, tip: String = "", kind: String = "") -> PanelContainer:
 	var pc := PanelContainer.new()
 	pc.add_theme_stylebox_override("panel", UiTheme.card(kind, 6))
 	var l := _lbl(text, 15)
-	l.autowrap_mode = TextServer.AUTOWRAP_OFF
-	l.clip_text = true
-	l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	l.custom_minimum_size.x = 60
+	l.custom_minimum_size.x = 60  # wraps when the row is narrow instead of cutting the text
 	pc.add_child(l)
 	if tip != "":
 		pc.tooltip_text = tip
@@ -1249,11 +1270,11 @@ func _update_top() -> void:
 	var n = game.nations[game.player]
 	var net: float = n.income - n.expenses + game.tribute_income(game.player)
 	top_labels.nation.text = nname(game.player)
-	top_labels.gold.text = Icons.prefix("gold") + "%d (%+.1f)" % [n.gold, net]
+	top_labels.gold.text = Icons.prefix("gold") + "%s (%s%s)" % [short_num(n.gold), "+" if net >= 0 else "", short_num(net) if absf(net) >= 100.0 else "%.1f" % net]
 	top_labels.adm.text = Icons.prefix("adm") + "%d" % n.adm
 	top_labels.dip.text = Icons.prefix("dip") + "%d" % n.dip
 	top_labels.mil.text = Icons.prefix("mil") + "%d" % n.mil
-	top_labels.manpower.text = Icons.prefix("manpower") + "%.0f" % n.manpower
+	top_labels.manpower.text = Icons.prefix("manpower") + short_num(n.manpower)
 	top_labels.army.text = Icons.prefix("army") + "%.0f/%.0f" % [game.army_regs(game.player), game.force_limit(game.player)]
 	top_labels.ae.text = Icons.prefix("ae") + "%d" % n.ae
 	top_labels.ae.add_theme_color_override("font_color", Color.TOMATO if n.ae >= game.coalition_threshold(game.player) * 0.7 else Color.WHITE)
@@ -1270,7 +1291,31 @@ func _update_top() -> void:
 	top_labels.army.tooltip_text = "Regimenter / Truppenlimit\nMehr Regimenter als das Limit kannst du nicht ausheben. Kasernen, Technik und Ränge erhöhen es."
 	top_labels.ae.tooltip_text = "Aggressive Expansion %d (Koalitionsgrenze %d)\nSinkt langsam; hohe Werte machen Nachbarn feindlich." % [n.ae, int(game.coalition_threshold(game.player))]
 	speed_label.text = "⏸" if speed == 0 else "▶".repeat(speed)
+	_fit_top()
 	_update_badges()
+
+
+## Keep every resource of the top bar visible (AE sits last and got pushed out by big gold numbers):
+## first tighter spacing, then the nation name collapses to the flag, then a smaller font.
+func _fit_top() -> void:
+	var res: HBoxContainer = top_labels.gold.get_parent()
+	var strip: Control = res.get_parent()
+	var avail: float = strip.size.x
+	if avail <= 0.0:
+		return
+	var base_sep := 10 if _big() else 14
+	var steps := [[base_sep, true, 20, 32], [6, true, 20, 32], [6, false, 20, 32], [4, false, 18, 28], [3, false, 16, 24], [2, false, 15, 20]]
+	for st in steps:
+		res.add_theme_constant_override("separation", st[0])
+		for c in res.get_children():
+			if c is TextureRect:
+				c.custom_minimum_size = Vector2(st[3], st[3])
+		top_labels.nation.visible = st[1]
+		for k in top_labels:
+			if k != "date" and top_labels[k] is Label:
+				top_labels[k].add_theme_font_size_override("font_size", st[2])
+		if res.get_combined_minimum_size().x <= avail:
+			return
 
 
 ## Small dots on the left tabs when something can be done there.
@@ -1986,6 +2031,32 @@ func _refresh() -> void:
 		"advice":
 			_panel_advice()
 	side_scroll.set_deferred("scroll_vertical", scroll)
+	_fit_title.call_deferred()
+
+
+## Long panel titles (nation names, "Heiliges Römisches Reich") get a smaller font instead of "…".
+func _fit_title() -> void:
+	var font: Font = side_title.get_theme_font("font")
+	var avail: float = side_title.size.x
+	var fs := 24
+	while fs > 15 and font.get_string_size(side_title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > avail:
+		fs -= 1
+	side_title.add_theme_font_size_override("font_size", fs)
+	side_title.tooltip_text = side_title.text
+	side_title.mouse_filter = Control.MOUSE_FILTER_PASS
+
+
+## Short number for tight spots: 950, 12.3k, 123k, 1.2M (the exact value goes into the tooltip).
+static func short_num(v: float) -> String:
+	var a := absf(v)
+	var sgn := "-" if v < 0 else ""
+	if a < 10000.0:
+		return "%d" % int(v)
+	if a < 100000.0:
+		return sgn + ("%.1fk" % (a / 1000.0)).replace(".0k", "k")
+	if a < 1000000.0:
+		return sgn + "%dk" % int(a / 1000.0)
+	return sgn + ("%.1fM" % (a / 1000000.0)).replace(".0M", "M")
 
 
 func _on_province_tapped(pid: int) -> void:
@@ -1993,12 +2064,27 @@ func _on_province_tapped(pid: int) -> void:
 		var a = game.army_by_id(selected_army)
 		if a != null and a.owner == game.player:
 			a.auto = false
-			var err: String = game.move_army(a, pid)
+			var err: String
+			var ok_msg := "🚶 Marschbefehl nach %s" % game.provinces[pid].name
+			if sea_order:
+				err = Naval.transport(game, a, pid)
+				ok_msg = "⛵ Die Armee sticht in See nach %s" % game.provinces[pid].name
+			else:
+				err = game.move_army(a, pid)
+				# no way by land: by ship, if the army stands in a port and the target has a coast
+				if err != "" and game.province_seas.has(pid):
+					var sea_why: String = Naval.transport_block_reason(game, a, pid)
+					if sea_why == "":
+						err = Naval.transport(game, a, pid)
+						ok_msg = "⛵ Kein Landweg: die Armee sticht in See nach %s" % game.provinces[pid].name
+					elif game.province_seas.has(a.pid):
+						err += "\n⛵ Seeweg: " + sea_why
 			if err == "":
 				# one order per selection: the next tap on the map looks around instead of moving again
 				selected_army = -1
 				map.selected_army = -1
-			_act(err, "🚶 Marschbefehl nach %s" % game.provinces[pid].name if err == "" else "")
+				sea_order = false
+			_act(err, ok_msg if err == "" else "")
 			map.refresh()
 			return
 	map.selected_pid = pid
@@ -2030,6 +2116,7 @@ func _on_army_tapped(id: int) -> void:
 		panel_history.append([panel_mode, panel_arg])
 	side_back.visible = not panel_history.is_empty()
 	selected_army = id
+	sea_order = false
 	map.selected_army = id
 	map.selected_pid = -1
 	panel_mode = "army"
@@ -2446,12 +2533,24 @@ func _economy_trade() -> void:
 	for r in shown:
 		var m: int = r[0]
 		var has: bool = n.merchants.has(m)
-		var txt := "%s %s  %.1f💰 · Anteil %d%%" % ["🛒" if has else "🏬", game.provinces[m].name, r[2], int(r[1] * 100)]
+		var lord: String = game.Trade.dominant(game, m)
+		var crown := " 👑" if lord == me else ""
+		var txt := "%s %s%s  %.1f💰 · Anteil %d%%" % ["🛒" if has else "🏬", game.provinces[m].name, crown, r[2], int(r[1] * 100)]
 		var gain: float = Eco.merchant_gain(game, me, m)
 		var tip := "Marktwert %.2f/Monat. Ein Händler hier brächte etwa +%.2f/Monat." % [r[2], gain]
+		if lord != "":
+			tip += "\n👑 Marktherr: %s (mind. %d %% der Handelsmacht): +%d %% Einnahmen aus diesem Markt und etwas Prestige." % [
+					nname(lord), int(float(game.bal.dom_share) * 100), int(float(game.bal.dom_bonus) * 100)]
+		if game.Trade.is_overseas_market(game, m):
+			tip += "\n⛵ Übersee-Markt: Kolonialwaren zählen hier doppelt."
+		if game.levant.has(m) and game.Trade.market_mult(game, m) < 1.0:
+			tip += "\n📉 Der Seeweg nach Indien umgeht die Levante: −%d %% Marktwert." % int((1.0 - game.Trade.market_mult(game, m)) * 100)
+		var far: String = game.Trade.market_block_reason(game, me, m)
 		var b: Button
 		if has:
 			b = _btn(txt + "  ↩", func(): Eco.recall_merchant(game, me, m); _refresh(), tip + " Antippen: Händler zurückrufen.")
+		elif far != "":
+			b = _btn(txt + "  🔒", func(): _act(far), tip + "\n❌ " + far)
 		else:
 			b = _btn(txt + "  +%.2f" % gain, func(): _act(Eco.send_merchant(game, me, m), "🛒 Händler entsandt"), tip + " Antippen: Händler schicken.")
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -2461,6 +2560,68 @@ func _economy_trade() -> void:
 		side_box.add_child(b)
 	if not rest.is_empty():
 		_section("trade_more", "Weitere Märkte (%d)" % rest.size(), false)
+	_economy_far_trade()
+
+
+## Spice route around Africa: Cape voyage, Indiamen, factories (scripts/core/trade.gd).
+func _economy_far_trade() -> void:
+	var me: String = game.player
+	var n = game.nations[me]
+	var T = game.Trade
+	var b: Dictionary = game.bal
+	if not _section("far_trade", "🧭 Fernhandel: Seeweg nach Indien", true,
+			"Gewürze, Seide und Porzellan: der reichste Handel der Zeit. Wer das Kap der Guten Hoffnung umsegelt, öffnet den Seeweg. Danach teilen sich alle Reiche, die ihn kennen, den Wert nach Ostindienfahrern und Faktoreien."):
+		return
+	var dom: Array = T.dominated_by(game, me)
+	if not dom.is_empty():
+		var names := []
+		for m in dom:
+			names.append(game.provinces[m].name)
+		side_box.add_child(_lbl("👑 Marktherr in: %s" % ", ".join(names), 15, UiTheme.GOOD))
+	if not T.is_open(game) or not T.knows(game, me):
+		var why: String = T.voyage_block_reason(game, me)
+		var status := "Der Seeweg ist noch unbekannt." if not T.is_open(game) else "%s hat den Seeweg %s gefunden. Wert jetzt %.1f 💰 im Monat." % [nname(game.east.cape), game.date_string(int(game.east.cape_month)), T.route_value(game)]
+		if game.east.voyage.has(me):
+			status = "⛵ Eure Flotte ist unterwegs: noch %d Monate." % int(game.east.voyage[me])
+		side_box.add_child(_lbl(status, 15, Color(0.8, 0.85, 0.9)))
+		if not game.east.voyage.has(me):
+			side_box.add_child(_btn("🧭 Kap-Expedition  %d💰 %d🕊️" % [int(T.voyage_cost(game, me)), int(b.cape_dip)], func(): _act(T.start_voyage(game, me), "⛵ Die Flotte sticht in See"),
+					"Eine Flotte segelt um Afrika (%d Monate). Die erste Fahrt gelingt mit %d %% Wahrscheinlichkeit und bringt %d Prestige. Wer zuerst ankommt, hütet die Seekarten %d Jahre lang; danach geht es für andere schneller und billiger.%s" % [
+						int(b.cape_months), int(float(b.cape_success) * 100), int(b.cape_prestige), int(b.cape_monopoly_years), ("\n❌ " + why) if why != "" else ""], why != ""))
+		return
+	var raw: float = T.east_income(game, me)
+	var mult: float = maxf(0.0, 1.0 + game.mod(n, "trade") + game.Economy.income_bonus(game, n))
+	side_box.add_child(_grid([
+		_chip("💰 %.1f / Monat" % (raw * mult), "Dein Anteil am Gewürzhandel (inkl. Handelsboni). Gesamtwert des Seewegs: %.1f 💰 im Monat, er wächst jedes Jahr." % T.route_value(game), "gold"),
+		_chip("📈 Anteil %d %%" % int(T.share(game, me) * 100), "Deine Macht auf dem Seeweg: %.0f von %.0f. Jeder Ostindienfahrer zählt %d, jede Faktorei mehr." % [T.power(game, me), T.total_power(game), int(b.east_ship_power)]),
+		_chip("⛵ %d / %d Schiffe" % [T.ships(game, me), T.ship_cap(game, me)], "Ostindienfahrer: je %.2f 💰 Unterhalt im Monat. Stürme und Piraten kosten jedes Jahr ab und zu ein Schiff, Feinde auf der Route noch mehr." % float(b.east_ship_upkeep)),
+		_chip("🏪 %d / %d Faktoreien" % [T.factories_of(game, me).size(), T.max_factories(game, me)], "Faktoreien sind Handelsposten in Afrika und Asien. Jede gibt Macht auf dem Seeweg und erlaubt mehr Schiffe."),
+	]))
+	var sw: String = T.ship_block_reason(game, me)
+	side_box.add_child(_row([
+		_btn("⛵ Schiff %d💰" % int(b.east_ship_cost), func(): _act(T.buy_ship(game, me), "⛵ Ein Ostindienfahrer läuft aus"), "Mehr Schiffe, mehr Anteil am Gewürzhandel." + (("\n❌ " + sw) if sw != "" else ""), sw != ""),
+		_btn("↩ Schiff abziehen", func(): T.sell_ship(game, me); _refresh(), "Ein Schiff zurückholen: spart Unterhalt, kostet Anteil.", T.ships(game, me) == 0),
+	]))
+	side_box.add_child(_lbl("🏪 Faktorei gründen: %d 💰 · fremde nur im Krieg erobern" % int(T.factory_cost(game, me)), 14, Color(0.8, 0.85, 0.9)))
+	var cells := []
+	for f in T.FACTORIES:
+		var holder: String = game.east.factories.get(f.id, "")
+		var why: String = T.factory_block_reason(game, me, f.id)
+		var label: String
+		if holder == me:
+			label = "%s %s ✅" % [f.emoji, f.name]
+		elif holder != "":
+			label = "%s %s · %s" % [f.emoji, f.name, holder]
+		else:
+			label = "%s %s" % [f.emoji, f.name]
+		var tip: String = "%s Macht +%d auf dem Seeweg. Gründen kostet %d 💰." % [f.desc, int(f.power), int(T.factory_cost(game, me))]
+		if holder != "" and holder != me:
+			tip += " Gehört %s; im Krieg mit mehr Schiffen zu erobern." % nname(holder)
+		if why != "" and holder != me:
+			tip += "\n❌ " + why
+		var fid: String = f.id
+		cells.append(_btn(label, func(): _act(T.take_factory(game, me, fid), "🏪 Faktorei gesichert"), tip, why != "" or holder == me))
+	side_box.add_child(_grid(cells))
 
 
 func _economy_goods() -> void:
@@ -2497,7 +2658,6 @@ func _panel_mapmodes() -> void:
 	var modes := []
 	for i in map.MODE_NAMES.size():
 		var b := _btn(map.MODE_NAMES[i], _set_map_mode.bind(i), MODE_LEGENDS[i])
-		b.clip_text = true
 		if map.map_mode == i:
 			b.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
 			b.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
@@ -2549,7 +2709,9 @@ func _panel_army(id: int) -> void:
 	side_box.add_child(_grid(chips))
 	if a.owner != game.player:
 		return
-	if selected_army == a.id:
+	if selected_army == a.id and sea_order:
+		side_box.add_child(_lbl("⛵ Tippe auf eine Küstenprovinz: die Armee fährt mit der Flotte dorthin. %s" % _transport_info(a), 16, Color(0.6, 0.85, 1.0)))
+	elif selected_army == a.id:
 		side_box.add_child(_lbl("👉 Tippe auf eine Provinz, um die Armee dorthin zu schicken. Lange drücken zeigt nur Infos.", 16, Color(0.8, 0.85, 0.6)))
 	side_box.add_child(_grid([
 		_btn("⚔️ Angriff", func(): _set_stance(a, "attack"), "KI führt die Armee: sucht Schlachten und belagert."),
@@ -2568,6 +2730,9 @@ func _panel_army(id: int) -> void:
 	var acts := []
 	if selected_army != a.id:
 		acts.append(_btn("🎯 Neues Ziel", func(): selected_army = a.id; map.selected_army = a.id; _refresh(); map.refresh(), "Danach auf eine Provinz tippen."))
+	if Naval.is_port(game, a.owner, a.pid):
+		acts.append(_btn("⛵ Seeweg" if not (sea_order and selected_army == a.id) else "⛵ Seeweg ✓", func(): selected_army = a.id; map.selected_army = a.id; sea_order = not sea_order; _refresh(); map.refresh(),
+				"Mit der Flotte übers Meer: danach auf eine bekannte Küste tippen (eigenes Land, Verbündete, Kriegsgegner oder mit Durchmarschrecht). %s Ein Marschbefehl ohne Landweg nimmt automatisch das Schiff." % _transport_info(a)))
 	if a.pid != game.nations[a.owner].capital:
 		acts.append(_btn("🏰 Hauptstadt", func(): _quick_order(a, game.nations[a.owner].capital), "Zur Hauptstadt marschieren."))
 	if a.general == 0:
@@ -2627,18 +2792,26 @@ func _new_world_section() -> void:
 	var n = game.nations[me]
 	if not game.atlantic_tags.has(me):
 		return
-	if not _section("nat_newworld", "🧭 Neue Welt", true,
-			"Entdeckungsfahrten decken die Meere und Küsten Amerikas auf, Siedler gründen dort Kolonien. Ab Diplomatie-Technologie %d." % int(game.bal.explore_dip_tech)):
+	if not _section("nat_newworld", "🧭 Neue Welt und Afrika", true,
+			"Entdeckungsfahrten decken die Meere und Küsten Amerikas und den Golf von Guinea auf, Siedler gründen dort und an der westafrikanischen Küste Kolonien. Ab Diplomatie-Technologie %d." % int(game.bal.explore_dip_tech)):
 		return
 	var running: Array = Colonial.running_colonies(game, me)
 	var chips := [
 		_chip("🕊️ Technik %d/%d" % [n.tech.dip, int(game.bal.explore_dip_tech)], "Entdeckungsfahrten und Kolonien brauchen Diplomatie-Technologie %d." % int(game.bal.explore_dip_tech), "good" if Colonial.can_explore_tech(game, n) else "bad"),
-		_chip("🏕 Siedler %d/%d" % [running.size(), Colonial.colonists(game, n)], "So viele Kolonien können gleichzeitig wachsen. Alle %d Diplomatie-Technologien kommt ein Siedler dazu." % int(game.bal.dip_tech_per_colonist)),
-		_chip("🌍 %d Kolonien" % Colonial.colonies_owned(game, me), "Fertige Provinzen in der Neuen Welt."),
-		_chip("🗺️ Zur Neuen Welt", "Karte nach Amerika schwenken."),
+		_chip("🏕 Siedler %d/%d" % [running.size(), Colonial.colonists(game, n)], "So viele Kolonien können gleichzeitig wachsen.\n• 1 Grundstock\n• +1 je %d Diplomatie-Technologien (jetzt +%d)\n• +1 je %d fertige Kolonien, höchstens +2 (jetzt +%d)\n• +1 je angeworbene Siedlergruppe (jetzt +%d von %d)" % [
+				int(game.bal.dip_tech_per_colonist), int(n.tech.dip / int(game.bal.dip_tech_per_colonist)), int(game.bal.colonies_per_colonist), Colonial.colony_settlers(game, n),
+				Colonial.recruited(n), int(game.bal.recruit_colonist_max)]),
+		_chip("🌍 %d Kolonien" % Colonial.colonies_owned(game, me), "Fertige Kolonien in Amerika und Afrika."),
+		_chip("🗺️ Nach Amerika", "Karte nach Amerika schwenken."),
+		_chip("🌍 Nach Afrika", "Karte nach Westafrika schwenken."),
 	]
 	chips[3].gui_input.connect(func(e): if _is_click(e): map.focus(game.provinces[game.nw_first].center, 0.6); map.refresh())
+	chips[4].gui_input.connect(func(e): if _is_click(e): map.focus(game.provinces[mini(game.wa_first, game.provinces.size() - 1)].center, 0.6); map.refresh())
+	chips.append(Control.new())
 	side_box.add_child(_grid(chips))
+	var rw: String = Colonial.recruit_block_reason(game, me)
+	side_box.add_child(_btn("🏕 Siedler anwerben · %d 🕊️" % int(Colonial.recruit_cost(game, n)), func(): _act(Colonial.recruit_colonist(game, me), "🏕 Neue Siedler stehen bereit"),
+			"Diplomatie einsetzen: eine Siedlergruppe mehr, für immer (höchstens %d, jede weitere teurer)." % int(game.bal.recruit_colonist_max) + (("\n❌ " + rw) if rw != "" else ""), rw != ""))
 	if not n.expedition.is_empty():
 		side_box.add_child(_lbl("⛵ Expedition nach %s: noch %d Monate" % [game.Naval.sea_name(game, n.expedition.sea), int(n.expedition.months)], 15, Color(0.95, 0.85, 0.5)))
 	else:
@@ -2671,7 +2844,7 @@ func _panel_nation() -> void:
 		_chip("📜+%.0f 🕊️+%.0f ⚔️+%.0f" % [game.monthly_power(n, "adm"), game.monthly_power(n, "dip"), game.monthly_power(n, "mil")], "Macht pro Monat."),
 		_chip("💰 %+.1f / Monat" % (n.income - n.expenses), "Einnahmen %.1f, Ausgaben %.1f." % [n.income, n.expenses], "good" if n.income >= n.expenses else "bad"),
 		_chip("🏘️ %d · %d Prov." % [n.dev_total, game.provinces_of(me).size()], "Gesamtentwicklung und Zahl der Provinzen."),
-		_chip("🛡️ %.0f · 👥 %.0f/%.0f" % [game.force_limit(me), n.manpower, n.max_manpower], "Truppenlimit und Mannschaften (aktuell / maximal)."),
+		_chip("🛡️ %.0f · 👥 %s/%s" % [game.force_limit(me), short_num(n.manpower), short_num(n.max_manpower)], "Truppenlimit und Mannschaften (aktuell / maximal)."),
 		_chip("⭐ %d · 🏆 %d" % [n.prestige, game.score(me)], "Prestige und Punkte (Rangliste)."),
 		_chip("😩 Müdigkeit %.1f" % n.we, "Kriegsmüdigkeit (höchstens %d): erhöht Unruhe, Gegner nehmen Frieden leichter an." % int(game.bal.we_max), "bad" if n.we >= 5.0 else ""),
 		_chip("😠 AE %d / %d" % [n.ae, thr], "Aggressive Expansion; ab %d drohen Koalitionen.\nKoalition gegen dich: %s" % [int(thr), ", ".join(co) if not co.is_empty() else "keine"], "bad" if not co.is_empty() or n.ae >= thr else ""),
@@ -2692,7 +2865,7 @@ func _panel_nation() -> void:
 					"Volk beruhigen: senkt die Kriegsmüdigkeit, die Unruhe in allen Provinzen erzeugt."),
 			_btn("😠 −%d · %d🕊️" % [int(game.bal.reputation_ae), int(game.bal.reputation_cost)], func(): _act(game.restore_reputation(me), "😠 Dein Ruf bessert sich"),
 					"Ruf verbessern: Gesandte beruhigen die Nachbarn, Koalitionen werden unwahrscheinlicher."),
-			_btn(("👥 +%d · %d⚔️" % [int(game.conscript_gain(me)), int(game.bal.conscript_cost)]) if cr == 0 else ("👥 in %d Mon." % cr), func(): _act(game.conscript(me), "👥 Neue Rekruten ausgehoben"),
+			_btn(("👥 +%d · %d⚔️" % [maxi(0, int(game.conscript_gain(me))), int(game.bal.conscript_cost)]) if cr == 0 else ("👥 in %d Mon." % cr), func(): _act(game.conscript(me), "👥 Neue Rekruten ausgehoben"),
 					"Rekrutierung: füllt sofort bis zu %d %% deiner maximalen Mannschaften auf. Danach %d Monate Pause." % [int(float(game.bal.conscript_share) * 100), int(game.bal.conscript_cooldown)]),
 		]
 		for r in Faith.FAITHS:
@@ -2893,6 +3066,15 @@ func _panel_diplomacy() -> void:
 	var me: String = game.player
 	side_title.text = "🤝 Diplomatie"
 	side_box.add_child(_row([_btn("🏆 Rangliste", _open_panel.bind("ranking")), _btn("👑 Reich", _open_panel.bind("hre"))]))
+	var used: int = game.diplo_used(me)
+	var dcap: int = game.diplo_cap(me)
+	side_box.add_child(_grid([
+		_chip("🕊️ Diplomatie %d / %d" % [used, dcap],
+			"Diplomatische Kapazität: jedes Bündnis und jeder Vasall belegt einen Platz. Mehr Plätze mit Diplomatie-Technologie. Über dem Limit kostet jeder Platz zu viel %.1f 🕊️ und %.2f Prestige im Monat, und neue Bündnisse sind nicht möglich." % [float(game.bal.diplo_over_dip), float(game.bal.diplo_over_prestige)],
+			"bad" if used > dcap else ("gold" if used == dcap else "good")),
+		_chip("🤝 Bündnis %d🕊️" % int(game.alliance_cost(me)),
+			"Ein neues Bündnis kostet %d 🕊️. Je größer dein Reich (Entwicklung über %d), desto teurer werden Bündnisse." % [int(game.alliance_cost(me)), int(game.bal.alliance_cost_free_dev)]),
+	]))
 	var groups := [["Vasallen", []], ["Verbündete", []], ["Feinde", []], ["Rivalen", []], ["Nachbarn", []], ["Andere", []]]
 	var nbs: Array = game.neighbors_of(me)
 	var mn = game.nations[me]
@@ -3032,8 +3214,10 @@ func _panel_other(tag: String) -> void:
 		if game.is_allied(me, tag):
 			acts.append(_btn("💔 Bündnis lösen", func(): game.break_alliance(me, tag); _act("", "💔 Bündnis aufgelöst"), "Bündnis auflösen: −30 Beziehung."))
 		else:
-			acts.append(_btn("🤝 Bündnis %d🕊️" % int(b.alliance_cost), func(): _act(game.propose_alliance(me, tag), "🤝 Bündnis geschlossen!"),
-					"Bündnis anbieten: Verbündete kämpfen in Verteidigungskriegen mit und lassen deine Armeen durch."))
+			var full: bool = game.diplo_used(me) >= game.diplo_cap(me)
+			acts.append(_btn("🤝 Bündnis %d🕊️%s" % [int(game.alliance_cost(me)), " ❌" if full else ""], func(): _act(game.propose_alliance(me, tag), "🤝 Bündnis geschlossen!"),
+					"Bündnis anbieten: Verbündete kämpfen in Verteidigungskriegen mit und lassen deine Armeen durch. Kosten steigen mit der Größe deines Reichs. Diplomatische Plätze: %d / %d (Bündnisse + Vasallen).%s" % [
+						game.diplo_used(me), game.diplo_cap(me), "\n❌ Kapazität erschöpft: erst ein Bündnis lösen oder einen Vasallen annektieren." if full else ""], full))
 		var Eco = game.Economy
 		if mn.trade_pacts.has(tag):
 			acts.append(_btn("✂️ Abkommen kündigen", func(): Eco.cancel_pact(game, me, tag); _act("", "✂️ Handelsabkommen gekündigt"),
@@ -3139,7 +3323,6 @@ func _panel_navy() -> void:
 		var on: bool = Naval.mission(game, me) == k
 		var mk: String = k
 		var b := _btn(Naval.MISSIONS[k].name, func(): _act(Naval.set_mission(game, me, mk), ""), Naval.MISSIONS[k].tip)
-		b.clip_text = true
 		if on:
 			b.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
 		ms.append(b)
@@ -3157,7 +3340,6 @@ func _panel_navy() -> void:
 			var label: String = "Überall" if sid == "" else Naval.sea_name(game, sid)
 			var b := _btn(label, func(): _act(Naval.station(game, me, s_id), ""),
 					"Alle Schiffe auf deine Küstenmeere verteilen." if sid == "" else "Alle Schiffe in %s bündeln: dort stark, anderswo fehlen sie." % label)
-			b.clip_text = true
 			if on:
 				b.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
 			st.append(b)
@@ -3199,6 +3381,9 @@ func _panel_wars() -> void:
 		_btn("🛡️ Abwehr", func(): _set_all_stance("defend"), "Alle Armeen schützen selbstständig dein und verbündetes Land."),
 		_btn("✋ Manuell", func(): _set_all_stance(""), "Du gibst alle Befehle selbst.")], 3))
 	var arms: Array = game.armies_of(me)
+	for v in game.voyages:
+		if v.army.owner == me:
+			side_box.add_child(_lbl("⛵ Auf See: %.1f Reg. von %s nach %s, Landung in %d Mon." % [v.army.regs, game.provinces[v.from].name, game.provinces[v.to].name, int(v.left)], 16, Color(0.6, 0.85, 1.0)))
 	if not arms.is_empty() and _section("wars_armies", "%sDeine Armeen (%d)" % [Icons.prefix("army"), arms.size()], arms.size() <= 4, "Antippen wählt die Armee aus."):
 		for a in arms:
 			var where: String = game.provinces[a.pid].name
@@ -3297,7 +3482,6 @@ func _panel_peace(war_id: int) -> void:
 			var on: bool = peace_selection.has(pid)
 			var tb := _btn(("✅ " if on else "") + "%s %d" % [p.name, int(game.peace_cost([pid]))], _toggle_peace.bind(not on, pid),
 					"%s: Entwicklung %d, kostet %d Kriegspunkte." % [p.name, p.dev, int(game.peace_cost([pid]))])
-			tb.clip_text = true
 			if on:
 				tb.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
 			tiles.append(tb)
@@ -3362,6 +3546,13 @@ func _set_all_stance(stance: String) -> void:
 	_toast({"attack": "⚔️ Alle Armeen greifen selbstständig an.", "defend": "🛡️ Alle Armeen verteidigen selbstständig.",
 			"": "✋ Du führst alle Armeen selbst."}[stance])
 	_refresh()
+
+
+## Ships, cost and landing malus of a sea transport for army `a` (army panel tips).
+func _transport_info(a) -> String:
+	return "Braucht %d freie Schiffe (1 je %d Regimenter, frei: %s) und %d Gold; etwa %d Feld je Monat auf See. Bei der Landung kämpft die Armee schlechter, %d %% Moral gehen auf der Fahrt verloren. Meere, die eine feindliche Flotte beherrscht, sind gesperrt." % [
+			Naval.ships_needed(game, a.regs), int(game.bal.transport_regs_per_ship), Naval.fmt(maxf(0.0, Naval.free_ships(game, a.owner))),
+			int(Naval.transport_cost(game, a)), int(game.bal.transport_px_per_month / 48.0), int(float(game.bal.transport_power_loss) * 100)]
 
 
 func _quick_order(a, pid: int) -> void:
@@ -3665,6 +3856,12 @@ func _advice() -> Array:
 	var Eco = game.Economy
 	if not n.merchant_auto and n.merchants.size() < Eco.merchant_count(game, n):
 		add.call("🏬 Händler frei", "Schick ihn unter 💰 Wirtschaft → Handel in einen reichen Markt.", "", "economy")
+	if game.Trade.voyage_block_reason(game, me) == "":
+		add.call("🧭 Seeweg nach Indien", "Eine Kap-Expedition öffnet den Gewürzhandel: 💰 Wirtschaft → Handel → Fernhandel.", "", "economy")
+	elif game.Trade.knows(game, me) and game.Trade.ship_block_reason(game, me) == "" and game.Trade.ships(game, me) < int(game.bal.east_factory_ships):
+		add.call("⛵ Ostindienfahrer", "Rüste Schiffe für den Gewürzhandel aus und gründe Faktoreien: 💰 Wirtschaft → Handel → Fernhandel.", "", "economy")
+	if game.diplo_over(me) > 0:
+		add.call("🕊️ Zu viele Bündnisse", "Du hast %d Bündnisse und Vasallen bei %d Plätzen. Jeder Platz zu viel kostet Diplomatie und Prestige." % [game.diplo_used(me), game.diplo_cap(me)], "bad", "diplomacy")
 	if n.rivals.is_empty() and n.overlord == "" and game.year() >= int(game.bal.start_year) + 2:
 		var cand := ""
 		for t in game.nations_in_range(me, int(game.bal.rival_range)):
@@ -3715,7 +3912,6 @@ func _first_steps_box() -> void:
 		else:
 			b = _btn(it.text, _first_step_go.bind(it.id, it.mode), it.tip)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.clip_text = true
 		tiles.append(b)
 	if tiles.size() % 2 == 1:
 		tiles.append(Control.new())
@@ -3825,7 +4021,12 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["👑 Herrscherwerte verändert", 0])
 		elif k == "estate":
 			for es in v:
-				parts.append(["⚖️ %s %+d" % [game.govt.estate_name(es), int(v[es])], sgn.call(float(v[es]))])
+				var line := "⚖️ %s %+d" % [game.govt.estate_name(es), int(v[es])]
+				var now = game.nations[game.player].gov.estates.get(es)
+				if float(v[es]) < 0.0 and now != null:  # a loss also says where the estate ends up
+					line += " (%d → %d%s)" % [roundi(now), roundi(clampf(now + float(v[es]), 0.0, 100.0)),
+							", zornig" if now + float(v[es]) < float(game.govt.cfg.get("estate_angry", 30)) else ""]
+				parts.append([line, sgn.call(float(v[es]))])
 		elif k == "alliance":
 			parts.append(["🤝 Bündnis mit " + game.nations[v].name, 1])
 		elif k == "inherit":

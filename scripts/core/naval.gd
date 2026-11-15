@@ -367,3 +367,203 @@ static func ai_build(g, n) -> void:
 	count = mini(count, int(floor(surplus / maxf(0.01, 2.0 * float(g.bal.ship_upkeep)))))
 	if count > 0:
 		build_ships(g, n.tag, count)
+
+
+# ---------------------------------------------------------------- troop transport
+
+## Armies board ships in a coastal province and sail to any coast the realm knows: over the seas it knows,
+## not through a sea an enemy fleet rules. While at sea an army is out of g.armies (in g.voyages); it
+## lands with the landing malus and some lost fighting power. Needs free ships (transport_regs_per_ship
+## regiments per ship) and a little gold per regiment.
+
+## Seas from a coast of `from` to a coast of `to` over known, unblocked seas ([] = no way).
+static func sea_route(g, tag: String, from: int, to: int) -> Array:
+	var n = g.nations[tag]
+	var blocked: Dictionary = g.sea_blocked.get(tag, {})
+	var goal := {}
+	for s in g.province_seas.get(to, []):
+		goal[s] = true
+	var prev := {}
+	var queue := []
+	for s in g.province_seas.get(from, []):
+		if n.known_seas.has(s) and not blocked.has(s):
+			prev[s] = ""
+			queue.append(s)
+	var head := 0
+	while head < queue.size():
+		var cur: String = queue[head]
+		head += 1
+		if goal.has(cur):
+			var route := [cur]
+			while prev[route[0]] != "":
+				route.push_front(prev[route[0]])
+			return route
+		for nb in g.sea_by_id[cur].adj:
+			if prev.has(nb) or not n.known_seas.has(nb) or blocked.has(nb) or not g.sea_by_id.has(nb):
+				continue
+			prev[nb] = cur
+			queue.append(nb)
+	return []
+
+
+## Months at sea: the way from the port over every sea's centre to the landing site.
+static func transport_months(g, from: int, to: int, route: Array) -> int:
+	var pts := [g.provinces[from].center]
+	if route.size() > 1:
+		for s in route:
+			pts.append(g.sea_by_id[s].center)
+	pts.append(g.provinces[to].center)
+	var d := 0.0
+	for i in pts.size() - 1:
+		d += pts[i].distance_to(pts[i + 1])
+	return maxi(int(g.bal.transport_min_months), ceili(d / float(g.bal.transport_px_per_month)))
+
+
+static func ships_needed(g, regs: float) -> int:
+	return maxi(1, ceili(regs / float(g.bal.transport_regs_per_ship)))
+
+
+## Ships not busy carrying another army.
+static func free_ships(g, tag: String) -> float:
+	var busy := 0.0
+	for v in g.voyages:
+		if v.army.owner == tag:
+			busy += ships_needed(g, v.army.regs)
+	return g.nations[tag].ships - busy
+
+
+static func transport_cost(g, a) -> float:
+	return roundf(a.regs * float(g.bal.transport_cost_per_reg))
+
+
+static func is_port(g, tag: String, pid: int) -> bool:
+	if not g.province_seas.has(pid):
+		return false
+	var c: String = g.provinces[pid].controller
+	return c == tag or g.is_allied(tag, c)
+
+
+static func transport_block_reason(g, a, to: int) -> String:
+	var tag: String = a.owner
+	if Warfare.in_battle(g, a):
+		return "Die Armee steckt in einer Schlacht."
+	if not g.province_seas.has(a.pid):
+		return "Einschiffen geht nur in einer Küstenprovinz: erst an die Küste marschieren."
+	if not is_port(g, tag, a.pid):
+		return "Einschiffen nur in einem eigenen oder verbündeten Hafen."
+	if to == a.pid or to < 0:
+		return "Ungültiges Ziel."
+	if not g.province_seas.has(to):
+		return "Dort gibt es keine Küste zum Anlanden."
+	if not g.Colonial.knows(g, tag, to):
+		return "Unbekanntes Land: erst erkunden."
+	if not g.can_enter(tag, to):
+		return "Dort dürfen wir nicht landen: kein eigenes Land, kein Verbündeter, kein Krieg und kein Durchmarschrecht."
+	if sea_route(g, tag, a.pid, to).is_empty():
+		if not g.sea_blocked.get(tag, {}).is_empty():
+			return "⚓ Kein freier Seeweg: feindliche Flotten beherrschen die Meere dazwischen."
+		return "Kein bekannter Seeweg dorthin."
+	var need := ships_needed(g, a.regs)
+	if free_ships(g, tag) < need:
+		return "Zu wenig freie Schiffe: %d nötig (1 Schiff je %d Regimenter), %s frei." % [need, int(g.bal.transport_regs_per_ship), fmt(maxf(0.0, free_ships(g, tag)))]
+	if g.nations[tag].gold < transport_cost(g, a):
+		return "Zu wenig Gold (%d)." % int(transport_cost(g, a))
+	return ""
+
+
+## Sends army `a` over sea to `to`. Returns "" or the reason it cannot sail.
+static func transport(g, a, to: int) -> String:
+	var why := transport_block_reason(g, a, to)
+	if why != "":
+		return why
+	var route := sea_route(g, a.owner, a.pid, to)
+	var months := transport_months(g, a.pid, to, route)
+	g.nations[a.owner].gold -= transport_cost(g, a)
+	g.armies.erase(a)
+	a.target = -1
+	a.path = []
+	a.move = 0.0
+	g.voyages.append({"army": a, "from": a.pid, "to": to, "left": months, "total": months, "route": route})
+	g.stats.transports = int(g.stats.get("transports", 0)) + 1
+	if a.owner == g.player:
+		g.log_msg("⛵ Deine Armee (%d Regimenter) schifft sich in %s ein: Landung in %s in %d Monaten." % [int(a.regs), g.provinces[a.pid].name, g.provinces[to].name, months], [a.owner])
+	return ""
+
+
+## Map points of a voyage (port, the seas on the way, landing site) and the share already sailed.
+static func voyage_points(g, v: Dictionary) -> Array:
+	var pts := [g.provinces[int(v.from)].center]
+	var route: Array = v.get("route", [])
+	if route.size() > 1:
+		for s in route:
+			if g.sea_by_id.has(s):
+				pts.append(g.sea_by_id[s].center)
+	pts.append(g.provinces[int(v.to)].center)
+	return pts
+
+
+static func voyage_done(v: Dictionary) -> float:
+	return clampf(1.0 - float(v.left) / maxf(1.0, float(v.total)), 0.0, 1.0)
+
+
+## Voyage of army `a` (or {} when it is not at sea).
+static func voyage_of(g, a) -> Dictionary:
+	for v in g.voyages:
+		if v.army == a:
+			return v
+	return {}
+
+
+static func voyages_tick(g) -> void:
+	for v in g.voyages.duplicate():
+		var a = v.army
+		if not g.nations[a.owner].alive:
+			g.voyages.erase(v)
+			continue
+		v.left = int(v.left) - 1
+		if int(v.left) > 0:
+			continue
+		g.voyages.erase(v)
+		var at: int = int(v.to)
+		if not g.can_enter(a.owner, at):  # peace or a lost alliance while at sea: back to the port
+			at = int(v.from) if g.can_enter(a.owner, int(v.from)) else g.nations[a.owner].capital
+		a.pid = at
+		a.landing = at == int(v.to)
+		a.power = maxf(0.0, a.power * (1.0 - float(g.bal.transport_power_loss)))
+		g.armies.append(a)
+		if a.owner == g.player:
+			g.log_msg("⚓ Deine Armee landet in %s." % g.provinces[at].name, [a.owner])
+
+
+## AI: an army with nothing to reach by land sails to an enemy coast (or first marches to a port).
+static func ai_transport(g, a, enemies: Array, enemy_power: Dictionary, my_power: float) -> bool:
+	var tag: String = a.owner
+	if tag == g.player or a.regs < 4.0 or g.nations[tag].ships < 1.0 or g.rng.randf() > 0.35:
+		return false
+	var best := -1
+	var best_v := -1e9
+	for e in enemies:
+		for pid in g.provinces_of(e):
+			var p = g.provinces[pid]
+			if not g.province_seas.has(pid) or not enemies.has(p.controller) or enemy_power.get(pid, 0.0) > my_power * 0.8:
+				continue
+			var v: float = p.dev + (10.0 if g.nations[e].capital == pid else 0.0) + g.rng.randf() * 3.0
+			if v > best_v and g.Colonial.knows(g, tag, pid):
+				best_v = v
+				best = pid
+	if best < 0:
+		return false
+	if not is_port(g, tag, a.pid):
+		var port: int = -1
+		var bd := 1e9
+		for pid in g.provinces_of(tag):
+			if is_port(g, tag, pid) and g.provinces[pid].controller == tag:
+				var d: float = g.provinces[pid].center.distance_to(g.provinces[a.pid].center)
+				if d < bd and not g.find_path(tag, a.pid, pid).is_empty():
+					bd = d
+					port = pid
+		if port >= 0 and port != a.target:
+			g.move_army(a, port)
+			return true
+		return false
+	return transport(g, a, best) == ""

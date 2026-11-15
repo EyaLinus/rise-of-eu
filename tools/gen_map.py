@@ -364,6 +364,39 @@ PROVINCES = [
     ("kiwetinok", "Kiwetinok", -95.0, 55.4, "NAT", 1, 4.5),
     ("ungava", "Ungava", -71.0, 57.4, "NAT", 1, 4.5),
     ("nunavik", "Nunavik", -76.0, 60.6, "NAT", 1, 4.5),
+    # --- West Africa (appended so every older id stays stable; "wa" + "nw" in map.json) ---
+    ("arguin", "Arguin", -16.2, 20.4, "NAT", 1, 2.4),
+    ("adrar", "Adrar", -12.0, 20.4, "NAT", 1, 2.9),
+    ("taghaza", "Taghaza", -5.0, 23.5, "NAT", 1, 2.6),
+    ("waalo", "Waalo", -15.8, 16.4, "JOL", 3),
+    ("jolof", "Jolof", -15.0, 15.2, "JOL", 6),
+    ("cayor", "Kayor", -16.8, 14.8, "JOL", 4),
+    ("futa_toro", "Futa Toro", -13.2, 15.9, "NAT", 2),
+    ("gambia", "Gambia", -15.3, 13.4, "NAT", 3),
+    ("casamance", "Casamance", -15.6, 12.2, "NAT", 2),
+    ("futa_jallon", "Futa Djallon", -12.2, 11.2, "NAT", 3),
+    ("sierra_leone", "Sierra Leone", -12.8, 8.7, "NAT", 2),
+    ("pepper_coast", "Pfefferküste", -9.8, 6.6, "NAT", 2),
+    ("ivory_coast", "Elfenbeinküste", -5.6, 5.8, "NAT", 2),
+    ("kong", "Kong", -4.6, 9.2, "NAT", 2),
+    ("gold_coast", "Goldküste", -1.4, 5.6, "NAT", 3),
+    ("akan", "Akan", -1.6, 7.4, "NAT", 3),
+    ("allada", "Allada", 2.2, 6.8, "NAT", 3),
+    ("oyo", "Oyo", 3.9, 8.4, "NAT", 4),
+    ("borgu", "Borgu", 2.6, 10.4, "NAT", 2),
+    ("benin", "Benin", 5.8, 6.6, "BEN", 7),
+    ("niger_delta", "Nigerdelta", 6.6, 5.0, "BEN", 2),
+    ("nupe", "Nupe", 6.2, 9.4, "NAT", 3),
+    ("hausa", "Hausaland", 8.5, 12.0, "NAT", 5),
+    ("niani", "Niani", -9.4, 11.4, "MAL", 6),
+    ("kaarta", "Kaarta", -10.2, 14.4, "MAL", 3),
+    ("segu", "Ségou", -7.0, 13.0, "MAL", 4),
+    ("djenne", "Djenné", -4.4, 14.2, "MAL", 7),
+    ("timbuktu", "Timbuktu", -3.0, 16.8, "MAL", 7, 2.4),
+    ("walata", "Walata", -7.0, 17.6, "MAL", 2, 2.9),
+    ("mossi", "Mossi", -1.5, 12.2, "NAT", 4),
+    ("gao", "Gao", 0.0, 16.3, "SON", 7, 2.4),
+    ("dendi", "Dendi", 3.2, 12.4, "SON", 3),
 ]
 
 # Extra sea/strait connections (province keys)
@@ -384,12 +417,15 @@ STRAITS = [
 ]
 
 # land borders the coarse polygons miss (isthmus, small gaps): adjacency only, not sea crossings
-LAND_LINKS = [("constantinople", "edirne"), ("morea", "thessaly"), ("crimea", "zaporozhia")]
+LAND_LINKS = [("constantinople", "edirne"), ("morea", "thessaly"), ("crimea", "zaporozhia"),
+              # caravan routes across the Sahara (slow: long march distance)
+              ("sous", "taghaza"), ("taghaza", "timbuktu"), ("taghaza", "walata")]
 
 sys.path.insert(0, os.path.dirname(__file__))
-from mapproj import LAT0, MIN_LAT, NEW_WORLD, OLD_WORLD, SCALE, proj, size  # noqa: E402
+from mapproj import LAT0, MIN_LAT, NEW_WORLD, NW_MIN_LAT, OLD_WORLD, SCALE, proj, size  # noqa: E402
 
-FIRST_NEW_WORLD = "tenochtitlan"  # provinces from here on are in the New World ("nw" in map.json)
+FIRST_NEW_WORLD = "tenochtitlan"  # provinces from here on are overseas/colonial ("nw" in map.json)
+FIRST_AFRICA = "arguin"  # ... and from here on they are West Africa ("wa" in map.json, also "nw")
 # big lakes cut out of the New World land (Natural Earth lakes); Europe keeps its old shapes
 LAKES = {"Lake Superior", "Lake Michigan", "Lake Huron", "Lake Erie", "Lake Ontario", "Lake Winnipeg", "Lago de Nicaragua"}
 
@@ -411,7 +447,7 @@ def main(land_path, lakes_path):
     with open(lakes_path) as f:
         lakes_gj = json.load(f)
     lakes = unary_union([shape(ft["geometry"]) for ft in lakes_gj["features"] if ft["properties"].get("name") in LAKES])
-    windows = [box(OLD_WORLD[0], MIN_LAT, OLD_WORLD[1], LAT0), box(NEW_WORLD[0], MIN_LAT, NEW_WORLD[1], LAT0)]
+    windows = [box(OLD_WORLD[0], MIN_LAT, OLD_WORLD[1], LAT0), box(NEW_WORLD[0], NW_MIN_LAT, NEW_WORLD[1], LAT0)]
     land_parts = []
     for feat in gj["features"]:
         g = shape(feat["geometry"])
@@ -435,6 +471,7 @@ def main(land_path, lakes_path):
                 break
 
     nw_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_NEW_WORLD)
+    wa_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_AFRICA)
     max_r = 3.2 * SCALE
     raw = []
     for i, p in enumerate(PROVINCES):
@@ -495,6 +532,8 @@ def main(land_path, lakes_path):
         }
         if i >= nw_first:
             d["nw"] = True
+        if i >= wa_first:
+            d["wa"] = True
         provinces.append(d)
 
     key_to_id = {p[0]: i for i, p in enumerate(PROVINCES)}

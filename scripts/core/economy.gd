@@ -451,7 +451,7 @@ static func update_markets(g) -> void:
 		var e: Dictionary = c[p.market]
 		if not nms.has(p.owner):
 			nms[p.owner] = nation_mods(g, g.nations[p.owner])
-		e.value += production_value(g, p, nms[p.owner]) * float(g.bal.trade_value_mult)
+		e.value += production_value(g, p, nms[p.owner]) * float(g.bal.trade_value_mult) * g.Trade.value_mult(g, p)
 		if p.controller == p.owner and g.nations[p.owner].alive:  # uncolonized native land holds no trade power
 			e.power[p.owner] = e.power.get(p.owner, 0.0) + province_trade_power(g, p)
 	for tag in g.order:
@@ -463,6 +463,7 @@ static func update_markets(g) -> void:
 				var own: float = c[m].power.get(tag, 0.0)
 				c[m].power[tag] = own * (1.0 + float(g.bal.merchant_mult)) + float(g.bal.merchant_flat)
 	for m in c:
+		c[m].value *= g.Trade.market_mult(g, m)
 		var t := 0.0
 		for tag in c[m].power:
 			t += c[m].power[tag]
@@ -482,7 +483,9 @@ static func trade_income(g, n) -> float:
 	for m in g.market_cache:
 		var e: Dictionary = g.market_cache[m]
 		if e.total > 0.0 and e.power.has(n.tag):
-			v += e.value * e.power[n.tag] / e.total
+			var dom: float = 1.0 + float(g.bal.dom_bonus) if g.east.get("dom", {}).get(m, "") == n.tag else 1.0
+			v += e.value * e.power[n.tag] / e.total * dom
+	v += g.Trade.east_income(g, n.tag)
 	return v * maxf(0.0, 1.0 + g.mod(n, "trade") + income_bonus(g, n))
 
 
@@ -504,7 +507,8 @@ static func auto_merchants(g, n) -> void:
 		update_markets(g)
 	var options: Array = []
 	for m in g.markets:
-		options.append([merchant_gain(g, n.tag, m), m])
+		if g.Trade.market_block_reason(g, n.tag, m) == "":
+			options.append([merchant_gain(g, n.tag, m), m])
 	options.sort_custom(func(a, b): return a[0] > b[0])
 	for i in mini(merchant_count(g, n), options.size()):
 		n.merchants.append(options[i][1])
@@ -516,6 +520,9 @@ static func send_merchant(g, tag: String, m: int) -> String:
 		return "Kein Markt."
 	if n.merchants.has(m):
 		return "Dort ist schon ein Händler."
+	var far: String = g.Trade.market_block_reason(g, tag, m)
+	if far != "":
+		return far
 	if n.merchants.size() >= merchant_count(g, n):
 		return "Alle Händler sind unterwegs. Rufe zuerst einen zurück."
 	n.merchant_auto = false

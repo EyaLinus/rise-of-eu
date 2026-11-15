@@ -156,7 +156,7 @@ func _build_court(g, gv, me: String, n) -> void:
 		var hname: String = str(h.name) if str(h.name) != "" else title
 		if ht != "":
 			hname += " · " + gv.trait_name(ht)
-		var card := _card(hname, sub, gv.trait_effects(ht), false, "Erziehen", _heir, true)
+		var card := _card(hname, sub, gv.trait_effects(ht), false, "Erziehen", _heir, true, "tab_nation", gv.trait_text(ht))
 		if g.POWERS.any(func(k): return gv.educate_block(g, me, k) == ""):
 			card.get_child(0).get_child(1).add_theme_color_override("font_color", UiTheme.GOLD)
 		m.side_box.add_child(card)
@@ -166,7 +166,7 @@ func _build_court(g, gv, me: String, n) -> void:
 		var a: Dictionary = gv.adv_by_id[id]
 		var lvl: int = gv.advisor_skill(n, id)
 		var sub: String = "%s Stufe %d · %s" % [Icons.emoji(a.type), lvl, "historisch, bis %d" % int(a.to) if a.has("to") else "seit %d Jahren" % gv.service_years(g, n, id)]
-		var card := _card(a.name, sub, gv.advisor_effects(id, lvl), a.has("tag"), "Fördern", _advisor.bind(id))
+		var card := _card(a.name, sub, gv.advisor_effects(id, lvl), a.has("tag"), "Fördern", _advisor.bind(id), false, a.type, a.get("text", ""))
 		if gv.promote_block(g, me, id) == "":
 			card.get_child(0).get_child(1).add_theme_color_override("font_color", UiTheme.GOLD)
 		m.side_box.add_child(card)
@@ -179,7 +179,7 @@ func _build_court(g, gv, me: String, n) -> void:
 		var c: Dictionary = gv.comp_by_id[id]
 		var lvl: int = gv.invest_level(n, id)
 		m.side_box.add_child(_card(c.name, "Stufe %d von %d" % [lvl, gv.max_invest()], gv.company_effects(id, lvl),
-				c.has("tag"), "Investieren", _invest.bind(id)))
+				c.has("tag"), "Investieren", _invest.bind(id), false, "company", c.get("text", "")))
 	var cfree: int = gv.company_slots(g, n) - n.gov.companies.size()
 	if cfree > 0:
 		m.side_box.add_child(m._btn("➕ Kompanie gründen (%d frei, %d %s)" % [cfree, gv.company_cost(g, n, ""), Icons.emoji("gold")], _pick_company))
@@ -192,7 +192,8 @@ func _build_law(g, gv, n) -> void:
 		var cd: int = gv.law_cooldown_left(g, n, l.id)
 		var sub: String = l.name + (" · änderbar in " + _wait(cd) if cd > 0 else _alternatives(l.options.filter(
 				func(x): return x.id != o.id and gv.law_block(g, n.tag, l.id, x.id) == "").size()))
-		m.side_box.add_child(_card(o.name, sub, o.effects, false, "Ändern", _pick_law.bind(l.id), true))
+		m.side_box.add_child(_card(o.name, sub, o.effects, false, "Ändern", _pick_law.bind(l.id), true, "law_" + l.id,
+				"%s: %s\n%s: %s" % [l.name, l.get("text", ""), o.name, o.get("text", "")]))
 	_section("🏛️ Staatsreformen", "Dauerhafte Reformen in vier Stufen, jede ab einem bestimmten Jahr. Pro Stufe gilt eine Reform, bezahlt mit Verwaltungspunkten. Ein späterer Wechsel kostet erneut und ist nur alle %d Jahre möglich." % int(gv.cfg.get("reform_change_years", 25)))
 	var locked := []
 	for t in gv.reforms:
@@ -200,9 +201,12 @@ func _build_law(g, gv, n) -> void:
 			var o: Dictionary = gv.reform_option(t.id, n.gov.reforms[t.id])
 			var cd: int = gv.reform_cooldown_left(g, n, t.id)
 			var sub: String = t.name + (" · änderbar in " + _wait(cd) if cd > 0 else "")
-			m.side_box.add_child(_card(o.name, sub, o.effects, false, "Ändern", _pick_reform.bind(t.id), true))
+			m.side_box.add_child(_card(o.name, sub, o.effects, false, "Ändern", _pick_reform.bind(t.id), true, "reform_" + t.id,
+					"%s: %s\n%s: %s" % [t.name, t.get("text", ""), o.name, o.get("text", "")]))
 		elif g.year() >= int(t.year):
-			m.side_box.add_child(m._btn("➕ %s: Reform wählen (%d %s)" % [t.name, gv.reform_cost(g, n, t.id), Icons.emoji("adm")], _pick_reform.bind(t.id)))
+			var rb: Button = m._btn("➕ %s: Reform wählen (%d %s)" % [t.name, gv.reform_cost(g, n, t.id), Icons.emoji("adm")], _pick_reform.bind(t.id), t.get("text", ""))
+			rb.add_theme_color_override("font_color", UiTheme.GOLD)
+			m.side_box.add_child(rb)
 		else:
 			locked.append("%s ab %d" % [t.name, int(t.year)])
 	if not locked.is_empty():
@@ -222,7 +226,7 @@ func _build_law(g, gv, n) -> void:
 		fsub += " · " + gv.form_change_block(g, n.tag, fopts[0].form).trim_suffix(".")
 	else:
 		fsub += " · kein Wechsel möglich"
-	m.side_box.add_child(_card(gv.form_name(n.tag), fsub, gv.form_effects(n.tag), false, "Ändern", _pick_form, true))
+	m.side_box.add_child(_card(gv.form_name(n.tag), fsub, gv.form_effects(n.tag), false, "Ändern", _pick_form, true, "tab_nation"))
 
 
 func _pick_form() -> void:
@@ -298,7 +302,8 @@ func _alternatives(k: int) -> String:
 
 
 ## `compact`: smaller title and button, for the long law and reform lists.
-func _card(title: String, sub: String, eff: Dictionary, national: bool, action: String, cb: Callable, compact: bool = false) -> Control:
+## icon: key of a pixel icon (assets/art/icons) shown before the title; tip: flavour text on hover / long press.
+func _card(title: String, sub: String, eff: Dictionary, national: bool, action: String, cb: Callable, compact: bool = false, icon: String = "", tip: String = "") -> Control:
 	var pc := PanelContainer.new()
 	pc.add_theme_stylebox_override("panel", UiTheme.card("gold" if national else ""))
 	var h := HBoxContainer.new()
@@ -308,7 +313,20 @@ func _card(title: String, sub: String, eff: Dictionary, national: bool, action: 
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_theme_constant_override("separation", 2)
 	h.add_child(v)
-	v.add_child(m._lbl(("⭐ " if national else "") + title, 16 if compact else 18))
+	var tl: Label = m._lbl(("⭐ " if national else "") + title, 16 if compact else 18)
+	var tex: Texture2D = Icons.texture(icon) if icon != "" else null
+	if tex != null:
+		var th := HBoxContainer.new()
+		th.add_theme_constant_override("separation", 6)
+		th.add_child(m._icon_rect(tex, 28 if compact else 32))
+		tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		th.add_child(tl)
+		v.add_child(th)
+	else:
+		v.add_child(tl)
+	if tip != "":
+		pc.tooltip_text = tip
+		pc.mouse_filter = Control.MOUSE_FILTER_STOP
 	if sub != "":
 		v.add_child(m._lbl(sub, 13 if compact else 14, Color(0.72, 0.75, 0.82)))
 	# a default option without effects needs no "keine Wirkung" line
@@ -325,13 +343,37 @@ func _card(title: String, sub: String, eff: Dictionary, national: bool, action: 
 	return pc
 
 
-func _choice(title: String, sub: String, eff: Dictionary, national: bool, label: String, err: String, cb: Callable) -> Control:
-	var card := _card(title, sub, eff, national, label, cb)
+## replaced: effects that go away when this is chosen (the law option or reform in force now).
+func _choice(title: String, sub: String, eff: Dictionary, national: bool, label: String, err: String, cb: Callable, replaced = null, icon: String = "") -> Control:
+	var card := _card(title, sub, eff, national, label, cb, false, icon)
 	var b: Button = card.get_child(0).get_child(1)
 	b.disabled = err != ""
+	if replaced != null:
+		var note := estate_note(eff, replaced)
+		if note != "":
+			card.get_child(0).get_child(0).add_child(m._lbl(note, 13, Color(0.95, 0.72, 0.5)))
 	if err != "":
 		card.get_child(0).get_child(0).add_child(m._lbl(err, 14, Color(0.95, 0.6, 0.55)))
 	return card
+
+
+## For every estate this choice makes less content: where its satisfaction target would end up.
+## "⚖️ Würde setzen: Adel Ziel 55 → 45 (jetzt 52, zornig)". Empty when no estate loses.
+func estate_note(eff: Dictionary, replaced: Dictionary = {}) -> String:
+	var g = m.game
+	var gv = g.govt
+	var n = g.nations[g.player]
+	var parts := []
+	for e in gv.estates:
+		var k: String = "estate_" + e.id
+		var d: float = float(eff.get(k, 0.0)) - float(replaced.get(k, 0.0))
+		if d > -0.5:
+			continue
+		var t: float = gv.estate_target(g, n, e.id)
+		var to: float = clampf(t + d, 0.0, 100.0)
+		var angry: bool = to < float(gv.cfg.get("estate_angry", 30))
+		parts.append("%s Ziel %d → %d (jetzt %d%s)" % [e.name, roundi(t), roundi(to), roundi(n.gov.estates.get(e.id, 50.0)), ", wird zornig" if angry else ""])
+	return "" if parts.is_empty() else "⚖️ Würde setzen: " + " · ".join(parts)
 
 
 ## Heir popup: skills next to the ruler's, one education per year in the chosen field.
@@ -449,10 +491,12 @@ func _pick_advisor(kind: String = "") -> void:
 		return gv.advisor_block(g, me, x.id) == "" and gv.advisor_block(g, me, y.id) != "")
 	for a in pool:
 		var sub: String = "%s %d %s" % [Icons.emoji(a.type), gv.advisor_cost(g, n, a.id), POWER_NAMES[a.type]] + (" · lebt bis %d" % int(a.to) if a.has("to") else "")
+		if a.has("text"):
+			sub += "\n" + a.text
 		m.modal_box.add_child(_choice(a.name, sub, a.effects, a.has("tag"), "Ernennen", gv.advisor_block(g, me, a.id), func():
 			var err: String = gv.hire(g, me, a.id)
 			m._close_modal()
-			m._act(err, "🎓 %s tritt in den Rat ein" % a.name)))
+			m._act(err, "🎓 %s tritt in den Rat ein" % a.name), {}, a.type))
 	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
 
 
@@ -473,7 +517,7 @@ func _pick_company() -> void:
 		m.modal_box.add_child(_choice(c.name, c.get("text", ""), c.effects, c.has("tag"), "Gründen", gv.company_block(g, me, c.id), func():
 			var err: String = gv.found_company(g, me, c.id)
 			m._close_modal()
-			m._act(err, "🏦 %s gegründet" % c.name)))
+			m._act(err, "🏦 %s gegründet" % c.name), {}, "company"))
 	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
 
 
@@ -484,7 +528,7 @@ func _pick_law(law_id: String) -> void:
 	var n = g.nations[me]
 	var l: Dictionary = gv.law_by_id[law_id]
 	m._open_modal()
-	m.modal_box.add_child(m._lbl("📜 " + l.name, 26))
+	m.modal_box.add_child(_modal_head("law_" + law_id, l.name, l.get("text", "")))
 	m.modal_box.add_child(m._lbl("Ein Wechsel kostet %d %s und ist danach %d Jahre gesperrt." % [
 			gv.law_cost(g, n, law_id), Icons.emoji(l.power), int(gv.cfg.get("law_cooldown_years", 10))], 16))
 	for o in l.options:
@@ -496,7 +540,7 @@ func _pick_law(law_id: String) -> void:
 		var card := _choice(o.name, sub, o.effects, false, "In Kraft" if current else "Einführen", err, func():
 			var e: String = gv.set_law(g, me, law_id, o.id)
 			m._close_modal()
-			m._act(e, "📜 %s: %s" % [l.name, o.name]))
+			m._act(e, "📜 %s: %s" % [l.name, o.name]), {} if current else _option_effects(l, n.gov.laws[law_id]))
 		if current:
 			card.get_child(0).get_child(1).disabled = true
 		m.modal_box.add_child(card)
@@ -510,7 +554,7 @@ func _pick_reform(tier: String) -> void:
 	var n = g.nations[me]
 	var t: Dictionary = gv.reform_by_id[tier]
 	m._open_modal()
-	m.modal_box.add_child(m._lbl("🏛️ " + t.name, 26))
+	m.modal_box.add_child(_modal_head("reform_" + tier, t.name, t.get("text", "")))
 	m.modal_box.add_child(m._lbl("Kostet %d %s. Ein späterer Wechsel kostet erneut und ist nur alle %d Jahre möglich." % [
 			gv.reform_cost(g, n, tier), Icons.emoji("adm"), int(gv.cfg.get("reform_change_years", 25))], 16))
 	for o in t.options:
@@ -519,11 +563,35 @@ func _pick_reform(tier: String) -> void:
 		var card := _choice(o.name, o.get("text", ""), o.effects, false, "Eingeführt" if current else "Einführen", err, func():
 			var e: String = gv.enact_reform(g, me, tier, o.id)
 			m._close_modal()
-			m._act(e, "🏛️ %s: %s" % [t.name, o.name]))
+			m._act(e, "🏛️ %s: %s" % [t.name, o.name]), {} if current else _option_effects(t, n.gov.reforms.get(tier, "")))
 		if current:
 			card.get_child(0).get_child(1).disabled = true
 		m.modal_box.add_child(card)
 	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
+
+
+func _option_effects(group: Dictionary, opt_id: String) -> Dictionary:
+	for o in group.get("options", []):
+		if o.id == opt_id:
+			return o.get("effects", {})
+	return {}
+
+
+## Popup title with a pixel icon and a one-line flavour text.
+func _modal_head(icon: String, title: String, text: String) -> Control:
+	var v := VBoxContainer.new()
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 10)
+	var tex: Texture2D = Icons.texture(icon)
+	if tex != null:
+		h.add_child(m._icon_rect(tex, 44))
+	var l: Label = m._lbl(title, 26)
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(l)
+	v.add_child(h)
+	if text != "":
+		v.add_child(m._lbl(text, 16, Color(0.85, 0.82, 0.68)))
+	return v
 
 
 ## Investment popup: a slider picks the target level, the preview shows effects and price live.
@@ -637,6 +705,12 @@ func _budget_card(b: Dictionary) -> Control:
 		info.visible = not eff.is_empty()
 		if not eff.is_empty():
 			info.add_child(TechScreen.effects_rich(eff, 15))
+			var hurt := []
+			for e in gv.estates:
+				if float(eff.get("estate_" + e.id, 0.0)) < 0.0:
+					hurt.append("%s %d" % [e.name, roundi(gv.estate_target(g, n, e.id))])
+			if not hurt.is_empty():
+				info.add_child(m._lbl("⚖️ Zielwert jetzt: " + " · ".join(hurt), 13, Color(0.95, 0.72, 0.5)))
 	slider.value_changed.connect(upd)
 	upd.call(slider.value)
 	return pc
@@ -660,7 +734,16 @@ func _estate_card(e: Dictionary, tip: String) -> Control:
 	vb.add_theme_constant_override("separation", 3)
 	pc.add_child(vb)
 	var trend: String = "steigt auf" if target > v + 1.0 else ("sinkt auf" if target < v - 1.0 else "bleibt bei")
-	vb.add_child(m._lbl("%s · %s" % [e.name, tier_name], 18, col))
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 6)
+	var etex: Texture2D = Icons.texture("estate_" + e.id)
+	if etex != null:
+		head.add_child(m._icon_rect(etex, 32))
+	var hl: Label = m._lbl("%s · %s" % [e.name, tier_name], 18, col)
+	hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(hl)
+	vb.add_child(head)
+	vb.add_child(m._lbl(e.text, 13, Color(0.8, 0.78, 0.66)))
 	var bar := ProgressBar.new()
 	bar.min_value = 0
 	bar.max_value = 100

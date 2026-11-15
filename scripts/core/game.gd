@@ -14,6 +14,7 @@ const Warfare = preload("res://scripts/core/warfare.gd")
 const Naval = preload("res://scripts/core/naval.gd")
 const Urban = preload("res://scripts/core/urban.gd")
 const Colonial = preload("res://scripts/core/colonial.gd")
+const Trade = preload("res://scripts/core/trade.gd")
 
 const POWERS := ["adm", "dip", "mil"]
 const MONTH_NAMES := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
@@ -155,6 +156,7 @@ var key_to_pid := {}
 var nations := {}
 var order: Array = []
 var armies: Array = []
+var voyages: Array = []  # armies at sea (Naval.transport): {"army", "from", "to", "left", "total"}
 var wars: Array = []
 var battles: Array = []  # running Warfare.Battle
 var straits := {}  # sea crossings, Warfare.strait_key -> true
@@ -207,13 +209,16 @@ var prev_prices := {}
 var base_supply := {}
 var goods_leader := {}
 var shocks := {}  # good -> {"mult": price factor, "years": left}: harvest failures, gluts
-var nw_first: int = 0  # first New World province id (Colonial)
+var nw_first: int = 0  # first overseas province id: the Americas, then West Africa (Colonial)
+var wa_first: int = 0  # first West African province id (Colonial.region)
 var found := {}  # first discovery month: "s:<sea>" or "<pid>" -> month (knowledge spreads later)
 var atlantic_tags: Array = []  # realms that may explore and colonize
 var nation_data_native := {}  # tags of the native realms (nations.json "native")
 var colonial_drive := {}  # AI colonial ambition per tag (nations.json "colonial", default balance ai_colonial_drive)
 var urban_start: Array = []  # [rural, urban] province counts at the start (demand baseline, Urban)
 var market_cache := {}
+var east := {}  # far trade state (Trade): Cape route, Indiamen, factories, market dominance
+var levant: Array = []  # market pids that lose value once the Cape route is open
 
 
 func _init() -> void:
@@ -282,10 +287,10 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		var bonus: Dictionary = nd.get("bonus", {})
 		for k in bonus:
 			n.mods[k] = float(bonus[k])
-		n.gold = 40.0
-		n.adm = 50.0
-		n.dip = 50.0
-		n.mil = 50.0
+		n.gold = float(bal.start_gold)
+		n.adm = float(bal.start_power)
+		n.dip = float(bal.start_power)
+		n.mil = float(bal.start_power)
 		_new_ruler(n)
 		tree.refresh(n)
 		govt.init_nation(n)
@@ -297,6 +302,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	Religion.setup(self, data)
 	monument_defs = data.get("monuments", {})
 	Formables.setup(self, data)
+	Trade.setup(self)
 	Economy.setup(self, data)
 	Urban.setup(self)
 	for p in provinces:
@@ -442,6 +448,9 @@ func army_regs(tag: String) -> float:
 	for a in armies:
 		if a.owner == tag:
 			s += a.regs
+	for v in voyages:  # armies at sea still count against the force limit
+		if v.army.owner == tag:
+			s += v.army.regs
 	return s
 
 
@@ -676,7 +685,9 @@ func tick() -> void:
 			_economy(n)
 			govt.estates_monthly(self, n)
 	Naval.monthly(self)
+	Naval.voyages_tick(self)
 	Colonial.monthly(self)
+	Trade.monthly(self)
 	_armies_tick()
 	_wars_tick()
 	for tag in order:
@@ -755,7 +766,7 @@ func _economy(n: Nation) -> void:
 	_unrest_tick(n)
 	Religion.monthly(self, n)
 	Monuments.tick(self, n)
-	n.expenses = maint + Naval.upkeep(self, n) + Economy.upkeep(self, n.tag) + Economy.interest(self, n) + govt.budget_cost(self, n) \
+	n.expenses = maint + Naval.upkeep(self, n) + Trade.upkeep(self, n) + Economy.upkeep(self, n.tag) + Economy.interest(self, n) + govt.budget_cost(self, n) \
 			+ Economy.realm_cost(self, n)
 	if n.overlord != "":
 		var tribute: float = maxf(0.0, n.income * float(bal.vassal_tribute))
@@ -767,6 +778,10 @@ func _economy(n: Nation) -> void:
 	n.adm = minf(cap, n.adm + monthly_power(n, "adm"))
 	n.dip = minf(cap, n.dip + monthly_power(n, "dip"))
 	n.mil = minf(cap, n.mil + monthly_power(n, "mil"))
+	var over: int = diplo_over(n.tag)
+	if over > 0:  # too many alliances and vassals: diplomats overworked, prestige suffers
+		n.dip = maxf(0.0, n.dip - over * float(bal.diplo_over_dip))
+		n.prestige -= over * float(bal.diplo_over_prestige)
 	n.manpower = minf(n.max_manpower, n.manpower + n.max_manpower / (float(bal.manpower_regen_years) * 12.0))
 	var decay: float = float(bal.ae_decay_per_year) * (1.0 + mod(n, "ae_decay") + 0.05 * n.tech.dip) / 12.0
 	n.ae = maxf(0.0, n.ae - decay)
@@ -942,6 +957,7 @@ func _yearly() -> void:
 	Progression.yearly(self)
 	Religion.yearly(self)
 	Colonial.yearly(self)
+	Trade.yearly(self)
 	Formables.ai_yearly(self)
 	_coalitions_yearly()
 	_liberty_yearly()
@@ -1309,6 +1325,8 @@ func vassal_block_reason(w: War, for_attackers: bool) -> String:
 		return "%s ist bereits Vasall." % t.name
 	if nations[lead].overlord != "":
 		return "Vasallen können keine Vasallen haben."
+	if lead != player and diplo_used(lead) >= diplo_cap(lead):
+		return "Diplomatische Kapazität erschöpft."
 	if t.dev_total * 1.0 > nations[lead].dev_total * float(bal.vassal_max_dev_ratio):
 		return "%s ist zu groß, um Vasall zu werden." % t.name
 	if t.major and lead != player:
@@ -2460,6 +2478,26 @@ func _marriage_succession(n: Nation) -> void:
 		return
 
 
+## Diplomatic capacity: alliances and vassals each take one slot. More slots with diplomatic technology.
+func diplo_used(tag: String) -> int:
+	return nations[tag].allies.size() + vassals_of(tag).size()
+
+
+func diplo_cap(tag: String) -> int:
+	var n: Nation = nations[tag]
+	return int(bal.diplo_cap_base) + int(n.tech.dip * float(bal.diplo_cap_per_dip_tech)) + int(mod(n, "diplo_cap"))
+
+
+func diplo_over(tag: String) -> int:
+	return maxi(0, diplo_used(tag) - diplo_cap(tag))
+
+
+## Alliances cost more diplomacy the bigger the realm (big realms are courted, but pay for every promise).
+func alliance_cost(tag: String) -> float:
+	var extra: float = maxf(0.0, nations[tag].dev_total - float(bal.alliance_cost_free_dev)) / float(bal.alliance_cost_dev_step)
+	return float(bal.alliance_cost) * (1.0 + extra)
+
+
 func propose_alliance(tag: String, target: String) -> String:
 	var n: Nation = nations[tag]
 	if is_allied(tag, target):
@@ -2470,9 +2508,11 @@ func propose_alliance(tag: String, target: String) -> String:
 		return "Vasallen schließen keine eigenen Bündnisse."
 	if n.allies.size() >= int(bal.max_allies):
 		return "Maximal %d Bündnisse." % int(bal.max_allies)
-	if n.dip < float(bal.alliance_cost):
-		return "Zu wenig Diplomatie."
-	n.dip -= float(bal.alliance_cost)
+	if diplo_used(tag) >= diplo_cap(tag):
+		return "Diplomatische Kapazität erschöpft (%d/%d Bündnisse und Vasallen)." % [diplo_used(tag), diplo_cap(tag)]
+	if n.dip < alliance_cost(tag):
+		return "Zu wenig Diplomatie (%d)." % int(alliance_cost(tag))
+	n.dip -= alliance_cost(tag)
 	if target != player and not ai.accepts_alliance(self, target, tag):
 		return "%s lehnt ab (Beziehung %d)." % [nations[target].name, int(get_rel(tag, target))]
 	_ally(tag, target)
@@ -3034,7 +3074,7 @@ func to_dict() -> Dictionary:
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
 			"pending_peace": pending_peace, "peace_offer_memo": peace_offer_memo, "log": log_lines, "stats": stats, "game_over": game_over, "endless": endless, "emperor": emperor,
 			"hre_authority": hre_authority, "hre_reforms": hre_reforms,
-			"history": history, "score_history": score_history, "chronicle": chronicle, "prices": prices, "prev_prices": prev_prices, "shocks": shocks, "goods_leader": goods_leader, "urban_start": urban_start, "found": found}
+			"history": history, "score_history": score_history, "chronicle": chronicle, "prices": prices, "prev_prices": prev_prices, "shocks": shocks, "goods_leader": goods_leader, "urban_start": urban_start, "found": found, "east": Trade.to_save(self)}
 	var ps := []
 	for p in provinces:
 		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort, p.prev_owner, p.suppress_months,
@@ -3057,10 +3097,12 @@ func to_dict() -> Dictionary:
 	d.nations = ns
 	var ar := []
 	for a in armies:
-		ar.append({"id": a.id, "owner": a.owner, "pid": a.pid, "regs": a.regs, "full": a.full,
-				"target": a.target, "auto": a.auto, "stance": a.stance, "power": a.power, "general": a.general,
-				"move": a.move, "landing": a.landing, "path": a.path})
+		ar.append(_army_save(a))
 	d.armies = ar
+	var vs := []
+	for v in voyages:
+		vs.append({"army": _army_save(v.army), "from": v.from, "to": v.to, "left": v.left, "total": v.total, "route": v.get("route", [])})
+	d.voyages = vs
 	d.battles = Warfare.to_save(self)
 	var ws := []
 	for w in wars:
@@ -3068,6 +3110,31 @@ func to_dict() -> Dictionary:
 				"start": w.start, "battle_score": w.battle_score, "coalition": w.coalition, "goal": w.goal})
 	d.wars = ws
 	return d
+
+
+func _army_save(a: Army) -> Dictionary:
+	return {"id": a.id, "owner": a.owner, "pid": a.pid, "regs": a.regs, "full": a.full,
+			"target": a.target, "auto": a.auto, "stance": a.stance, "power": a.power, "general": a.general,
+			"move": a.move, "landing": a.landing, "path": a.path}
+
+
+func _army_load(e: Dictionary) -> Army:
+	var a := Army.new()
+	a.id = int(e.id)
+	a.owner = e.owner
+	a.pid = int(e.pid)
+	a.regs = float(e.regs)
+	a.full = float(e.full)
+	a.target = int(e.target)
+	a.auto = e.auto
+	a.stance = e.get("stance", "attack")
+	a.power = float(e.get("power", 1.0))
+	a.general = int(e.get("general", 0))
+	a.move = float(e.get("move", 0.0))
+	for x in e.get("path", []):
+		a.path.append(int(x))
+	a.landing = e.get("landing", false)
+	return a
 
 
 func from_dict(d: Dictionary) -> void:
@@ -3122,6 +3189,7 @@ func from_dict(d: Dictionary) -> void:
 	var fd: Dictionary = d.get("found", {})
 	for k in fd:
 		found[str(k)] = int(fd[k])
+	Trade.load_save(self, d.get("east", {}))
 	shocks = {}
 	for k in d.get("shocks", {}):
 		shocks[k] = {"mult": float(d.shocks[k].mult), "years": int(d.shocks[k].years)}
@@ -3229,22 +3297,11 @@ func from_dict(d: Dictionary) -> void:
 		Colonial.nation_load(self, n, e.get("colonial", {}))
 	armies.clear()
 	for e in d.armies:
-		var a := Army.new()
-		a.id = int(e.id)
-		a.owner = e.owner
-		a.pid = int(e.pid)
-		a.regs = float(e.regs)
-		a.full = float(e.full)
-		a.target = int(e.target)
-		a.auto = e.auto
-		a.stance = e.get("stance", "attack")
-		a.power = float(e.get("power", 1.0))
-		a.general = int(e.get("general", 0))
-		a.move = float(e.get("move", 0.0))
-		for x in e.get("path", []):
-			a.path.append(int(x))
-		a.landing = e.get("landing", false)
-		armies.append(a)
+		armies.append(_army_load(e))
+	voyages.clear()
+	for e in d.get("voyages", []):
+		voyages.append({"army": _army_load(e.army), "from": int(e.from), "to": int(e.to), "left": int(e.left), "total": int(e.total),
+				"route": Array(e.get("route", [])).map(func(x): return str(x))})
 	wars.clear()
 	for e in d.wars:
 		var w := War.new()

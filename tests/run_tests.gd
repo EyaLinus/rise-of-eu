@@ -12,6 +12,9 @@ var checks := 0
 
 func _init() -> void:
 	data = Data.load_all()
+	var only := []  # godot --headless -s res://tests/run_tests.gd -- test_a test_b
+	for arg in OS.get_cmdline_user_args():
+		only.append(arg)
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
@@ -30,6 +33,8 @@ func _init() -> void:
 		"test_rivals",
 		"test_urban",
 		"test_colonial",
+		"test_west_africa",
+		"test_troop_transport",
 		"test_embargo",
 		"test_hall_of_fame",
 		"test_rival_missions",
@@ -52,8 +57,15 @@ func _init() -> void:
 		"test_gov_sources",
 		"test_regency",
 		"test_form_change",
+		"test_start_resources",
+		"test_diplo_capacity",
+		"test_cape_route",
+		"test_overseas_markets",
+		"test_market_dominance",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
+		if not only.is_empty() and not only.has(t):
+			continue
 		var before := failures
 		call(t)
 		print(("PASS " if failures == before else "FAIL ") + t)
@@ -122,10 +134,12 @@ func test_map_geometry() -> void:
 			check(arr.size() >= 3 and not Geometry2D.triangulate_polygon(arr).is_empty(), "polygon of %s triangulates" % p.key)
 
 
-## The Old World and the New World are each one connected landmass (no land route across the Atlantic).
+## The Old World (with West Africa, over the Saharan caravan routes) and the New World are each one
+## connected landmass (no land route across the Atlantic).
 func test_map_connected() -> void:
 	var g = new_game()
-	check(g.nw_first > 200 and g.nw_first < g.provinces.size(), "the map has a New World part (%d)" % g.nw_first)
+	var Col = load("res://scripts/core/colonial.gd")
+	check(g.nw_first > 200 and g.nw_first < g.wa_first and g.wa_first < g.provinces.size(), "the map has a New World (%d) and a West African part (%d)" % [g.nw_first, g.wa_first])
 	var seen := {}
 	for start in [0, g.nw_first]:
 		seen[start] = true
@@ -134,7 +148,7 @@ func test_map_connected() -> void:
 			var c: int = q.pop_back()
 			for a in g.provinces[c].adj:
 				check(g.provinces[a].adj.has(c), "adjacency symmetric %d-%d" % [c, a])
-				check((a >= g.nw_first) == (c >= g.nw_first), "no adjacency across the Atlantic %d-%d" % [c, a])
+				check((Col.region(g, a) == "america") == (Col.region(g, c) == "america"), "no adjacency across the Atlantic %d-%d" % [c, a])
 				if not seen.has(a):
 					seen[a] = true
 					q.append(a)
@@ -594,6 +608,138 @@ func test_trade_pacts() -> void:
 	check(g2.nations.FRA.trade_pacts.has(other) and g2.mod(g2.nations.FRA, "trade") > trade0, "pacts are saved")
 	Eco.cancel_pact(g, "FRA", other)
 	check(n.trade_pacts.is_empty() and absf(g.mod(n, "trade") - trade0) < 0.0001, "cancel removes the bonus")
+
+
+func test_start_resources() -> void:
+	var g = new_game("FRA", 5)
+	var n = g.nations.FRA
+	check(n.adm >= 150.0 and n.dip >= 150.0 and n.mil >= 150.0, "start with 150 of each power")
+	check(n.gold >= 150.0, "start with more gold")
+
+
+func test_diplo_capacity() -> void:
+	var g = new_game("FRA", 5)
+	var n = g.nations.FRA
+	var small := 0.0
+	n.dev_total = 100
+	small = g.alliance_cost("FRA")
+	n.dev_total = 700
+	check(g.alliance_cost("FRA") > small * 3.0, "alliances cost more for big realms")
+	n.dip = 999.0
+	var free := []
+	for t in g.order:
+		if t != "FRA" and g.nations[t].alive and g.nations[t].overlord == "" and not g.is_allied("FRA", t) and not g.at_war("FRA", t):
+			free.append(t)
+	# fill every slot with vassals: then no new alliance is possible
+	for t in n.allies:
+		g.nations[t].allies.erase("FRA")
+	n.allies.clear()
+	var i := 0
+	while g.diplo_used("FRA") < g.diplo_cap("FRA"):
+		g.nations[free[i]].overlord = "FRA"
+		i += 1
+	check(g.diplo_used("FRA") == g.diplo_cap("FRA"), "vassals take diplomatic slots")
+	var err: String = g.propose_alliance("FRA", free[i + 1])
+	check(err.contains("Kapazität"), "no alliance over the diplomatic capacity: " + err)
+	check(not g.ai.accepts_alliance(g, "FRA", free[i + 1]), "AI realms at capacity refuse alliances")
+	g.nations[free[i]].overlord = "FRA"
+	check(g.diplo_over("FRA") == 1, "one over capacity")
+	var dip0: float = n.dip
+	var pr0: float = n.prestige
+	g.tick()
+	check(n.prestige < pr0 + 1.0 and n.dip < dip0 + g.monthly_power(n, "dip"), "over capacity costs diplomacy and prestige")
+
+
+func test_cape_route() -> void:
+	var g = new_game("FRA", 5)
+	var T = g.Trade
+	var tag := "POR" if g.atlantic_tags.has("POR") else String(g.atlantic_tags[0])
+	var n = g.nations[tag]
+	check(not T.is_open(g) and T.route_value(g) == 0.0, "the spice route starts closed")
+	check(T.voyage_block_reason(g, tag) != "", "no voyage at the start (year / tech)")
+	g.month = (int(g.bal.cape_year) - int(g.bal.start_year) + 1) * 12
+	n.tech.dip = int(g.bal.cape_dip_tech)
+	n.gold = 2000.0
+	n.dip = 500.0
+	check(T.voyage_block_reason(g, tag) == "", "voyage possible with tech, year and gold: " + T.voyage_block_reason(g, tag))
+	check(T.start_voyage(g, tag) == "" and g.east.voyage.has(tag), "voyage starts")
+	g.east.voyage.erase(tag)
+	g.bal.cape_success = 1.0
+	T._voyage_done(g, tag)
+	check(T.is_open(g) and T.knows(g, tag) and g.east.cape == tag, "first voyage opens the route")
+	check(T.route_value(g) > 0.0, "the route has value")
+	check(T.factory_block_reason(g, tag, "goa") != "", "a factory needs Indiamen")
+	g.month = (1500 - int(g.bal.start_year)) * 12
+	for k in int(g.bal.east_factory_ships):
+		check(T.buy_ship(g, tag) == "", "buy an Indiaman")
+	check(T.take_factory(g, tag, "sofala") == "" and g.east.factories.sofala == tag, "found a factory")
+	check(T.east_income(g, tag) > 0.0 and absf(T.share(g, tag) - 1.0) < 0.001, "sole trader takes the whole route")
+	var inc0: float = g.Economy.trade_income(g, n)
+	g.month += 120
+	check(T.route_value(g) > float(g.bal.east_value_base), "the route grows over time")
+	check(g.Economy.trade_income(g, n) > inc0, "route income is trade income")
+	if not g.levant.is_empty():
+		check(T.market_mult(g, g.levant[0]) < 1.0, "the Levant loses value once the Cape route is open")
+	# another realm storms the factory in war with more ships
+	var other := ""
+	for t in g.atlantic_tags:
+		if t != tag and g.nations[t].alive:
+			other = t
+			break
+	if other != "":
+		g.east.known[other] = true
+		g.east.ships[other] = T.ships(g, tag) + 2
+		check(T.factory_block_reason(g, other, "sofala") != "", "no storming in peace")
+		g.declare_war(other, tag)
+		if g.at_war(other, tag):
+			check(T.take_factory(g, other, "sofala") == "" and g.east.factories.sofala == other, "factory stormed in war")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.east.cape == tag and g2.Trade.knows(g2, tag) and g2.Trade.ships(g2, tag) == T.ships(g, tag), "far trade is saved")
+	check(g2.east.factories.size() == g.east.factories.size(), "factories are saved")
+
+
+func test_overseas_markets() -> void:
+	var g = new_game("FRA", 5)
+	var T = g.Trade
+	var nw := -1
+	for m in g.markets:
+		if T.is_overseas_market(g, m):
+			nw = m
+			break
+	check(nw >= 0, "there is a New World market")
+	check(T.market_block_reason(g, "BOH", nw) != "", "unknown New World market is closed")
+	check(not g.Economy.send_merchant(g, "BOH", nw).is_empty(), "no merchant into an unknown market")
+	g.nations.BOH.known_nw[nw] = true
+	check(T.market_block_reason(g, "BOH", nw) != "", "a landlocked realm cannot trade overseas")
+	var atl: String = g.atlantic_tags[0]
+	g.nations[atl].known_nw[nw] = true
+	check(T.market_block_reason(g, atl, nw) == "", "an Atlantic realm that knows the market may trade there")
+	g.Economy.auto_merchants(g, g.nations.BOH)
+	check(not g.nations.BOH.merchants.has(nw), "AI does not send merchants where it cannot trade")
+	var p = g.provinces[nw]
+	check(T.value_mult(g, p) == 1.0, "native land: normal value")
+	var old: String = p.owner
+	p.owner = atl
+	check(T.value_mult(g, p) > 1.0, "colonial goods are worth more")
+	p.owner = old
+
+
+func test_market_dominance() -> void:
+	var g = new_game("FRA", 5)
+	g.tick()
+	var any := false
+	for m in g.markets:
+		var lord: String = g.Trade.dominant(g, m)
+		if lord == "":
+			continue
+		any = true
+		check(g.Economy.trade_share(g, lord, m) >= float(g.bal.dom_share) - 0.0001, "market master holds the share")
+	check(any, "some realm dominates a market at the start")
+	var d: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(d)
+	check(g2.east.dom.size() == g.east.dom.size(), "dominance is saved")
 
 
 func test_mercenaries() -> void:
@@ -1528,6 +1674,93 @@ func test_save_roundtrip() -> void:
 
 
 ## The New World: terra incognita, expeditions, colonies, natives, save/load and old saves.
+## West Africa: native kingdoms, colonizable coast known from the start, the Gulf of Guinea to explore.
+func test_west_africa() -> void:
+	const Col = preload("res://scripts/core/colonial.gd")
+	var g = new_game("POR", 5)
+	for tag in ["MAL", "SON", "JOL", "BEN"]:
+		check(g.nations[tag].alive and Col.is_native_realm(g, tag), "%s is a living West African realm" % tag)
+		check(Col.region(g, g.nations[tag].capital) == "africa", "%s sits in West Africa" % tag)
+	var mal = g.nations.MAL
+	check(mal.known_nw.has(g.key_to_pid["gold_coast"]) and not mal.known_nw.has(g.key_to_pid["havana"]), "Mali knows its own continent, not America")
+	check(not g.nations.AZT.known_nw.has(g.key_to_pid["niani"]), "the Aztecs do not know Africa")
+	var gam: int = g.key_to_pid["gambia"]
+	var elmina: int = g.key_to_pid["gold_coast"]
+	check(Col.knows(g, "POR", gam) and Col.knows(g, "ENG", gam), "the Senegambian coast is known in Europe")
+	check(not Col.knows(g, "POR", elmina) and not Col.knows_sea(g, "POR", "guinea"), "the Gulf of Guinea is not")
+	check(Col.explore_targets(g, "POR").has("guinea"), "Portugal can sail on into the Gulf of Guinea")
+	check(Col.knows(g, "MOR", g.key_to_pid["taghaza"]), "Morocco knows the caravan road to Taghaza")
+	check(Col.knows(g, "ENG", g.key_to_pid["timbuktu"]) and not Col.knows(g, "ENG", g.key_to_pid["oyo"]), "Mali is known from the caravans, the forest belt is not")
+	check(g.provinces[g.key_to_pid["sous"]].adj.has(g.key_to_pid["taghaza"]), "a caravan route crosses the Sahara")
+	check(g.provinces[elmina].good == "gold" and g.goods_def.has("gold"), "the Gold Coast produces gold")
+	g.bal.explore_dip_tech = 0
+	g.nations.POR.gold = 5000.0
+	check(Col.colony_block_reason(g, "POR", gam) == "", "Portugal can settle the Gambia")
+	check(Col.colony_block_reason(g, "BOH", gam).contains("erreichbar"), "a landlocked realm cannot ship settlers")
+	check(Col.colony_block_reason(g, "POR", elmina) != "", "unknown coast cannot be settled")
+	# more settlers: recruited with diplomacy (for good, ever dearer) and from finished colonies
+	var por = g.nations.POR
+	var c0: int = Col.colonists(g, por)
+	por.dip = 1000.0
+	var cost0: float = Col.recruit_cost(g, por)
+	check(Col.recruit_colonist(g, "POR") == "" and Col.colonists(g, por) == c0 + 1 and Col.recruit_cost(g, por) > cost0, "a settler band is recruited")
+	for i in int(g.bal.recruit_colonist_max) - 1:
+		Col.recruit_colonist(g, "POR")
+	check(Col.recruit_colonist(g, "POR") != "" and Col.recruited(por) == int(g.bal.recruit_colonist_max), "recruiting has a cap")
+	check(Col.recruit_colonist(g, "MAL") != "", "native realms do not recruit settlers")
+	var c1: int = Col.colonists(g, por)
+	for key in ["arguin", "waalo", "cayor", "gambia"]:
+		var p = g.provinces[g.key_to_pid[key]]
+		g.owned[p.owner].erase(p.id)
+		p.owner = "POR"
+		g.owned["POR"].append(p.id)
+	check(Col.colonists(g, por) == c1 + 1, "every %d colonies bring a settler" % int(g.bal.colonies_per_colonist))
+
+
+## Armies sail from a port to any known coast: ships, gold and time; enemy fleets close the way.
+func test_troop_transport() -> void:
+	const Nav = preload("res://scripts/core/naval.gd")
+	var g = new_game("POR", 5)
+	var n = g.nations.POR
+	var lisbon: int = g.key_to_pid["lisbon"]
+	var gam: int = g.key_to_pid["gambia"]
+	var a = g.armies_of("POR")[0]
+	a.pid = lisbon
+	a.regs = 8.0
+	n.gold = 500.0
+	n.ships = 10.0
+	check(Nav.transport_block_reason(g, a, gam).contains("landen"), "no landing on foreign land without war or access")
+	var cayor: int = g.key_to_pid["cayor"]
+	g.declare_war("POR", "JOL")
+	check(g.at_war("POR", "JOL"), "war on Jolof")
+	var route: Array = Nav.sea_route(g, "POR", lisbon, cayor)
+	check(route.size() >= 2 and route[0] == "atlantic" and route[-1] == "west_africa", "the route runs over the Atlantic to the West African coast (%s)" % str(route))
+	n.ships = 1.0
+	check(Nav.transport_block_reason(g, a, cayor).contains("Schiffe"), "8 regiments need 2 ships")
+	n.ships = 10.0
+	check(Nav.transport_block_reason(g, a, g.key_to_pid["madrid"] if g.key_to_pid.has("madrid") else g.key_to_pid["toledo"]) != "", "inland provinces cannot be reached by sea")
+	var regs0: float = g.army_regs("POR")
+	var gold0: float = n.gold
+	check(Nav.transport(g, a, cayor) == "", "the army sails")
+	check(not g.armies.has(a) and g.voyages.size() == 1 and n.gold < gold0, "it is at sea and the voyage cost gold")
+	check(is_equal_approx(g.army_regs("POR"), regs0), "armies at sea count against the force limit")
+	check(Nav.free_ships(g, "POR") == 8.0, "its ships are busy")
+	var months: int = g.voyages[0].total
+	check(months >= 2 and months <= 6, "the voyage takes a few months (%d)" % months)
+	# save and load at sea
+	var text := JSON.stringify(g.to_dict())
+	var g2 = new_game("POR", 5)
+	g2.from_dict(JSON.parse_string(text))
+	check(g2.voyages.size() == 1 and int(g2.voyages[0].to) == cayor, "a voyage survives save/load")
+	for i in months:
+		g.tick()
+	check(g.armies.has(a) and a.pid == cayor and a.landing and g.voyages.is_empty(), "the army lands in Kayor")
+	# an enemy fleet rules the sea: no way over it
+	var b = g.spawn_army("POR", lisbon, 4.0)
+	g.sea_blocked["POR"] = {"atlantic": true}
+	check(Nav.sea_route(g, "POR", lisbon, cayor).is_empty() and Nav.transport_block_reason(g, b, cayor).contains("Flotte"), "an enemy fleet closes the sea")
+
+
 func test_colonial() -> void:
 	const Col = preload("res://scripts/core/colonial.gd")
 	var g = new_game("POR", 5)
@@ -1596,7 +1829,7 @@ func test_colonial() -> void:
 	d.provinces = d.provinces.slice(0, g.nw_first)
 	for t in d.nations:
 		d.nations[t].erase("colonial")
-	for t in ["AZT", "TLX", "ZAP", "TAR", "MAY", "KIC", "IRO", "NAT"]:
+	for t in ["AZT", "TLX", "ZAP", "TAR", "MAY", "KIC", "IRO", "NAT", "MAL", "SON", "JOL", "BEN"]:
 		d.nations.erase(t)
 	var g3 = new_game("POR", 9)
 	g3.from_dict(d)
