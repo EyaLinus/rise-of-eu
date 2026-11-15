@@ -694,6 +694,8 @@ func _command(g, a, enemies: Array, enemy_power: Dictionary) -> void:
 			g.move_army(a, best)
 	elif best == a.pid:
 		a.target = -1
+	elif best < 0 and not defend and g.Naval.ai_transport(g, a, enemies, enemy_power, my_power):
+		return  # nothing in reach by land: ship the army to an enemy coast
 	elif defend and a.target < 0:
 		# nothing to do: wait in the capital (or the nearest own province) for the enemy
 		var home: int = g.nations[tag].capital

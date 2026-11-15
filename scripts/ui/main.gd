@@ -49,6 +49,7 @@ var econ_tab := "overview"  # sub-tab of the economy panel
 var prov_tab := "info"  # sub-tab of an own province: info, build, army
 var section_open := {}  # collapsible panel sections the player opened or closed (key -> bool)
 var selected_army := -1
+var sea_order := false  # the next province tap ships the selected army there (Naval.transport)
 var peace_selection := {}
 var last_log_count := 0
 var known_wars := {}
@@ -2052,12 +2053,27 @@ func _on_province_tapped(pid: int) -> void:
 		var a = game.army_by_id(selected_army)
 		if a != null and a.owner == game.player:
 			a.auto = false
-			var err: String = game.move_army(a, pid)
+			var err: String
+			var ok_msg := "🚶 Marschbefehl nach %s" % game.provinces[pid].name
+			if sea_order:
+				err = Naval.transport(game, a, pid)
+				ok_msg = "⛵ Die Armee sticht in See nach %s" % game.provinces[pid].name
+			else:
+				err = game.move_army(a, pid)
+				# no way by land: by ship, if the army stands in a port and the target has a coast
+				if err != "" and game.province_seas.has(pid):
+					var sea_why: String = Naval.transport_block_reason(game, a, pid)
+					if sea_why == "":
+						err = Naval.transport(game, a, pid)
+						ok_msg = "⛵ Kein Landweg: die Armee sticht in See nach %s" % game.provinces[pid].name
+					elif game.province_seas.has(a.pid):
+						err += "\n⛵ Seeweg: " + sea_why
 			if err == "":
 				# one order per selection: the next tap on the map looks around instead of moving again
 				selected_army = -1
 				map.selected_army = -1
-			_act(err, "🚶 Marschbefehl nach %s" % game.provinces[pid].name if err == "" else "")
+				sea_order = false
+			_act(err, ok_msg if err == "" else "")
 			map.refresh()
 			return
 	map.selected_pid = pid
@@ -2089,6 +2105,7 @@ func _on_army_tapped(id: int) -> void:
 		panel_history.append([panel_mode, panel_arg])
 	side_back.visible = not panel_history.is_empty()
 	selected_army = id
+	sea_order = false
 	map.selected_army = id
 	map.selected_pid = -1
 	panel_mode = "army"
@@ -2681,7 +2698,9 @@ func _panel_army(id: int) -> void:
 	side_box.add_child(_grid(chips))
 	if a.owner != game.player:
 		return
-	if selected_army == a.id:
+	if selected_army == a.id and sea_order:
+		side_box.add_child(_lbl("⛵ Tippe auf eine Küstenprovinz: die Armee fährt mit der Flotte dorthin. %s" % _transport_info(a), 16, Color(0.6, 0.85, 1.0)))
+	elif selected_army == a.id:
 		side_box.add_child(_lbl("👉 Tippe auf eine Provinz, um die Armee dorthin zu schicken. Lange drücken zeigt nur Infos.", 16, Color(0.8, 0.85, 0.6)))
 	side_box.add_child(_grid([
 		_btn("⚔️ Angriff", func(): _set_stance(a, "attack"), "KI führt die Armee: sucht Schlachten und belagert."),
@@ -2700,6 +2719,9 @@ func _panel_army(id: int) -> void:
 	var acts := []
 	if selected_army != a.id:
 		acts.append(_btn("🎯 Neues Ziel", func(): selected_army = a.id; map.selected_army = a.id; _refresh(); map.refresh(), "Danach auf eine Provinz tippen."))
+	if Naval.is_port(game, a.owner, a.pid):
+		acts.append(_btn("⛵ Seeweg" if not (sea_order and selected_army == a.id) else "⛵ Seeweg ✓", func(): selected_army = a.id; map.selected_army = a.id; sea_order = not sea_order; _refresh(); map.refresh(),
+				"Mit der Flotte übers Meer: danach auf eine bekannte Küste tippen (eigenes Land, Verbündete, Kriegsgegner oder mit Durchmarschrecht). %s Ein Marschbefehl ohne Landweg nimmt automatisch das Schiff." % _transport_info(a)))
 	if a.pid != game.nations[a.owner].capital:
 		acts.append(_btn("🏰 Hauptstadt", func(): _quick_order(a, game.nations[a.owner].capital), "Zur Hauptstadt marschieren."))
 	if a.general == 0:
@@ -2759,18 +2781,26 @@ func _new_world_section() -> void:
 	var n = game.nations[me]
 	if not game.atlantic_tags.has(me):
 		return
-	if not _section("nat_newworld", "🧭 Neue Welt", true,
-			"Entdeckungsfahrten decken die Meere und Küsten Amerikas auf, Siedler gründen dort Kolonien. Ab Diplomatie-Technologie %d." % int(game.bal.explore_dip_tech)):
+	if not _section("nat_newworld", "🧭 Neue Welt und Afrika", true,
+			"Entdeckungsfahrten decken die Meere und Küsten Amerikas und den Golf von Guinea auf, Siedler gründen dort und an der westafrikanischen Küste Kolonien. Ab Diplomatie-Technologie %d." % int(game.bal.explore_dip_tech)):
 		return
 	var running: Array = Colonial.running_colonies(game, me)
 	var chips := [
 		_chip("🕊️ Technik %d/%d" % [n.tech.dip, int(game.bal.explore_dip_tech)], "Entdeckungsfahrten und Kolonien brauchen Diplomatie-Technologie %d." % int(game.bal.explore_dip_tech), "good" if Colonial.can_explore_tech(game, n) else "bad"),
-		_chip("🏕 Siedler %d/%d" % [running.size(), Colonial.colonists(game, n)], "So viele Kolonien können gleichzeitig wachsen. Alle %d Diplomatie-Technologien kommt ein Siedler dazu." % int(game.bal.dip_tech_per_colonist)),
-		_chip("🌍 %d Kolonien" % Colonial.colonies_owned(game, me), "Fertige Provinzen in der Neuen Welt."),
-		_chip("🗺️ Zur Neuen Welt", "Karte nach Amerika schwenken."),
+		_chip("🏕 Siedler %d/%d" % [running.size(), Colonial.colonists(game, n)], "So viele Kolonien können gleichzeitig wachsen.\n• 1 Grundstock\n• +1 je %d Diplomatie-Technologien (jetzt +%d)\n• +1 je %d fertige Kolonien, höchstens +2 (jetzt +%d)\n• +1 je angeworbene Siedlergruppe (jetzt +%d von %d)" % [
+				int(game.bal.dip_tech_per_colonist), int(n.tech.dip / int(game.bal.dip_tech_per_colonist)), int(game.bal.colonies_per_colonist), Colonial.colony_settlers(game, n),
+				Colonial.recruited(n), int(game.bal.recruit_colonist_max)]),
+		_chip("🌍 %d Kolonien" % Colonial.colonies_owned(game, me), "Fertige Kolonien in Amerika und Afrika."),
+		_chip("🗺️ Nach Amerika", "Karte nach Amerika schwenken."),
+		_chip("🌍 Nach Afrika", "Karte nach Westafrika schwenken."),
 	]
 	chips[3].gui_input.connect(func(e): if _is_click(e): map.focus(game.provinces[game.nw_first].center, 0.6); map.refresh())
+	chips[4].gui_input.connect(func(e): if _is_click(e): map.focus(game.provinces[mini(game.wa_first, game.provinces.size() - 1)].center, 0.6); map.refresh())
+	chips.append(Control.new())
 	side_box.add_child(_grid(chips))
+	var rw: String = Colonial.recruit_block_reason(game, me)
+	side_box.add_child(_btn("🏕 Siedler anwerben · %d 🕊️" % int(Colonial.recruit_cost(game, n)), func(): _act(Colonial.recruit_colonist(game, me), "🏕 Neue Siedler stehen bereit"),
+			"Diplomatie einsetzen: eine Siedlergruppe mehr, für immer (höchstens %d, jede weitere teurer)." % int(game.bal.recruit_colonist_max) + (("\n❌ " + rw) if rw != "" else ""), rw != ""))
 	if not n.expedition.is_empty():
 		side_box.add_child(_lbl("⛵ Expedition nach %s: noch %d Monate" % [game.Naval.sea_name(game, n.expedition.sea), int(n.expedition.months)], 15, Color(0.95, 0.85, 0.5)))
 	else:
@@ -3340,6 +3370,9 @@ func _panel_wars() -> void:
 		_btn("🛡️ Abwehr", func(): _set_all_stance("defend"), "Alle Armeen schützen selbstständig dein und verbündetes Land."),
 		_btn("✋ Manuell", func(): _set_all_stance(""), "Du gibst alle Befehle selbst.")], 3))
 	var arms: Array = game.armies_of(me)
+	for v in game.voyages:
+		if v.army.owner == me:
+			side_box.add_child(_lbl("⛵ Auf See: %.1f Reg. von %s nach %s, Landung in %d Mon." % [v.army.regs, game.provinces[v.from].name, game.provinces[v.to].name, int(v.left)], 16, Color(0.6, 0.85, 1.0)))
 	if not arms.is_empty() and _section("wars_armies", "%sDeine Armeen (%d)" % [Icons.prefix("army"), arms.size()], arms.size() <= 4, "Antippen wählt die Armee aus."):
 		for a in arms:
 			var where: String = game.provinces[a.pid].name
@@ -3502,6 +3535,13 @@ func _set_all_stance(stance: String) -> void:
 	_toast({"attack": "⚔️ Alle Armeen greifen selbstständig an.", "defend": "🛡️ Alle Armeen verteidigen selbstständig.",
 			"": "✋ Du führst alle Armeen selbst."}[stance])
 	_refresh()
+
+
+## Ships, cost and landing malus of a sea transport for army `a` (army panel tips).
+func _transport_info(a) -> String:
+	return "Braucht %d freie Schiffe (1 je %d Regimenter, frei: %s) und %d Gold; etwa %d Feld je Monat auf See. Bei der Landung kämpft die Armee schlechter, %d %% Moral gehen auf der Fahrt verloren. Meere, die eine feindliche Flotte beherrscht, sind gesperrt." % [
+			Naval.ships_needed(game, a.regs), int(game.bal.transport_regs_per_ship), Naval.fmt(maxf(0.0, Naval.free_ships(game, a.owner))),
+			int(Naval.transport_cost(game, a)), int(game.bal.transport_px_per_month / 48.0), int(float(game.bal.transport_power_loss) * 100)]
 
 
 func _quick_order(a, pid: int) -> void:

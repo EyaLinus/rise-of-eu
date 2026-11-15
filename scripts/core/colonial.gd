@@ -11,15 +11,19 @@ extends RefCounted
 ## are ordinary nations that can be conquered once a colony borders them.
 
 const NATIVE := "NAT"  # owner of uncolonized native land
-## Seas beyond the Old World: unknown until explored. Old World realms know every other sea.
-const NEW_SEAS := ["ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes"]
+## Seas beyond the Old World: unknown until explored. Old World realms know every other sea (also the
+## West African coast down to Sierra Leone, which Portuguese caravels reached by 1444).
+const NEW_SEAS := ["guinea", "ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes"]
 
 
 static func setup(g, data: Dictionary) -> void:
 	g.nw_first = g.provinces.size()
+	g.wa_first = g.provinces.size()
 	for i in data.map.provinces.size():
-		if data.map.provinces[i].get("nw", false):
+		if data.map.provinces[i].get("nw", false) and g.nw_first == g.provinces.size():
 			g.nw_first = i
+		if data.map.provinces[i].get("wa", false):
+			g.wa_first = i
 			break
 	g.found = {}
 	if g.nations.has(NATIVE):
@@ -42,20 +46,45 @@ static func setup(g, data: Dictionary) -> void:
 			g.atlantic_tags.append(tag)
 
 
-## Start knowledge: the Old World knows its own seas, the native realms know the New World.
+## Start knowledge: the Old World knows its own seas and the coasts on them (West Africa down to Sierra
+## Leone), the native realms know their own continent and its seas.
 static func reset_knowledge(g, n) -> void:
 	n.known_seas = {}
 	n.known_nw = {}
 	n.expedition = {}
 	if is_native_realm(g, n.tag):
-		for sea in NEW_SEAS:
-			n.known_seas[sea] = true
+		var home := region(g, g.nations[n.tag].capital)
+		for s in g.seas:
+			for pid in s.provinces:
+				if region(g, pid) == home:
+					n.known_seas[s.id] = true
+					break
 		for pid in range(g.nw_first, g.provinces.size()):
-			n.known_nw[pid] = true
+			if region(g, pid) == home:
+				n.known_nw[pid] = true
 		return
 	for s in g.seas:
 		if not NEW_SEAS.has(s.id):
 			n.known_seas[s.id] = true
+			for pid in s.provinces:
+				if pid >= g.nw_first:
+					n.known_nw[pid] = true
+	# the Sahel and Mali are known from the gold caravans; the forest belt and the Guinea coast are not
+	for pid in range(g.wa_first, g.provinces.size()):
+		if g.provinces[pid].center.y < float(g.bal.wa_known_y):
+			n.known_nw[pid] = true
+	# caravan routes: the land next to our own (Morocco knows the way to Taghaza)
+	for pid in g.provinces_of(n.tag):
+		for a in g.provinces[pid].adj:
+			if a >= g.nw_first:
+				n.known_nw[a] = true
+
+
+## "old" (Europe, North Africa, the Near East), "america" or "africa" (West Africa).
+static func region(g, pid: int) -> String:
+	if pid < g.nw_first:
+		return "old"
+	return "africa" if pid >= g.wa_first else "america"
 
 
 static func is_native_realm(g, tag: String) -> bool:
@@ -204,8 +233,49 @@ static func _expedition_tick(g, n) -> void:
 
 # ---------------------------------------------------------------- colonies
 
+## Settlers: 1, +1 per dip_tech_per_colonist diplomatic techs, +1 per colonies_per_colonist finished
+## colonies (at most +2), +1 per recruited settler band (recruit_colonist), plus "colonists" modifiers.
 static func colonists(g, n) -> int:
-	return 1 + int(n.tech.dip / int(g.bal.dip_tech_per_colonist)) + int(g.mod(n, "colonists"))
+	return 1 + int(n.tech.dip / int(g.bal.dip_tech_per_colonist)) + colony_settlers(g, n) + int(g.mod(n, "colonists"))
+
+
+static func colony_settlers(g, n) -> int:
+	return mini(2, colonies_owned(g, n.tag) / int(g.bal.colonies_per_colonist))
+
+
+static func recruited(n) -> int:
+	return int(n.flags.get("colonists_bought", 0))
+
+
+static func recruit_cost(g, n) -> float:
+	return float(g.bal.recruit_colonist_dip) * (1.0 + recruited(n))
+
+
+static func recruit_block_reason(g, tag: String) -> String:
+	var n = g.nations[tag]
+	if is_native_realm(g, tag):
+		return "Nur Reiche der Alten Welt gründen Kolonien."
+	if not can_explore_tech(g, n):
+		return "Braucht Diplomatie-Technologie %d." % int(g.bal.explore_dip_tech)
+	if recruited(n) >= int(g.bal.recruit_colonist_max):
+		return "Mehr Siedler finden sich nicht (höchstens %d angeworben)." % int(g.bal.recruit_colonist_max)
+	if n.dip < recruit_cost(g, n):
+		return "Zu wenig Diplomatie (%d)." % int(recruit_cost(g, n))
+	return ""
+
+
+## Spends diplomatic power for one more settler band, for good (stored in n.mods["colonists"]).
+static func recruit_colonist(g, tag: String) -> String:
+	var why := recruit_block_reason(g, tag)
+	if why != "":
+		return why
+	var n = g.nations[tag]
+	n.dip -= recruit_cost(g, n)
+	n.flags["colonists_bought"] = recruited(n) + 1
+	n.mods["colonists"] = float(n.mods.get("colonists", 0.0)) + 1.0
+	if tag == g.player:
+		g.log_msg("🏕 Neue Siedler melden sich für die Kolonien: jetzt %d Siedler." % colonists(g, n), [tag])
+	return ""
 
 
 static func running_colonies(g, tag: String) -> Array:
@@ -227,16 +297,24 @@ static func colony_months(g, p) -> int:
 	return int(round(float(g.bal.colony_months) * (1.0 + p.natives * float(g.bal.natives_slow))))
 
 
-## A province the realm can reach with settlers: a known coast on a sea it knows, or next to its land.
+## A province the realm can reach with settlers: next to its land, or a known coast on a sea it knows
+## (by ship, so the realm needs a coast of its own).
 static func reachable(g, tag: String, pid: int) -> bool:
 	var p = g.provinces[pid]
 	for a in p.adj:
 		if g.provinces[a].owner == tag:
 			return true
-	if not p.coastal:
+	if not p.coastal or not has_coast(g, tag):
 		return false
 	for s in g.province_seas.get(pid, []):
 		if knows_sea(g, tag, s):
+			return true
+	return false
+
+
+static func has_coast(g, tag: String) -> bool:
+	for pid in g.provinces_of(tag):
+		if g.province_seas.has(pid):
 			return true
 	return false
 
@@ -441,6 +519,8 @@ static func _ai(g, n) -> void:
 		var targets := explore_targets(g, n.tag)
 		if not targets.is_empty() and n.gold > explore_cost(g, n) + reserve * 0.5:
 			explore(g, n.tag, targets[g.rng.randi_range(0, targets.size() - 1)])
+	if running_colonies(g, n.tag).size() >= colonists(g, n) and drive >= 1.0 and n.dip > recruit_cost(g, n) + 150.0:
+		recruit_colonist(g, n.tag)
 	if running_colonies(g, n.tag).size() >= colonists(g, n) or g.rng.randf() > 0.5 * drive:
 		for pid in running_colonies(g, n.tag):
 			if g.provinces[pid].natives >= 3.0 and n.dip > float(g.bal.treaty_dip) + 60.0:
