@@ -13,6 +13,7 @@ const Formables = preload("res://scripts/core/formables.gd")
 const Warfare = preload("res://scripts/core/warfare.gd")
 const Naval = preload("res://scripts/core/naval.gd")
 const Urban = preload("res://scripts/core/urban.gd")
+const Colonial = preload("res://scripts/core/colonial.gd")
 
 const POWERS := ["adm", "dip", "mil"]
 const MONTH_NAMES := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
@@ -43,6 +44,9 @@ class Province:
 	var terrain: String = "plains"  # data/terrain.json: march time and defence (Warfare)
 	var urban: bool = false  # city (Stadt) or countryside (Land), see scripts/core/urban.gd
 	var urban_months: int = 0  # months until a running change of that status finishes
+	var colonist: String = ""  # realm settling this native land (scripts/core/colonial.gd)
+	var colony_months: int = 0  # months the colony has grown
+	var natives: float = 0.0  # native strength: slows settlers and raids colonies
 
 
 class Nation:
@@ -64,6 +68,9 @@ class Nation:
 	var manpower: float = 0.0
 	var aggression: float = 1.0
 	var tech := {"adm": 0, "dip": 0, "mil": 0}
+	var known_seas := {}  # sea id -> true (Colonial: the New World seas start unknown)
+	var known_nw := {}  # New World province id -> true
+	var expedition := {}  # {"sea", "months"} while an expedition is at sea
 	var ruler := {"adm": 2, "dip": 2, "mil": 2, "years": 20}
 	var ruler_name: String = ""
 	var ruler_names: Array = []
@@ -176,7 +183,7 @@ var game_over: bool = false
 var endless: bool = false  # the player chose to play on after the final scoring
 var stats := {"wars": 0, "battles": 0, "peace_deals": 0, "provinces_changed": 0, "coalition_wars": 0,
 		"events": 0, "missions": 0, "eliminated": 0, "white_peace": 0, "timeouts": 0, "bankrupt_months": 0,
-		"revolts": 0, "defections": 0, "independence": 0}
+		"revolts": 0, "defections": 0, "independence": 0, "discoveries": 0, "colonies": 0}
 var ai
 var tree = Tech.new()  # tech tree definitions + logic
 var govt = Government.new()  # government definitions + logic
@@ -199,6 +206,11 @@ var prev_prices := {}
 var base_supply := {}
 var goods_leader := {}
 var shocks := {}  # good -> {"mult": price factor, "years": left}: harvest failures, gluts
+var nw_first: int = 0  # first New World province id (Colonial)
+var found := {}  # first discovery month: "s:<sea>" or "<pid>" -> month (knowledge spreads later)
+var atlantic_tags: Array = []  # realms that may explore and colonize
+var nation_data_native := {}  # tags of the native realms (nations.json "native")
+var colonial_drive := {}  # AI colonial ambition per tag (nations.json "colonial", default balance ai_colonial_drive)
 var urban_start: Array = []  # [rural, urban] province counts at the start (demand baseline, Urban)
 var market_cache := {}
 
@@ -302,6 +314,14 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		var regs: float = round(force_limit(tag) * 0.6)
 		spawn_army(tag, n.capital, regs)
 	Naval.start_fleets(self)
+	nation_data_native = {}
+	colonial_drive = {}
+	for tag in data.nations:
+		if data.nations[tag].get("native", false):
+			nation_data_native[tag] = true
+		if data.nations[tag].has("colonial"):
+			colonial_drive[tag] = float(data.nations[tag].colonial)
+	Colonial.setup(self, data)
 	Progression.refresh(self)
 	event_defs = data.get("events", [])
 	for e in event_defs:
@@ -504,7 +524,7 @@ func neighbors_of(tag: String) -> Array:
 	for pid in provinces_of(tag):
 		for a in provinces[pid].adj:
 			var o: String = provinces[a].owner
-			if o != tag and not r.has(o):
+			if o != tag and not r.has(o) and nations[o].alive:
 				r.append(o)
 	return r
 
@@ -526,7 +546,7 @@ func nations_in_range(tag: String, hops: int) -> Array:
 	var r := []
 	for pid in seen:
 		var o: String = provinces[pid].owner
-		if o != tag and not r.has(o):
+		if o != tag and not r.has(o) and nations[o].alive:
 			r.append(o)
 	return r
 
@@ -655,6 +675,7 @@ func tick() -> void:
 			_economy(n)
 			govt.estates_monthly(self, n)
 	Naval.monthly(self)
+	Colonial.monthly(self)
 	_armies_tick()
 	_wars_tick()
 	for tag in order:
@@ -918,6 +939,7 @@ func _yearly() -> void:
 	Urban.yearly(self)
 	Progression.yearly(self)
 	Religion.yearly(self)
+	Colonial.yearly(self)
 	Formables.ai_yearly(self)
 	_coalitions_yearly()
 	_liberty_yearly()
@@ -2973,11 +2995,11 @@ func to_dict() -> Dictionary:
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
 			"pending_peace": pending_peace, "peace_offer_memo": peace_offer_memo, "log": log_lines, "stats": stats, "game_over": game_over, "endless": endless, "emperor": emperor,
 			"hre_authority": hre_authority, "hre_reforms": hre_reforms,
-			"history": history, "score_history": score_history, "chronicle": chronicle, "prices": prices, "prev_prices": prev_prices, "shocks": shocks, "goods_leader": goods_leader, "urban_start": urban_start}
+			"history": history, "score_history": score_history, "chronicle": chronicle, "prices": prices, "prev_prices": prev_prices, "shocks": shocks, "goods_leader": goods_leader, "urban_start": urban_start, "found": found}
 	var ps := []
 	for p in provinces:
 		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort, p.prev_owner, p.suppress_months,
-				p.buildings, p.constructing, p.religion, p.convert_months, p.urban, p.urban_months])
+				p.buildings, p.constructing, p.religion, p.convert_months, p.urban, p.urban_months, Colonial.province_save(p)])
 	d.provinces = ps
 	var ns := {}
 	for tag in order:
@@ -2992,7 +3014,7 @@ func to_dict() -> Dictionary:
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
 				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "embargoes": n.embargoes, "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
-				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n)}
+				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n), "colonial": Colonial.nation_save(n)}
 	d.nations = ns
 	var ar := []
 	for a in armies:
@@ -3057,10 +3079,15 @@ func from_dict(d: Dictionary) -> void:
 	for k in d.get("prev_prices", {}):
 		prev_prices[k] = float(d.prev_prices[k])
 	urban_start = d.get("urban_start", urban_start)
+	found = {}
+	var fd: Dictionary = d.get("found", {})
+	for k in fd:
+		found[str(k)] = int(fd[k])
 	shocks = {}
 	for k in d.get("shocks", {}):
 		shocks[k] = {"mult": float(d.shocks[k].mult), "years": int(d.shocks[k].years)}
-	for i in provinces.size():
+	# saves from before the New World have fewer provinces: the rest keep their start state
+	for i in mini(provinces.size(), d.provinces.size()):
 		var e: Array = d.provinces[i]
 		var p: Province = provinces[i]
 		p.owner = e[0]
@@ -3083,6 +3110,7 @@ func from_dict(d: Dictionary) -> void:
 		p.convert_months = int(e[11]) if e.size() > 11 else 0
 		p.urban = bool(e[12]) if e.size() > 12 else Urban.default_urban(self, p)
 		p.urban_months = int(e[13]) if e.size() > 13 else 0
+		Colonial.province_load(self, p, e[14] if e.size() > 14 else [])
 		Economy.refresh_local(self, p)
 	for tag in d.nations:
 		var e: Dictionary = d.nations[tag]
@@ -3158,6 +3186,7 @@ func from_dict(d: Dictionary) -> void:
 		tree.load_save(n, e.get("techs", {}))
 		n.tech_queue = Array(e.get("tech_queue", [])).filter(func(q): return tree.by_id.has(q))
 		govt.load_save(n, e.get("gov", {}))
+		Colonial.nation_load(self, n, e.get("colonial", {}))
 	armies.clear()
 	for e in d.armies:
 		var a := Army.new()

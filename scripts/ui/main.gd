@@ -9,6 +9,7 @@ const Icons = preload("res://scripts/ui/icons.gd")
 const TechScreen = preload("res://scripts/ui/tech_screen.gd")
 const Tech = preload("res://scripts/core/tech.gd")
 const Faith = preload("res://scripts/core/religion.gd")
+const Colonial = preload("res://scripts/core/colonial.gd")
 const Monuments = preload("res://scripts/core/monuments.gd")
 const Formables = preload("res://scripts/core/formables.gd")
 const Warfare = preload("res://scripts/core/warfare.gd")
@@ -132,7 +133,7 @@ func _ready() -> void:
 	preview.setup(data, 1, "")
 	map.setup(preview, data.map)
 	await get_tree().process_frame
-	map.focus(Vector2(900, 650), maxf(size.y / map.world_size.y, 0.4))
+	map.focus(Vector2(2800, 760), maxf(size.y / map.world_size.y, 0.4))
 	_show_start_menu()
 
 
@@ -1904,6 +1905,9 @@ func _panel_province(pid: int) -> void:
 	var n = game.nations[me]
 	var Eco = game.Economy
 	side_title.text = "📍 " + p.name
+	if p.owner == Colonial.NATIVE:
+		_panel_native_land(p)
+		return
 	var own: bool = p.owner == me
 	if not own:
 		side_box.add_child(_nation_btn(p.owner, "", _open_panel.bind("other", p.owner), "Besitzer: "))
@@ -2399,6 +2403,75 @@ func _panel_army(id: int) -> void:
 	side_box.add_child(_grid(acts))
 
 
+## Uncolonized native land: what it holds and the colony buttons.
+func _panel_native_land(p) -> void:
+	var me: String = game.player
+	var pid: int = p.id
+	var gd: Dictionary = game.goods_def[p.good]
+	side_box.add_child(_lbl("🪶 Land der Ureinwohner: noch keinem Reich unterworfen.", 15, Color(0.85, 0.8, 0.65)))
+	var chips := [
+		_chip("🪶 Ureinwohner %d" % int(p.natives), "Stärke der Ureinwohner: jede Stufe verlängert die Siedlung um %d %% und macht Überfälle auf die Kolonie wahrscheinlicher. Ein Abkommen halbiert sie." % int(float(game.bal.natives_slow) * 100), "bad" if p.natives >= 4.0 else ""),
+		_chip("%s %s %.2f" % [gd.emoji, gd.name, game.prices[p.good]], "Gut dieser Provinz und sein Preis. Kolonialwaren: %s" % gd.get("bonus_text", "")),
+		_chip("🏘️ Entwicklung %d" % p.dev, "Als Kolonie startet die Provinz mit mindestens %d Entwicklung." % int(game.bal.colony_dev)),
+		_chip("%s" % game.Warfare.terrain_name(game, pid), "Gelände"),
+	]
+	side_box.add_child(_grid(chips))
+	if p.colonist != "":
+		var prog: float = Colonial.progress(game, pid)
+		var left: int = maxi(0, Colonial.colony_months(game, p) - p.colony_months)
+		side_box.add_child(_lbl("🏕 Kolonie von %s: %d %% (noch etwa %d Monate)" % [game.nations[p.colonist].name, int(prog * 100), left], 16, Color(0.95, 0.85, 0.5)))
+		if p.colonist == me:
+			var tr: String = Colonial.treaty_block_reason(game, me, pid)
+			side_box.add_child(_grid([
+				_btn("🪶 Abkommen %d 🕊️" % int(game.bal.treaty_dip), func(): _act(Colonial.native_treaty(game, me, pid), "🪶 Abkommen geschlossen"),
+						"Mit den Ureinwohnern verhandeln: ihre Stärke halbiert sich, die Siedlung wächst schneller und wird seltener überfallen." + (("\n❌ " + tr) if tr != "" else ""), tr != ""),
+				_btn("✖ Aufgeben", func(): Colonial.abandon_colony(game, me, pid); _refresh(); map.refresh(), "Die Siedler ziehen ab, das Gold ist verloren."),
+			]))
+		return
+	var why: String = Colonial.colony_block_reason(game, me, pid)
+	var cost: int = int(Colonial.colony_cost(game, me, pid))
+	var used: int = Colonial.running_colonies(game, me).size()
+	side_box.add_child(_btn("🏕 Kolonie gründen %d 💰" % cost, func(): _act(Colonial.start_colony(game, me, pid), "🏕 Die Siedler sind unterwegs"),
+			"Siedler gründen hier eine Kolonie: sie kostet %d Gold und %.1f Gold im Monat, wächst etwa %d Monate (Ureinwohner verlangsamen und überfallen sie) und wird dann ein fester Teil deines Reiches. Siedler: %d/%d beschäftigt." % [
+			cost, float(game.bal.colony_upkeep), Colonial.colony_months(game, p), used, Colonial.colonists(game, game.nations[me])] + (("\n❌ " + why) if why != "" else ""), why != ""))
+
+
+## Exploration and colonies of the player (nation panel): expeditions to the next unknown seas,
+## running colonies with their progress.
+func _new_world_section() -> void:
+	var me: String = game.player
+	var n = game.nations[me]
+	if not game.atlantic_tags.has(me):
+		return
+	if not _section("nat_newworld", "🧭 Neue Welt", true,
+			"Entdeckungsfahrten decken die Meere und Küsten Amerikas auf, Siedler gründen dort Kolonien. Ab Diplomatie-Technologie %d." % int(game.bal.explore_dip_tech)):
+		return
+	var running: Array = Colonial.running_colonies(game, me)
+	var chips := [
+		_chip("🕊️ Technik %d/%d" % [n.tech.dip, int(game.bal.explore_dip_tech)], "Entdeckungsfahrten und Kolonien brauchen Diplomatie-Technologie %d." % int(game.bal.explore_dip_tech), "good" if Colonial.can_explore_tech(game, n) else "bad"),
+		_chip("🏕 Siedler %d/%d" % [running.size(), Colonial.colonists(game, n)], "So viele Kolonien können gleichzeitig wachsen. Alle %d Diplomatie-Technologien kommt ein Siedler dazu." % int(game.bal.dip_tech_per_colonist)),
+		_chip("🌍 %d Kolonien" % Colonial.colonies_owned(game, me), "Fertige Provinzen in der Neuen Welt."),
+		_chip("🗺️ Zur Neuen Welt", "Karte nach Amerika schwenken."),
+	]
+	chips[3].gui_input.connect(func(e): if _is_click(e): map.focus(game.provinces[game.nw_first].center, 0.6); map.refresh())
+	side_box.add_child(_grid(chips))
+	if not n.expedition.is_empty():
+		side_box.add_child(_lbl("⛵ Expedition nach %s: noch %d Monate" % [game.Naval.sea_name(game, n.expedition.sea), int(n.expedition.months)], 15, Color(0.95, 0.85, 0.5)))
+	else:
+		var acts := []
+		for sea in Colonial.explore_targets(game, me):
+			var why: String = Colonial.explore_block_reason(game, me, sea)
+			acts.append(_btn("⛵ %s" % game.Naval.sea_name(game, sea), func(): _act(Colonial.explore(game, me, sea), "⛵ Die Expedition sticht in See"),
+					"Expedition nach %s: %d Gold, %d 🕊️, %d Monate, Erfolg etwa %d %%. Deckt das Meer und alle Küsten daran auf." % [
+					game.Naval.sea_name(game, sea), int(Colonial.explore_cost(game, n)), int(game.bal.explore_dip), int(game.bal.explore_months), int(float(game.bal.explore_success) * 100)]
+					+ (("\n❌ " + why) if why != "" else ""), why != ""))
+		if not acts.is_empty():
+			side_box.add_child(_grid(acts))
+	for pid in running:
+		var cp = game.provinces[pid]
+		side_box.add_child(_btn("🏕 %s: %d %%" % [cp.name, int(Colonial.progress(game, pid) * 100)], _open_panel.bind("province", pid), "Kolonie öffnen"))
+
+
 func _panel_nation() -> void:
 	var me: String = game.player
 	var n = game.nations[me]
@@ -2426,6 +2499,7 @@ func _panel_nation() -> void:
 			_btn("⚖️ Staat", _open_panel.bind("government"), "Regierung: " + game.govt.form_name(me)),
 			_btn("📈 Boni", _open_panel.bind("modifiers"), "Jeder Modifikator mit Gesamtwert und woher er kommt")]
 	side_box.add_child(_grid(nav, 3))
+	_new_world_section()
 	if _section("nat_power", "👑 Macht einsetzen", true,
 			"Außerdem: 🏘️ Entwickeln (mit 📜, 🕊️ oder ⚔️), 🏙️ Stadt gründen (💰), ✊ Unruhe unterdrücken (⚔️) und 🤝 Integrieren (🕊️) im Provinzfenster, 🔥 Drill (⚔️) im Armeefenster, ❤️ Beziehungen, Bündnisse, Ansprüche und Handelsabkommen (🕊️) bei anderen Nationen, Technologie mit allen drei."):
 		var cr: int = game.conscript_ready_in(me)
@@ -3288,6 +3362,22 @@ func _advice() -> Array:
 	if worst >= 0:
 		add.call("✊ Aufstand droht: %s%s" % [game.provinces[worst].name, (" (+%d weitere)" % (restless - 1)) if restless > 1 else ""],
 				"Unruhe %.1f. Unterdrücken (⚔️), eine Armee hinschicken oder die Ursachen beseitigen (Tooltip der Unruhe-Kachel)." % worst_u, "bad", "province", worst)
+	if game.atlantic_tags.has(me) and Colonial.can_explore_tech(game, n):
+		if n.expedition.is_empty() and not Colonial.explore_targets(game, me).is_empty() and n.gold >= Colonial.explore_cost(game, n):
+			add.call("⛵ Entdeckungsfahrt möglich", "Unbekannte Meere im Westen: Nationsfenster → 🧭 Neue Welt.", "", "nation")
+		if Colonial.running_colonies(game, me).size() < Colonial.colonists(game, n):
+			var col := -1
+			var col_v := -1e9
+			for kp in n.known_nw:
+				var q = game.provinces[kp]
+				if q.owner != Colonial.NATIVE or q.colonist != "" or not Colonial.reachable(game, me, kp):
+					continue
+				var v: float = q.dev * 2.0 - q.natives
+				if v > col_v:
+					col_v = v
+					col = kp
+			if col >= 0:
+				add.call("🏕 Siedler frei: %s" % game.provinces[col].name, "Ein Siedler wartet auf Arbeit. Eine Kolonie kostet %d Gold." % int(Colonial.colony_cost(game, me, col)), "", "province", col)
 	var city_cand := -1
 	var city_v := 0.0
 	for pid in game.provinces_of(me):

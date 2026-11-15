@@ -25,5 +25,16 @@
 ["crete", "rhodes"],
 ["rhodes", "mentese"],
 ["cyprus", "icel"],
-["cyprus", "tripoli_sy"]
+["cyprus", "tripoli_sy"],
+["havana", "florida"],
+["havana", "yucatan"],
+["oriente", "ayiti"],
+["oriente", "jamaica"],
+["quisqueya", "boriken"],
+["boriken", "antilles"],
+["antilles", "trinidad"],
+["lucayas", "florida"],
+["lucayas", "camaguey"],
+["newfoundland", "labrador"],
+["newfoundland", "mikmaq"]
 ]
