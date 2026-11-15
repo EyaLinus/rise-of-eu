@@ -80,7 +80,7 @@ var toast: Label
 var toast_time := 0.0
 var hud: Control
 var left_tabs: GridContainer  # the tab column on the left
-var settings := {"ui_scale": 1.0, "tips": true, "tips_seen": [], "sound": true, "difficulty": "normal"}
+var settings := {"ui_scale": 1.0, "tips": true, "tips_seen": [], "sound": true, "music": 0.5, "difficulty": "normal"}
 var sfx_players: Array = []
 # touch layer: drag-to-scroll over buttons and long-press tooltips (see _input)
 const DRAG_START := 14.0
@@ -97,6 +97,8 @@ var _suppress_click := false
 var _tip_panel: PanelContainer
 var _tip_label: Label
 var sfx_streams := {}
+var music := Music.new()
+const MUSIC_STEPS := [0.0, 0.25, 0.5, 0.75, 1.0]
 var last_battles := 0
 var tech_screen := TechScreen.new(self)
 var gov_screen := GovScreen.new(self)
@@ -113,6 +115,8 @@ func _ready() -> void:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
 		sfx_players.append(p)
+	add_child(music)
+	music.set_volume(float(settings.get("music", 0.5)))
 	data = Data.load_all()
 	PixelEmoji.add_nations(data.nations.keys() + data.formables.keys())  # formable flags too (Formables)
 	map = MapView.new()
@@ -674,7 +678,7 @@ func _show_start_menu() -> void:
 		top.append(_btn("📂 Laden", _show_slots.bind(false)))
 	if FileAccess.file_exists(HallOfFame.PATH):
 		top.append(_btn("🏆 Ruhmeshalle", _show_hall))
-	top.append(_btn("⚙️ Einstellungen", _show_settings, "UI-Größe, Ton, Tipps, Fenster"))
+	top.append(_btn("⚙️ Einstellungen", _show_settings, "UI-Größe, Ton, Musik, Tipps, Fenster"))
 	if top.size() % 2 == 1:
 		top.append(Control.new())
 	modal_box.add_child(_grid(top))
@@ -1071,6 +1075,7 @@ func _after_tick() -> void:
 		_sfx("battle", -10.0)
 	last_battles = battles
 	map.refresh()
+	music.set_mood("war" if game.is_at_war(game.player) else "peace")
 	if game.log_lines.size() != last_log_count:
 		if not game.log_lines.is_empty():
 			_toast(game.log_lines[-1])
@@ -1456,7 +1461,7 @@ func _show_menu() -> void:
 	var acts := [
 		_btn("💾 Speichern", _show_slots.bind(true), "Drei Speicherplätze; dazu speichert das Spiel jedes Jahr automatisch. Schnellspeichern: F5"),
 		_btn("📂 Laden", _show_slots.bind(false)),
-		_btn("⚙️ Einstellungen", _show_settings, "UI-Größe, Ton, Tipps, Fenster"),
+		_btn("⚙️ Einstellungen", _show_settings, "UI-Größe, Ton, Musik, Tipps, Fenster"),
 		_btn("🔍 Suchen", _show_search, "Provinz oder Nation finden und auf der Karte zeigen (am PC: S)"),
 	]
 	if _has_keyboard():
@@ -1588,6 +1593,12 @@ func _show_settings() -> void:
 			settings.sound = not settings.get("sound", true)
 			_save_settings()
 			_show_settings()),
+		_btn("🎵 Musik: %s" % ("aus" if float(settings.get("music", 0.5)) <= 0.0 else "%d%%" % int(round(float(settings.get("music", 0.5)) * 100))), func():
+			var i := MUSIC_STEPS.find(float(settings.get("music", 0.5)))
+			settings.music = MUSIC_STEPS[(i + 1) % MUSIC_STEPS.size()]
+			music.set_volume(float(settings.music))
+			_save_settings()
+			_show_settings(), "Lautstärke der Hintergrundmusik (eigene, prozedural erzeugte Stücke). Im Krieg spielt kriegerische Musik."),
 		_btn("💡 Tipps: %s" % ("an" if settings.tips else "aus"), func():
 			settings.tips = not settings.tips
 			if settings.tips:

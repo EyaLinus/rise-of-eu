@@ -157,6 +157,10 @@ add("🪶", "feather", layer(["........wa", ".......wwa", "......wwa.", ".....ww
 add("🚫", "no_entry", layer(["....RRRR....", "..RRrrrrRR..", ".RrrRR..rrR.", ".Rr..RR..rR.", "Rr....RR..rR", "Rr.....RR.rR",
                             "Rr......RRrR", "Rr.......RRR", ".Rr.......RE", ".RrR....rRE.", "..RRrrrrRE..", "....EEEE...."], 2, 2))
 
+# two beamed eighth notes: music volume (settings)
+add("🎵", "music", layer(["....YYYYYYYY", "....YGGGGGGD", "....YD....YD", "....YD....YD", "....YD....YD", "....YD....YD",
+                         "....YD....YD", "..YYYD..YYYD", ".YGGGD.YGGGD", ".YGGGD.YGGGD", "..DDD...DDD."], 2, 3))
+
 # ---- tech tree states
 add("🔒", "lock", layer(["...aaaa...", "..ag..ga..", "..a....g..", "..a....g..", "YYYYYYYYYD", "YGGGGGGGGD", "YGGGkkGGGD", "YGGGkkGGGD", "YGGGGkGGGD", "DDDDDDDDDD"], 3, 3))
 add("✓", "tick", layer([".........ll", "........lLF", ".......lLF.", "ll....lLF..", "lLl..lLF...", ".lLllLF....", "..lLLF.....", "...LF......"], 2, 4))

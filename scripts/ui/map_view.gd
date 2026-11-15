@@ -24,7 +24,6 @@ const PROV_BORDER := Color(0.12, 0.09, 0.06, 0.28)
 const NATION_BORDER := Color(0.07, 0.05, 0.09, 0.9)
 const COAST := Color(0.03, 0.09, 0.16, 0.8)
 const COUNTER_SIZE := Vector2(48, 28)
-const ROAD := Color("d9b36c")
 const SELECT := Color("f4d35e")  # selection and the player's realm border (gold from the art palette)
 ## war map mode: our side, our co-belligerents, enemies, everyone else
 const WAR_US := Color("3a9d4a")
@@ -122,6 +121,7 @@ func setup(g, map_data: Dictionary) -> void:
 			arr.append(Vector2(pt[0], pt[1]))
 		background.append(arr)
 	_build_edges()
+	_road_gates = {}
 	_setup_terrain()
 	if _world == null:
 		_world = Node2D.new()
@@ -450,10 +450,91 @@ func _draw_world(ci: CanvasItem) -> void:
 	_update_fog()
 
 
-## Road network: a dashed track between neighbouring provinces that both have roads (thicker with level).
+## Roads look like an old paper map: they bend through the shared border ("gate") between two
+## provinces instead of cutting straight across, and their style grows with the road level:
+## a dashed track (1), an ink road with a parchment casing (2), a double-lined royal road (3).
+## Only land neighbours get a road, so none runs across a strait.
+const ROAD_INK := Color(0.29, 0.16, 0.08, 0.9)
+const ROAD_PAPER := Color(0.94, 0.89, 0.76, 0.85)
+var _road_gates := {}  # Vector2i(lo, hi) -> point on their shared land border
+
+
+func _build_road_gates() -> void:
+	_road_gates = {}
+	var acc := {}  # key -> [weighted sum, total length, edge midpoints]
+	for e in edge_l.size():
+		var r := edge_r[e]
+		if r < 0 or r == edge_l[e]:
+			continue
+		var a := edge_pts[e * 2]
+		var b := edge_pts[e * 2 + 1]
+		var k := Vector2i(mini(edge_l[e], r), maxi(edge_l[e], r))
+		if not acc.has(k):
+			acc[k] = [Vector2.ZERO, 0.0, []]
+		var ln := a.distance_to(b)
+		acc[k][0] += (a + b) * 0.5 * ln
+		acc[k][1] += ln
+		acc[k][2].append((a + b) * 0.5)
+	for k in acc:
+		if acc[k][1] < 6.0:  # a corner touch, not a real border
+			continue
+		var avg: Vector2 = acc[k][0] / acc[k][1]
+		var best: Vector2 = acc[k][2][0]
+		for m in acc[k][2]:  # snap onto the border itself (concave borders)
+			if m.distance_squared_to(avg) < best.distance_squared_to(avg):
+				best = m
+		_road_gates[k] = best
+
+
+## Points of a gentle curve from a over the gate g to b, with a small hand-drawn wobble.
+func _road_curve(a: Vector2, g: Vector2, b: Vector2, salt: int) -> PackedVector2Array:
+	var c := 2.0 * g - (a + b) * 0.5  # quadratic Bezier through g at t = 0.5
+	var steps := clampi(int(a.distance_to(b) / 9.0), 6, 24)
+	var nrm := (b - a).orthogonal().normalized()
+	var ph := float(salt % 97) * 0.37
+	var pts := PackedVector2Array()
+	for i in steps + 1:
+		var t := float(i) / steps
+		var pt := (1.0 - t) * (1.0 - t) * a + 2.0 * (1.0 - t) * t * c + t * t * b
+		pt += nrm * sin(t * TAU * 1.5 + ph) * 1.3 * sin(t * PI)
+		pts.append(pt)
+	return pts
+
+
+func _dashed_polyline(ci: CanvasItem, pts: PackedVector2Array, col: Color, w: float, dash: float, gap: float) -> void:
+	var on := true
+	var left := dash
+	var seg := PackedVector2Array([pts[0]])
+	for i in range(1, pts.size()):
+		var a := pts[i - 1]
+		var b := pts[i]
+		var d := a.distance_to(b)
+		var pos := 0.0
+		while d - pos > left:
+			pos += left
+			var q := a.lerp(b, pos / d)
+			if on:
+				seg.append(q)
+				ci.draw_polyline(seg, col, w)
+			seg = PackedVector2Array([q])
+			on = not on
+			left = dash if on else gap
+		left -= d - pos
+		if on:
+			seg.append(b)
+	if on and seg.size() > 1:
+		ci.draw_polyline(seg, col, w)
+
+
 func _draw_roads(ci: CanvasItem) -> void:
 	if zoom < 0.55 or map_mode == MODE_WAR:
 		return
+	if _road_gates.is_empty() and not edge_l.is_empty():
+		_build_road_gates()
+	var px := 1.0 / zoom * clampf(zoom, 0.8, 1.5)  # one screen pixel, growing a little when zoomed in
+	var tracks := []
+	var roads := []
+	var royal := []
 	for p in game.provinces:
 		var lv: int = int(p.buildings.get("road", 0))
 		if lv <= 0:
@@ -463,11 +544,25 @@ func _draw_roads(ci: CanvasItem) -> void:
 				continue
 			var o = game.provinces[q]
 			var lo: int = int(o.buildings.get("road", 0))
-			if lo <= 0 or p.center.distance_to(o.center) > 260.0:
+			var k := Vector2i(p.id, q)
+			if lo <= 0 or not _road_gates.has(k):
 				continue
-			var w := (1.2 + 0.8 * mini(lv, lo)) / zoom
-			ci.draw_line(p.center, o.center, Color(0.1, 0.07, 0.04, 0.7), w + 2.0 / zoom)
-			ci.draw_dashed_line(p.center, o.center, ROAD, w, 7.0 / zoom)
+			var pts := _road_curve(p.center, _road_gates[k], o.center, p.id * 31 + q)
+			match mini(lv, lo):
+				1: tracks.append(pts)
+				2: roads.append(pts)
+				_: royal.append(pts)
+	for pts in tracks:
+		_dashed_polyline(ci, pts, Color(ROAD_PAPER, 0.5), 3.0 * px, 6.0 * px, 3.0 * px)
+		_dashed_polyline(ci, pts, ROAD_INK, 1.3 * px, 5.0 * px, 4.0 * px)
+	for pts in roads:  # casings first so crossings merge
+		ci.draw_polyline(pts, ROAD_PAPER, 3.6 * px, true)
+	for pts in roads:
+		ci.draw_polyline(pts, ROAD_INK, 1.6 * px, true)
+	for pts in royal:
+		ci.draw_polyline(pts, ROAD_INK, 5.0 * px, true)
+	for pts in royal:
+		ci.draw_polyline(pts, ROAD_PAPER, 2.4 * px, true)
 
 
 ## Settlements: a walled city, a town or a village sprite in every province that has grown enough
