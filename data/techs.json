@@ -62,7 +62,8 @@
    "year": 1444,
    "effects": {
     "income": 0.03
-   }
+   },
+   "text": "Schreiber, Siegel und Register: Der Hof weiß endlich, was er besitzt."
   },
   {
    "id": "adm_landvoegte",
@@ -74,6 +75,7 @@
     "unrest": -0.25,
     "tax": 0.02
    },
+   "text": "Königliche Beamte sprechen Recht, wo früher nur der Grundherr galt.",
    "req": [
     "adm_kanzlei"
    ]
@@ -87,6 +89,7 @@
    "effects": {
     "tax": 0.05
    },
+   "text": "Jedes Feld vermessen, jede Abgabe verzeichnet.",
    "req": [
     "adm_landvoegte"
    ]
@@ -101,6 +104,7 @@
     "unrest": -0.25,
     "coring": -0.1
    },
+   "text": "Ein oberstes Gericht für das ganze Reich.",
    "req": [
     "adm_kataster"
    ]
@@ -114,6 +118,7 @@
    "effects": {
     "income": 0.04
    },
+   "text": "Diener des Staates statt Diener eines Herrn.",
    "req": [
     "adm_gerichte"
    ]
@@ -127,6 +132,7 @@
    "effects": {
     "coring": -0.15
    },
+   "text": "Vertraute der Krone überwachen die Provinzen.",
    "req": [
     "adm_beamte"
    ]
@@ -140,6 +146,7 @@
    "effects": {
     "tax": 0.08
    },
+   "text": "Die Lehre vom gut verwalteten Staatshaushalt.",
    "req": [
     "adm_intendanten"
    ]
@@ -153,6 +160,7 @@
    "effects": {
     "unrest": -0.5
    },
+   "text": "Ordnungen für Markt, Bauten und gute Sitten.",
    "req": [
     "adm_kameral"
    ]
@@ -166,6 +174,7 @@
    "effects": {
     "adm": 1
    },
+   "text": "Alle Fäden laufen beim Herrscher zusammen.",
    "req": [
     "adm_policey"
    ]
@@ -180,6 +189,7 @@
     "income": 0.03,
     "unrest": -0.25
    },
+   "text": "Wenige Minister entscheiden, schnell und im Geheimen.",
    "req": [
     "adm_absolut"
    ]
@@ -192,7 +202,8 @@
    "year": 1444,
    "effects": {
     "production": 0.05
-   }
+   },
+   "text": "Zünfte regeln Lehre, Preise und Qualität."
   },
   {
    "id": "adm_muehlen",
@@ -203,6 +214,7 @@
    "effects": {
     "build_cost": -0.05
    },
+   "text": "Wasserkraft mahlt Korn, walkt Tuch und hämmert Eisen.",
    "req": [
     "adm_zuenfte"
    ]
@@ -216,6 +228,7 @@
    "effects": {
     "production": 0.05
    },
+   "text": "Neue Hütten trennen Silber aus dem Kupfererz.",
    "req": [
     "adm_muehlen"
    ]
@@ -229,6 +242,7 @@
    "effects": {
     "build_cost": -0.1
    },
+   "text": "Kuppeln, Säulen und Proportion nach antikem Vorbild.",
    "req": [
     "adm_saigerhuetten"
    ]
@@ -242,6 +256,7 @@
    "effects": {
     "production": 0.08
    },
+   "text": "Kaufleute geben Rohstoffe aus und holen Waren ab.",
    "req": [
     "adm_baukunst"
    ]
@@ -255,6 +270,7 @@
    "effects": {
     "develop_cost": -0.1
    },
+   "text": "Schleusen bringen Schiffe über Hügel und Wasserscheiden.",
    "req": [
     "adm_verlag"
    ]
@@ -268,6 +284,7 @@
    "effects": {
     "production": 0.1
    },
+   "text": "Viele Hände unter einem Dach, jede mit einem Handgriff.",
    "req": [
     "adm_kanaele"
    ]
@@ -281,6 +298,7 @@
    "effects": {
     "develop_cost": -0.1
    },
+   "text": "Deiche und Pumpen ringen dem Meer neues Land ab.",
    "req": [
     "adm_manufaktur"
    ]
@@ -295,6 +313,7 @@
     "production": 0.08,
     "trade": 0.05
    },
+   "text": "Mehr verkaufen als kaufen: So wird ein Land reich.",
    "req": [
     "adm_polder"
    ]
@@ -309,6 +328,7 @@
     "production": 0.08,
     "build_cost": -0.05
    },
+   "text": "Der Staat fördert Gewerbe, Zölle schützen sie.",
    "req": [
     "adm_merkantil"
    ]
@@ -321,7 +341,8 @@
    "year": 1444,
    "effects": {
     "tech_cost": -0.03
-   }
+   },
+   "text": "Hohe Schulen bilden Juristen, Ärzte und Theologen."
   },
   {
    "id": "adm_buchdruck",
@@ -332,6 +353,7 @@
    "effects": {
     "tech_cost": -0.05
    },
+   "text": "Bewegliche Lettern: Bücher für viele statt für wenige.",
    "req": [
     "adm_universitaet"
    ]
@@ -346,6 +368,7 @@
     "prestige": 0.5,
     "tech_cost": -0.02
    },
+   "text": "Zurück zu den Quellen der Antike.",
    "req": [
     "adm_buchdruck"
    ]
@@ -360,6 +383,7 @@
     "unrest": -0.25,
     "prestige": 0.25
    },
+   "text": "Konzile und Reformer wollen die Kirche erneuern.",
    "req": [
     "adm_humanismus"
    ]
@@ -373,6 +397,7 @@
    "effects": {
     "tech_cost": -0.05
    },
+   "text": "Gelehrte treffen sich, streiten und veröffentlichen.",
    "req": [
     "adm_kirchenreform"
    ]
@@ -387,6 +412,7 @@
     "develop_cost": -0.05,
     "coring": -0.05
    },
+   "text": "Genaue Karten zeigen, was das Reich wirklich umfasst.",
    "req": [
     "adm_akademien"
    ]
@@ -400,6 +426,7 @@
    "effects": {
     "tech_cost": -0.05
    },
+   "text": "Die Welt wird beobachtet, nicht nur gedeutet.",
    "req": [
     "adm_vermessung"
    ]
@@ -414,6 +441,7 @@
     "tech_cost": -0.04,
     "income": 0.02
    },
+   "text": "Experiment und Mathematik erklären den Himmel und die Erde.",
    "req": [
     "adm_naturphil"
    ]
@@ -428,6 +456,7 @@
     "adm": 1,
     "unrest": -0.25
    },
+   "text": "Die Vernunft soll Staat und Gesellschaft leiten.",
    "req": [
     "adm_wissenschaft"
    ]
@@ -442,6 +471,7 @@
     "tech_cost": -0.03,
     "prestige": 0.5
    },
+   "text": "Eine königliche Akademie bündelt das Wissen des Landes.",
    "req": [
     "adm_aufklaerung"
    ]
@@ -454,7 +484,8 @@
    "year": 1444,
    "effects": {
     "ae_decay": 0.05
-   }
+   },
+   "text": "Botschafter bleiben dauerhaft an fremden Höfen."
   },
   {
    "id": "dip_heraldik",
@@ -465,6 +496,7 @@
    "effects": {
     "prestige": 0.5
    },
+   "text": "Wappen, Turniere und Ehre ordnen den Adel Europas.",
    "req": [
     "dip_gesandte"
    ]
@@ -478,6 +510,7 @@
    "effects": {
     "ae_gen": -0.05
    },
+   "text": "Verträge mit festen Formen werden verlässlich.",
    "req": [
     "dip_heraldik"
    ]
@@ -491,6 +524,7 @@
    "effects": {
     "prestige": 0.5
    },
+   "text": "Wer wo steht und wer zuerst spricht, ist hohe Politik.",
    "req": [
     "dip_vertraege"
    ]
@@ -504,6 +538,7 @@
    "effects": {
     "ae_gen": -0.1
    },
+   "text": "Briefe werden geöffnet, Chiffren geknackt.",
    "req": [
     "dip_zeremoniell"
    ]
@@ -517,6 +552,7 @@
    "effects": {
     "ae_decay": 0.1
    },
+   "text": "Andere führen Kriege, du heiratest.",
    "req": [
     "dip_kabinett"
    ]
@@ -531,6 +567,7 @@
     "ae_gen": -0.05,
     "ae_decay": 0.05
    },
+   "text": "Gesandte vieler Mächte verhandeln an einem Tisch.",
    "req": [
     "dip_heiratspolitik"
    ]
@@ -544,6 +581,7 @@
    "effects": {
     "dip": 1
    },
+   "text": "Ein geschulter Dienst ersetzt Günstlinge und Zufall.",
    "req": [
     "dip_kongresse"
    ]
@@ -557,6 +595,7 @@
    "effects": {
     "ae_decay": 0.15
    },
+   "text": "Keine Macht darf zu stark werden.",
    "req": [
     "dip_dienst"
    ]
@@ -571,6 +610,7 @@
     "ae_decay": 0.1,
     "ae_gen": -0.05
    },
+   "text": "Souveräne Staaten erkennen einander als gleich an.",
    "req": [
     "dip_gleichgewicht"
    ]
@@ -583,7 +623,8 @@
    "year": 1444,
    "effects": {
     "trade": 0.05
-   }
+   },
+   "text": "Große Messen ziehen Händler aus ganz Europa an."
   },
   {
    "id": "dip_wechsel",
@@ -595,6 +636,7 @@
     "income": 0.02,
     "trade": 0.03
    },
+   "text": "Ein Stück Papier ersetzt die Truhe voll Silber.",
    "req": [
     "dip_messen"
    ]
@@ -608,6 +650,7 @@
    "effects": {
     "trade": 0.05
    },
+   "text": "Kaufleute schließen sich zusammen und teilen das Risiko.",
    "req": [
     "dip_wechsel"
    ]
@@ -621,6 +664,7 @@
    "effects": {
     "trade": 0.05
    },
+   "text": "Wendige Schiffe, die gegen den Wind kreuzen können.",
    "req": [
     "dip_gilden"
    ]
@@ -634,6 +678,7 @@
    "effects": {
     "trade": 0.08
    },
+   "text": "Täglicher Handel mit Waren, Wechseln und Anteilen.",
    "req": [
     "dip_karavellen"
    ]
@@ -647,6 +692,7 @@
    "effects": {
     "income": 0.04
    },
+   "text": "Bezahlen durch Umbuchen statt durch Münzen.",
    "req": [
     "dip_boersen"
    ]
@@ -661,6 +707,7 @@
     "trade": 0.05,
     "company_slots": 1
    },
+   "text": "Viele Anteilseigner tragen große Unternehmen gemeinsam.",
    "req": [
     "dip_girobanken"
    ]
@@ -674,6 +721,7 @@
    "effects": {
     "trade": 0.1
    },
+   "text": "Gewürze, Seide und Silber über Ozeane hinweg.",
    "req": [
     "dip_aktien"
    ]
@@ -688,6 +736,7 @@
     "trade": 0.08,
     "income": 0.02
    },
+   "text": "Zahlen zeigen, ob Gold ins Land fließt oder hinaus.",
    "req": [
     "dip_fernhandel"
    ]
@@ -701,6 +750,7 @@
    "effects": {
     "trade": 0.1
    },
+   "text": "Kompanien mit eigenen Schiffen, Festungen und Soldaten.",
    "req": [
     "dip_handelsbilanz"
    ]
@@ -713,7 +763,8 @@
    "year": 1444,
    "effects": {
     "coring": -0.05
-   }
+   },
+   "text": "Treue gegen Land: die alte Ordnung der Herrschaft."
   },
   {
    "id": "dip_staende",
@@ -725,6 +776,7 @@
     "unrest": -0.25,
     "tax": 0.02
    },
+   "text": "Adel, Klerus und Städte beraten mit dem Herrscher.",
    "req": [
     "dip_lehnsrecht"
    ]
@@ -739,6 +791,7 @@
     "tax": 0.03,
     "production": 0.03
    },
+   "text": "Freie Städte zahlen gern, wenn man ihre Rechte achtet.",
    "req": [
     "dip_staende"
    ]
@@ -752,6 +805,7 @@
    "effects": {
     "coring": -0.1
    },
+   "text": "Ein Herrscher, mehrere Kronen, viele Empfindlichkeiten.",
    "req": [
     "dip_privilegien"
    ]
@@ -765,6 +819,7 @@
    "effects": {
     "coring": -0.15
    },
+   "text": "Statthalter regieren ferne Länder im Namen der Krone.",
    "req": [
     "dip_personalunion"
    ]
@@ -779,6 +834,7 @@
     "unrest": -0.25,
     "ae_decay": 0.05
    },
+   "text": "Nach Jahrzehnten des Glaubenskriegs: leben und leben lassen.",
    "req": [
     "dip_statthalter"
    ]
@@ -793,6 +849,7 @@
     "ae_gen": -0.05,
     "coring": -0.05
    },
+   "text": "Streit unter Fürsten wird vor Gericht statt im Feld entschieden.",
    "req": [
     "dip_religionsfrieden"
    ]
@@ -807,6 +864,7 @@
     "unrest": -0.25,
     "prestige": 0.5
    },
+   "text": "Gedruckte Blätter tragen Meinungen in jede Schenke.",
    "req": [
     "dip_kammergericht"
    ]
@@ -821,6 +879,7 @@
     "coring": -0.15,
     "advisor_slots": 1
    },
+   "text": "Was dem Staat nützt, ist gerechtfertigt.",
    "req": [
     "dip_flugschriften"
    ]
@@ -835,6 +894,7 @@
     "coring": -0.1,
     "unrest": -0.25
    },
+   "text": "Über dem Herrscher steht niemand.",
    "req": [
     "dip_staatsraison"
    ]
@@ -847,7 +907,8 @@
    "year": 1444,
    "effects": {
     "combat": 0.03
-   }
+   },
+   "text": "Ein Wald aus Spießen hält jede Reiterei auf."
   },
   {
    "id": "mil_ordonnanz",
@@ -858,6 +919,7 @@
    "effects": {
     "combat": 0.03
    },
+   "text": "Bezahlte Reiterkompanien stehen jederzeit bereit.",
    "req": [
     "mil_pikenhaufen"
    ]
@@ -871,6 +933,7 @@
    "effects": {
     "combat": 0.04
    },
+   "text": "Das Feuerrohr macht den Bauern zum Ritterschreck.",
    "req": [
     "mil_ordonnanz"
    ]
@@ -884,6 +947,7 @@
    "effects": {
     "combat": 0.04
    },
+   "text": "Pikeniere und Schützen in einem großen Viereck.",
    "req": [
     "mil_arkebusiere"
    ]
@@ -897,6 +961,7 @@
    "effects": {
     "combat": 0.04
    },
+   "text": "Reiter feuern im Vorbeireiten und schwenken ab.",
    "req": [
     "mil_gevierthaufen"
    ]
@@ -911,6 +976,7 @@
     "combat": 0.05,
     "army_power": 0.05
    },
+   "text": "Jeder Handgriff wird geübt, bis er sitzt.",
    "req": [
     "mil_pistoliere"
    ]
@@ -924,6 +990,7 @@
    "effects": {
     "combat": 0.05
    },
+   "text": "Glied um Glied feuert, ohne Pause.",
    "req": [
     "mil_exerzieren"
    ]
@@ -937,6 +1004,7 @@
    "effects": {
     "combat": 0.05
    },
+   "text": "Kleinere, bewegliche Verbände mit leichten Kanonen.",
    "req": [
     "mil_salven"
    ]
@@ -950,6 +1018,7 @@
    "effects": {
     "combat": 0.06
    },
+   "text": "Lange Linien, maximale Feuerkraft.",
    "req": [
     "mil_brigade"
    ]
@@ -963,6 +1032,7 @@
    "effects": {
     "combat": 0.05
    },
+   "text": "Die Muskete wird zugleich zum Spieß.",
    "req": [
     "mil_lineartaktik"
    ]
@@ -975,7 +1045,8 @@
    "year": 1444,
    "effects": {
     "siege": 0.05
-   }
+   },
+   "text": "Riesige Rohre, die Steinkugeln gegen Mauern schleudern."
   },
   {
    "id": "mil_feldgeschuetze",
@@ -987,6 +1058,7 @@
     "siege": 0.05,
     "combat": 0.01
    },
+   "text": "Kanonen, die mit der Armee marschieren.",
    "req": [
     "mil_bombarden"
    ]
@@ -1001,6 +1073,7 @@
     "siege": 0.05,
     "combat": 0.01
    },
+   "text": "Spitze Bollwerke decken jede Mauer mit Kreuzfeuer.",
    "req": [
     "mil_feldgeschuetze"
    ]
@@ -1014,6 +1087,7 @@
    "effects": {
     "siege": 0.1
    },
+   "text": "Unter der Mauer graben, Pulver legen, warten.",
    "req": [
     "mil_bastionen"
    ]
@@ -1028,6 +1102,7 @@
     "siege": 0.05,
     "combat": 0.02
    },
+   "text": "Niedrige, dicke Wälle trotzen jeder Kanone.",
    "req": [
     "mil_minen"
    ]
@@ -1041,6 +1116,7 @@
    "effects": {
     "siege": 0.1
    },
+   "text": "Leichtere, sicherere Geschütze aus Bronze.",
    "req": [
     "mil_trace_italienne"
    ]
@@ -1054,6 +1130,7 @@
    "effects": {
     "siege": 0.1
    },
+   "text": "Steilfeuer über die Mauer hinweg.",
    "req": [
     "mil_bronzeguss"
    ]
@@ -1067,6 +1144,7 @@
    "effects": {
     "siege": 0.1
    },
+   "text": "Fachleute für Gräben, Brücken und Belagerungen.",
    "req": [
     "mil_moerser"
    ]
@@ -1081,6 +1159,7 @@
     "siege": 0.1,
     "combat": 0.02
    },
+   "text": "Festungen in Sternform ohne toten Winkel.",
    "req": [
     "mil_ingenieure"
    ]
@@ -1094,6 +1173,7 @@
    "effects": {
     "siege": 0.1
    },
+   "text": "Belagern und Befestigen nach festen Regeln.",
    "req": [
     "mil_sternfestungen"
    ]
@@ -1106,7 +1186,8 @@
    "year": 1444,
    "effects": {
     "manpower": 0.05
-   }
+   },
+   "text": "Vasallen folgen dem Ruf ihres Herrn in den Krieg."
   },
   {
    "id": "mil_soldwesen",
@@ -1117,6 +1198,7 @@
    "effects": {
     "force_limit": 1
    },
+   "text": "Wer zahlt, bekommt Soldaten.",
    "req": [
     "mil_lehnsaufgebot"
    ]
@@ -1130,6 +1212,7 @@
    "effects": {
     "manpower": 0.1
    },
+   "text": "Söldner mit Pluderhosen, Spießen und schlechtem Ruf.",
    "req": [
     "mil_soldwesen"
    ]
@@ -1144,6 +1227,7 @@
     "maintenance": -0.05,
     "army_power_regen": 0.25
    },
+   "text": "Vorratslager entlang der Marschwege.",
    "req": [
     "mil_landsknechte"
    ]
@@ -1157,6 +1241,7 @@
    "effects": {
     "force_limit": 2
    },
+   "text": "Listen zeigen, wer dienen kann und wer gedient hat.",
    "req": [
     "mil_magazine"
    ]
@@ -1170,6 +1255,7 @@
    "effects": {
     "maintenance": -0.05
    },
+   "text": "Eine Behörde nur für den Krieg.",
    "req": [
     "mil_musterrollen"
    ]
@@ -1184,6 +1270,7 @@
     "unrest": -0.25,
     "force_limit": 1
    },
+   "text": "Truppen bleiben auch im Frieden unter Waffen.",
    "req": [
     "mil_kriegskanzlei"
    ]
@@ -1198,6 +1285,7 @@
     "manpower": 0.1,
     "force_limit": 2
    },
+   "text": "Soldaten wohnen nicht mehr bei den Bürgern.",
    "req": [
     "mil_garnisonen"
    ]
@@ -1212,6 +1300,7 @@
     "mil": 1,
     "army_power": 0.1
    },
+   "text": "Ein Heer, das nie aufgelöst wird.",
    "req": [
     "mil_kasernen"
    ]
@@ -1226,6 +1315,7 @@
     "maintenance": -0.05,
     "force_limit": 2
    },
+   "text": "Beamte organisieren Sold, Nachschub und Aushebung.",
    "req": [
     "mil_stehendes_heer"
    ]

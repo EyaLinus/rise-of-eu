@@ -295,6 +295,9 @@ func _detail(id: String) -> void:
 	if t.has("text"):
 		box.add_child(m._lbl(t.text, 17, Color(0.85, 0.85, 0.75)))
 	box.add_child(effects_rich(t.effects, 19))
+	var est_note: String = m.gov_screen.estate_note(t.effects) if not g.tree.has(n, t.id) else ""
+	if est_note != "":
+		box.add_child(m._lbl(est_note, 15, Color(0.95, 0.72, 0.5)))
 	for k in t.effects:
 		if Tech.DESCS.has(k):
 			box.add_child(m._lbl("• %s: %s" % [Tech.LABELS[k][0], Tech.DESCS[k]], 14, Color(0.68, 0.7, 0.78)))
