@@ -31,6 +31,7 @@ func _init() -> void:
 		"test_rival_missions",
 		"test_play_on",
 		"test_formables",
+		"test_chronicle",
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
@@ -3107,3 +3108,23 @@ func test_formables() -> void:
 	var g2 = new_game("NAP")
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
 	check(g2.nations.NAP.name == "Italien" and g2.nations.NAP.bonus.has("formed"), "formed realm survives save/load")
+
+
+func test_chronicle() -> void:
+	var g = new_game("FRA")
+	check(g.chronicle.is_empty(), "chronicle starts empty")
+	for pid in g.provinces_of("NAV").duplicate():
+		g.provinces[pid].owner = "FRA"
+		g.provinces[pid].controller = "FRA"
+	g._rebuild_owned()
+	g._check_alive("NAV")
+	check(g.chronicle.size() == 1 and str(g.chronicle[0][1]).contains("Navarra"), "a fallen realm enters the chronicle")
+	g.declare_war("FRA", "ENG")
+	check(str(g.chronicle[-1][1]).contains("Großmächte"), "great power war enters the chronicle")
+	var n0: int = g.chronicle.size()
+	for i in 12 * 30:
+		g.tick()
+	check(g.chronicle.size() > n0, "30 years write world history (%d entries)" % g.chronicle.size())
+	var g2 = new_game("FRA")
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.chronicle.size() == g.chronicle.size() and g2.chronicle[0][1] == g.chronicle[0][1], "chronicle survives save/load")

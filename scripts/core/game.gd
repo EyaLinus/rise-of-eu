@@ -186,6 +186,8 @@ var electors: Array = []
 var hre_authority: float = 0.0  # imperial authority, spent by the emperor on reforms (govt.empire_*)
 var hre_reforms: Array = []  # passed imperial reform ids, in order
 var history: Array = []  # player's yearly snapshot: [year, dev, rank, provinces]
+const CHRONICLE_MAX := 400
+var chronicle: Array = []  # world history of this game: [month, text] (world_event)
 var score_history: Array = []  # yearly [year, {tag: score}] of the SCORE_HISTORY_TOP best realms and the player
 const SCORE_HISTORY_TOP := 8
 # economy (scripts/core/economy.gd)
@@ -625,6 +627,15 @@ func score(tag: String) -> float:
 	return n.dev_total + n.prestige + 3.0 * (n.tech.adm + n.tech.dip + n.tech.mil)
 
 
+## Something the whole world remembers (game-end chronicle, history panel): logged as usual and kept in
+## `chronicle` as [month, text] for the whole game.
+func world_event(text: String, tags: Array = []) -> void:
+	log_msg(text, tags)
+	chronicle.append([month, text])
+	if chronicle.size() > CHRONICLE_MAX:
+		chronicle.pop_front()
+
+
 func log_msg(text: String, tags: Array = []) -> void:
 	if tags.is_empty() or tags.has(player):
 		log_lines.append("%s: %s" % [date_string(), text])
@@ -1012,7 +1023,7 @@ func hre_election() -> void:
 		stats.emperor_changes = stats.get("emperor_changes", 0) + 1
 		if old != "":
 			govt.on_new_emperor(self)
-		log_msg("👑 Kaiserwahl: %s wird mit %d von %d Stimmen Kaiser des Heiligen Römischen Reiches!" % [nations[winner].name, count[winner], votes.size()],
+		world_event("👑 Kaiserwahl: %s wird mit %d von %d Stimmen Kaiser des Heiligen Römischen Reiches!" % [nations[winner].name, count[winner], votes.size()],
 				[winner] + ([old] if old != "" else []))
 	else:
 		log_msg("👑 Kaiserwahl: %s bleibt Kaiser (%d von %d Stimmen)." % [nations[winner].name, count[winner], votes.size()], [winner])
@@ -1375,6 +1386,7 @@ func declare_war(att: String, def: String, coalition_members: Array = []) -> Str
 		stats.coalition_wars += 1
 	log_msg("🔥 %s: %s erklärt %s den Krieg!" % [w.name, nations[w.attackers[0]].name, nations[def].name],
 			w.attackers + w.defenders)
+	_chronicle_war(w, def)
 	if def == player or w.defenders.has(player) or w.attackers.has(player):
 		pass
 	return ""
@@ -1690,7 +1702,16 @@ func _check_alive(tag: String) -> void:
 			nations[t].overlord = ""
 			log_msg("🗽 %s ist wieder unabhängig." % nations[t].name, [t])
 	n.overlord = ""
-	log_msg("☠️ %s hat aufgehört zu existieren." % n.name)
+	world_event("☠️ %s hat aufgehört zu existieren." % n.name)
+
+
+## Wars between great powers and coalition wars go into the world chronicle.
+func _chronicle_war(w: War, def: String) -> void:
+	var att: String = w.attackers[0]
+	if w.coalition:
+		chronicle.append([month, "⚔️ Koalitionskrieg: %d Mächte ziehen gegen %s." % [w.attackers.size(), nations[def].name]])
+	elif nations[att].major and nations[def].major:
+		chronicle.append([month, "⚔️ Krieg der Großmächte: %s gegen %s." % [nations[att].name, nations[def].name]])
 
 
 func _move_capital(n: Nation) -> void:
@@ -2374,7 +2395,7 @@ func _marriage_succession(n: Nation) -> void:
 		if strength(t) < strength(n.tag) * 2.0 or rng.randf() >= float(bal.marriage_union_chance):
 			continue
 		_vassalize(t, n.tag, true)
-		log_msg("👑 Personalunion: Durch Erbfolge fällt %s an das Haus %s." % [n.name, o.name], [t, n.tag])
+		world_event("👑 Personalunion: Durch Erbfolge fällt %s an das Haus %s." % [n.name, o.name], [t, n.tag])
 		return
 
 
@@ -2952,7 +2973,7 @@ func to_dict() -> Dictionary:
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
 			"pending_peace": pending_peace, "peace_offer_memo": peace_offer_memo, "log": log_lines, "stats": stats, "game_over": game_over, "endless": endless, "emperor": emperor,
 			"hre_authority": hre_authority, "hre_reforms": hre_reforms,
-			"history": history, "score_history": score_history, "prices": prices, "prev_prices": prev_prices, "shocks": shocks, "goods_leader": goods_leader, "urban_start": urban_start}
+			"history": history, "score_history": score_history, "chronicle": chronicle, "prices": prices, "prev_prices": prev_prices, "shocks": shocks, "goods_leader": goods_leader, "urban_start": urban_start}
 	var ps := []
 	for p in provinces:
 		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort, p.prev_owner, p.suppress_months,
@@ -3020,6 +3041,9 @@ func from_dict(d: Dictionary) -> void:
 	history = []
 	for h in d.get("history", []):
 		history.append([int(h[0]), int(h[1]), int(h[2]), int(h[3])])
+	chronicle = []
+	for c in d.get("chronicle", []):
+		chronicle.append([int(c[0]), str(c[1])])
 	score_history = []
 	for h in d.get("score_history", []):
 		var top := {}

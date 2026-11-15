@@ -54,7 +54,11 @@ static func tick(g, n) -> void:
 	n.monuments[id] = true
 	refresh(g, n)
 	var m: Dictionary = g.monument_defs[id]
-	g.log_msg("%s %s vollendet: %s." % [m.emoji, n.name, m.name])
+	var text := "%s %s vollendet: %s." % [m.emoji, n.name, m.name]
+	if n.major or n.formed != "" or n.tag == g.player:  # small realms' works would flood the world chronicle
+		g.world_event(text)
+	else:
+		g.log_msg(text)
 	g.fire_event(n.tag, "mon_%s_done" % id)
 
 

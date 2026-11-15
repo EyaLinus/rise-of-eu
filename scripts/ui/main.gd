@@ -1376,7 +1376,7 @@ func _show_game_over() -> void:
 		modal_box.add_child(_score_chart(260))
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
-	var row := [_btn("🏆 Ruhmeshalle", _show_hall), _btn("🏠 Hauptmenü", func(): game = null; _show_start_menu())]
+	var row := [_btn("🏆 Ruhmeshalle", _show_hall), _btn("🌍 Weltgeschichte", _show_chronicle), _btn("🏠 Hauptmenü", func(): game = null; _show_start_menu())]
 	if game.can_play_on():
 		row.insert(0, _btn("▶️ Weiterspielen", _play_on, "Ohne Enddatum weiterspielen. Wertung und Ruhmeshalle bleiben wie sie sind."))
 	modal_box.add_child(_grid(row))
@@ -1386,6 +1386,38 @@ func _play_on() -> void:
 	if game.play_on():
 		_close_modal()
 		_set_speed(1)
+
+
+## The world history of this game (Game.chronicle), oldest first, one heading per year.
+func _show_chronicle() -> void:
+	_open_modal()
+	modal_box.add_child(_lbl("🌍 Weltgeschichte %d–%d" % [int(game.bal.start_year), game.year()], 32))
+	_chronicle_rows(modal_box, false)
+	modal_box.add_child(_btn("◀ Zurück", _show_game_over))
+
+
+## Chronicle lines grouped by year into `box`; newest first when `newest_first`.
+func _chronicle_rows(box: Control, newest_first: bool, limit: int = -1) -> void:
+	var c: Array = game.chronicle
+	if c.is_empty():
+		box.add_child(_lbl("Noch ist nichts Weltbewegendes geschehen.", 15, Color(0.8, 0.8, 0.8)))
+		return
+	var idx: Array = range(c.size())
+	if newest_first:
+		idx.reverse()
+	var last_y := -1
+	var k := 0
+	for i in idx:
+		if limit >= 0 and k >= limit:
+			break
+		var y: int = int(game.bal.start_year) + (int(game.bal.start_month) - 1 + int(c[i][0])) / 12
+		if y != last_y:
+			box.add_child(_lbl(str(y), 15, Color(0.7, 0.8, 0.9)))
+			last_y = y
+		var l := _lbl(str(c[i][1]), 15)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		box.add_child(l)
+		k += 1
 
 
 ## All finished games, best first: nation, difficulty, points, final rank, year, date.
@@ -3188,6 +3220,8 @@ func _panel_advice() -> void:
 
 func _panel_log() -> void:
 	side_title.text = "📜 Chronik"
+	if _section("world_chronicle", "🌍 Weltgeschichte (%d)" % game.chronicle.size(), false, "Die großen Ereignisse dieser Partie: Untergänge, neue Reiche, Kaiserwahlen, Großmachtkriege, Glaubenswechsel."):
+		_chronicle_rows(side_box, true, 30)
 	# newest first with a small year heading; only the latest 10 entries are shown, the rest folds away
 	var shown := 10
 	var more: bool = section_open.get("log_more", false)
