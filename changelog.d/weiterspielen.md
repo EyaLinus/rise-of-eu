@@ -1,0 +1,1 @@
+- **Weiterspielen nach 1644:** Nach der Schlusswertung gibt es den Knopf „▶️ Weiterspielen“. Das Spiel läuft dann ohne Enddatum weiter; Punkte und Platz in der Ruhmeshalle bleiben so, wie sie zum Spielende waren. Das freie Spiel übersteht Speichern und Laden.

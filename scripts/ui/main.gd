@@ -1072,6 +1072,7 @@ const MODE_KEYS := {
 	1: [["3a9d4a", "du"], ["7fc98a", "deine Vasallen"], ["4a7fd0", "Verbündete"], ["c0392b", "Feinde"],
 		["e0a030", "Ansprüche"], ["8e3a8e", "Koalition gegen dich"], ["d9742b", "Rivalen"], ["3fae9e", "Garantie"],
 		["c08ab8", "verheiratet"], ["b09a62", "Durchmarschrecht"], ["9aa7b0", "Waffenstillstand"]],
+	2: [["1e3a2a", "Land, wenig entwickelt"], ["d8d35e", "Land, hoch entwickelt"], ["4a1e1e", "Stadt, klein"], ["f08a4a", "Stadt, groß"]],
 	4: [["3a9d4a", "du"], ["4a7fd0", "Mitkämpfer"], ["c0392b", "Feinde"], ["5a5a52", "unbeteiligt"]],
 	9: [["f0c040", "Kaiser"], ["c87a2a", "Kurfürsten"], ["7a5a9a", "Reichsmitglieder"], ["3b3a40", "außerhalb des Reichs"]],
 	8: [["e8d27a", "katholisch"], ["9a5ac8", "protestantisch"], ["6a9ae0", "orthodox"], ["3fa860", "sunnitisch"]],
@@ -1561,7 +1562,16 @@ func _show_game_over() -> void:
 		modal_box.add_child(_score_chart(260))
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
-	modal_box.add_child(_grid([_btn("🏆 Ruhmeshalle", _show_hall), _btn("🏠 Hauptmenü", func(): game = null; _show_start_menu())]))
+	var row := [_btn("🏆 Ruhmeshalle", _show_hall), _btn("🏠 Hauptmenü", func(): game = null; _show_start_menu())]
+	if game.can_play_on():
+		row.insert(0, _btn("▶️ Weiterspielen", _play_on, "Ohne Enddatum weiterspielen. Wertung und Ruhmeshalle bleiben wie sie sind."))
+	modal_box.add_child(_grid(row))
+
+
+func _play_on() -> void:
+	if game.play_on():
+		_close_modal()
+		_set_speed(1)
 
 
 ## All finished games, best first: nation, difficulty, points, final rank, year, date.
@@ -3430,6 +3440,10 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["🍷 Nächstes Hoffest sofort möglich", 1])
 		elif k == "ships":
 			parts.append(["⚓ Schiffe %+d" % int(v), sgn.call(float(v))])
+		elif k == "power_proj":
+			parts.append(["🎯 Machtprojektion %+d" % int(v), sgn.call(float(v))])
+		elif k == "rival_rel":
+			parts.append(["❤️ Beziehungen zu Rivalen %+d" % int(v), sgn.call(float(v))])
 		elif k == "spouse_rel":
 			parts.append(["❤️ Verschwägerte %+d" % int(v), sgn.call(float(v))])
 		elif k == "convert_random":
@@ -3554,6 +3568,14 @@ func conditions_text(c: Dictionary) -> String:
 				lines.append(mark + ("Königliche Heirat besteht" if v else "Keine königliche Heirat"))
 			"province_faith":
 				lines.append(mark + "Eine deiner Provinzen ist %s" % game.Religion.faith_name(v).to_lower())
+			"rivals_min":
+				lines.append(mark + "Mindestens %d Rivalen erklärt (jetzt %d)" % [int(v), game.nations[me].rivals.size()])
+			"rivaled":
+				lines.append(mark + ("Jemand sieht dich als Rivalen" if v else "Niemand sieht dich als Rivalen"))
+			"power_proj_min":
+				lines.append(mark + "Machtprojektion ≥ %d (jetzt %d)" % [int(v), int(game.nations[me].power_proj)])
+			"rival_at_war":
+				lines.append(mark + ("Im Krieg mit einem Rivalen" if v else "Kein Krieg mit einem Rivalen"))
 			_:
 				lines.append(mark + k)
 	return "\n".join(lines)

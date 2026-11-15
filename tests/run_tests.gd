@@ -28,6 +28,8 @@ func _init() -> void:
 		"test_urban",
 		"test_embargo",
 		"test_hall_of_fame",
+		"test_rival_missions",
+		"test_play_on",
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
@@ -1094,6 +1096,41 @@ func test_urban() -> void:
 		g.provinces[q].urban = true
 	check(Urb.demand_mult(g, "cloth") > dm0, "more cities raise demand for city goods")
 	check(Urb.demand_mult(g, "grain") < 1.0, "more cities lower demand for country goods")
+	# event hooks: conditions and the charter effect
+	var mine: int = Urb.count_of(g, "FRA")
+	check(g.check_conditions("FRA", {"cities_min": mine}) and not g.check_conditions("FRA", {"cities_min": mine + 1}), "cities_min counts own cities")
+	check(g.check_conditions("FRA", {"cities_max": mine}) and not g.check_conditions("FRA", {"cities_max": mine - 1}), "cities_max counts own cities")
+	for q in g.provinces_of("FRA"):
+		g.provinces[q].urban = false
+	g.apply_effects("FRA", {"urbanize": 2})
+	check(Urb.count_of(g, "FRA") == 2, "a charter founds cities at once")
+	var urb_events := 0
+	for e in data.events:
+		if e.id.begins_with("urb_"):
+			urb_events += 1
+	check(urb_events >= 8, "urb_ events present (%d)" % urb_events)
+	# cities grow by themselves in peace (forced chance), the countryside does not
+	var grow_c: int = g.provinces_of("FRA")[0]
+	var grow_p = g.provinces[grow_c]
+	grow_p.urban = true
+	grow_p.dev = 5
+	var rural_dev := -1
+	var rural_pid := -1
+	for q in g.provinces_of("FRA"):
+		if q != grow_c:
+			g.provinces[q].urban = false
+			rural_pid = q
+			rural_dev = g.provinces[q].dev
+	g.bal.city_growth_chance = 1.0
+	g.wars.clear()
+	Urb.yearly(g)
+	check(grow_p.dev == 6, "a city at peace grows by one development")
+	check(g.provinces[rural_pid].dev == rural_dev, "the countryside does not grow by itself")
+	grow_p.dev = int(g.bal.dev_soft_cap)
+	Urb.yearly(g)
+	check(grow_p.dev == int(g.bal.dev_soft_cap), "growth stops at the soft cap")
+	g.bal.city_growth_chance = 0.03
+	p.urban = true  # the growth check above made it countryside again
 	# save roundtrip keeps the status
 	var d := g.to_dict()
 	var g2 = new_game("FRA", 9)
@@ -1477,6 +1514,32 @@ func test_save_roundtrip() -> void:
 		g2.tick()
 	# JSON keeps ~15 significant digits, so allow tiny float drift
 	check(g.month == g2.month and absf(g.nations.ENG.gold - g2.nations.ENG.gold) < 1.0, "game continues identically after load")
+
+
+func test_rival_missions() -> void:
+	var g = new_game("ENG", 5)
+	for tag in g.mission_defs:
+		var ids := []
+		for m in g.mission_defs[tag]:
+			ids.append(m.id)
+		check(ids.has(tag.to_lower() + "_riv_declare") and ids.has(tag.to_lower() + "_riv_power"), "%s has rival missions" % tag)
+	var declare := ""
+	var power := ""
+	for m in g.available_missions("ENG"):
+		if m.id == "eng_riv_declare":
+			declare = m.id
+		if m.id == "eng_riv_power":
+			power = m.id
+	check(declare != "" and power == "", "declare is open, power waits for its predecessor")
+	check(g.complete_mission("ENG", "eng_riv_declare") != "", "no rival, no mission")
+	check(g.set_rival("ENG", "FRA") == "", "rivalry declared")
+	var mil_before: float = g.nations.ENG.mil
+	check(g.complete_mission("ENG", "eng_riv_declare") == "", "rival mission completes")
+	check(g.nations.ENG.mil > mil_before, "mission pays military points")
+	check(g.complete_mission("ENG", "eng_riv_power") != "", "power projection too low")
+	g.add_power_proj("ENG", 60.0)
+	check(g.complete_mission("ENG", "eng_riv_power") == "", "power mission completes at 50 pp")
+	check(g.mod(g.nations.ENG, "naval") > 0.0, "second mission grants its permanent modifier")
 
 
 func test_missions_complete() -> void:
@@ -2994,3 +3057,20 @@ func test_court_content() -> void:
 	g.apply_effects("FRA", {"spouse_rel": 20})
 	check(g.check_conditions("FRA", {"married": true}) and g.get_rel("FRA", "ENG") > r0, "spouse_rel improves relations with in-laws")
 
+
+
+func test_play_on() -> void:
+	var g = new_game()
+	check(not g.can_play_on(), "play on only after the end")
+	g.month = int(g.bal.total_months) - 1
+	g.tick()
+	check(g.game_over and g.can_play_on(), "game ends at the final month")
+	var m: int = g.month
+	check(g.play_on() and not g.game_over and g.endless, "play on reopens the game")
+	for i in 14:
+		g.tick()
+	check(not g.game_over and g.month == m + 14, "endless game keeps ticking past the end")
+	check(not g.play_on(), "play on only once")
+	var g2 = new_game()
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.endless and not g2.game_over, "endless survives save/load")
