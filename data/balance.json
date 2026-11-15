@@ -337,7 +337,7 @@
     "copper",
     "silver"
   ],
-  "explore_dip_tech": 4,
+  "explore_dip_tech": 7,
   "explore_cost": 60.0,
   "explore_dip": 30.0,
   "explore_months": 6,
@@ -345,15 +345,17 @@
   "explore_prestige": 5.0,
   "map_spread_years": 25,
   "colony_cost": 60.0,
-  "colony_months": 48,
+  "colony_months": 84,
   "colony_upkeep": 0.6,
   "colony_dev": 3,
-  "dip_tech_per_colonist": 6,
+  "dip_tech_per_colonist": 10,
   "natives_per_dev": 1.5,
   "natives_slow": 0.06,
-  "native_raid_chance": 0.006,
+  "native_raid_chance": 0.004,
   "native_raid_months": 8,
   "treaty_dip": 25.0,
   "ai_colonial_drive": 0.3,
-  "ai_colony_reserve": 80.0
+  "ai_colony_reserve": 80.0,
+  "colony_cost_per_colony": 0.08,
+  "native_raid_destroy": 0.25
 }

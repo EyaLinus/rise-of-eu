@@ -12,6 +12,10 @@ const Icons = preload("res://scripts/ui/icons.gd")
 const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
 const Warfare = preload("res://scripts/core/warfare.gd")
 const Naval = preload("res://scripts/core/naval.gd")
+const Colonial = preload("res://scripts/core/colonial.gd")
+## Terra incognita (data/fog.json from tools/gen_seas.py): a coarse grid of New World regions.
+const FOG_PATH := "res://data/fog.json"
+const FOG := Color("2f2c26")
 ## Painted base map (tools/art/map_terrain.py). Without it the map falls back to flat SEA/WASTE.
 const TERRAIN_PATH := "res://assets/art/map/terrain.png"
 const TERRAIN_HALF_PATH := "res://assets/art/map/terrain_half.png"
@@ -40,6 +44,9 @@ var _world_zoom := -1.0
 ## nation labels: [tag, world anchor, province count], rebuilt with the world layer
 var _realm_labels: Array = []
 var _sea_rect: ColorRect
+var _fog: Dictionary = {}  # parsed fog.json: cell, w, h, ids, cells (PackedInt32Array, 0 = never fogged)
+var _fog_sprite: Sprite2D
+var _fog_sig := ""
 ## Border segments in world space: points 2e and 2e+1 between provinces edge_l[e] and edge_r[e] (-1 = sea)
 var edge_pts := PackedVector2Array()
 var edge_l := PackedInt32Array()
@@ -122,8 +129,79 @@ func setup(g, map_data: Dictionary) -> void:
 		_world.map = self
 		_world.show_behind_parent = true
 		add_child(_world)
+	_setup_fog()
 	_sync_terrain()
 	refresh()
+
+
+func _setup_fog() -> void:
+	_fog = {}
+	_fog_sig = ""
+	if not FileAccess.file_exists(FOG_PATH):
+		return
+	var d = JSON.parse_string(FileAccess.get_file_as_string(FOG_PATH))
+	if typeof(d) != TYPE_DICTIONARY:
+		return
+	var cells := PackedInt32Array()
+	for row in d.rows:
+		for i in range(0, row.size(), 2):
+			for k in int(row[i + 1]):
+				cells.append(int(row[i]))
+	_fog = {"cell": float(d.cell), "w": int(d.w), "h": int(d.h), "ids": d.ids, "cells": cells}
+	if _fog_sprite == null:
+		_fog_sprite = Sprite2D.new()
+		_fog_sprite.centered = false
+		_fog_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		_world.add_child(_fog_sprite)
+	_fog_sprite.scale = Vector2(_fog.cell, _fog.cell)
+
+
+## Fog over every New World sea and province the player has not discovered (rebuilt when that changes).
+func _update_fog() -> void:
+	if _fog.is_empty() or _fog_sprite == null:
+		return
+	var me: String = game.player
+	var sig := "none"
+	if me != "" and game.nations.has(me):
+		var n = game.nations[me]
+		sig = "%s:%d:%d" % [me, n.known_seas.size(), n.known_nw.size()]
+	if sig == _fog_sig:
+		return
+	_fog_sig = sig
+	if me == "":
+		_fog_sprite.visible = false
+		return
+	var ids: Array = _fog.ids
+	var known := PackedByteArray()
+	known.resize(ids.size() + 1)
+	known[0] = 1
+	for i in ids.size():
+		var key: String = ids[i]
+		var ok: bool
+		if key.begins_with("s:"):
+			ok = Colonial.knows_sea(game, me, key.substr(2))
+		else:
+			ok = Colonial.knows(game, me, int(key.substr(2)))
+		known[i + 1] = 1 if ok else 0
+	var w: int = _fog.w
+	var h: int = _fog.h
+	var cells: PackedInt32Array = _fog.cells
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	var any := false
+	for y in h:
+		for x in w:
+			if known[cells[y * w + x]] == 0:
+				var shade := 0.92 + 0.08 * sin(x * 0.7 + y * 1.3) * cos(x * 0.31 - y * 0.47)
+				img.set_pixel(x, y, Color(FOG.r * shade, FOG.g * shade, FOG.b * shade, 0.97))
+				any = true
+	_fog_sprite.visible = any
+	if any:
+		_fog_sprite.texture = ImageTexture.create_from_image(img)
+
+
+## The player has seen this province (always true in the Old World and without a player).
+func known(pid: int) -> bool:
+	return game == null or Colonial.knows(game, game.player, pid)
 
 
 ## Redraws everything, including the world layer. Call this (not queue_redraw) after the game state,
@@ -355,6 +433,7 @@ func _draw_world(ci: CanvasItem) -> void:
 		if game.nations[tag].alive and owned.size() >= 2:
 			_realm_labels.append([tag, _realm_center(tag, owned), owned.size()])
 	_draw_sea_routes(ci)
+	_update_fog()
 
 
 ## Road network: a dashed track between neighbouring provinces that both have roads (thicker with level).
@@ -431,6 +510,8 @@ func _draw_seas() -> void:
 				ours.append(t)
 	var foes: Array = game.enemies_of(me) if war else []
 	for s in game.seas:
+		if me != "" and not Colonial.knows_sea(game, me, s.id):
+			continue
 		var sp := to_screen(s.center)
 		if not Rect2(Vector2(-80, -40), size + Vector2(160, 80)).has_point(sp):
 			continue
@@ -499,7 +580,14 @@ func _draw_hover_tip() -> void:
 	if hover_pid < 0 or game == null:
 		return
 	var p = game.provinces[hover_pid]
+	if not known(hover_pid):
+		_draw_tip_box(["Terra incognita", "Unerforschtes Land: erst eine Expedition aussenden."])
+		return
 	var txt := "%s · %s %s" % [p.name, PixelEmoji.nation(p.owner, game.nations[p.owner].emoji), game.nations[p.owner].name]
+	if p.owner == Colonial.NATIVE:
+		txt = "%s · 🪶 Ureinwohner (%d)" % [p.name, int(p.natives)]
+		if p.colonist != "":
+			txt += " · 🏕 Kolonie %s %d %%" % [game.nations[p.colonist].name, int(Colonial.progress(game, p.id) * 100.0)]
 	if p.controller != p.owner:
 		txt += " (besetzt: %s)" % game.nations[p.controller].name
 	var line2 := "Entwicklung %d · %s" % [p.dev, Warfare.terrain_name(game, p.id)]
@@ -523,6 +611,20 @@ func _draw_hover_tip() -> void:
 	draw_rect(Rect2(pos - Vector2(6, sz.y - 2), Vector2(w + 12, sz.y + 6 + lh)), Color(0.09, 0.1, 0.13, 0.88))
 	draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
 	draw_string(font, pos + Vector2(0, lh), line2, HORIZONTAL_ALIGNMENT_LEFT, -1, fs - 2, Color(0.85, 0.85, 0.8))
+
+
+func _draw_tip_box(lines: Array) -> void:
+	var fs := 15
+	var sz := font.get_string_size(lines[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
+	var sz2 := font.get_string_size(lines[1], HORIZONTAL_ALIGNMENT_LEFT, -1, fs - 2)
+	var w := maxf(sz.x, sz2.x)
+	var lh := sz.y + 2.0
+	var pos := _hover_pos + Vector2(16, 26)
+	pos.x = minf(pos.x, size.x - w - 12)
+	pos.y = minf(pos.y, size.y - 12 - lh)
+	draw_rect(Rect2(pos - Vector2(6, sz.y - 2), Vector2(w + 12, sz.y + 6 + lh)), Color(0.09, 0.1, 0.13, 0.88))
+	draw_string(font, pos, lines[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+	draw_string(font, pos + Vector2(0, lh), lines[1], HORIZONTAL_ALIGNMENT_LEFT, -1, fs - 2, Color(0.85, 0.85, 0.8))
 
 
 ## Province borders thin, coasts medium, borders between different owners thick.
@@ -666,7 +768,7 @@ func _draw_labels() -> void:
 		var fs := int(clampf(11.0 * zoom, 12.0, 18.0) * label_scale)
 		for p in game.provinces:
 			var s := to_screen(p.center)
-			if not Rect2(Vector2.ZERO, size).has_point(s):
+			if not Rect2(Vector2.ZERO, size).has_point(s) or not known(p.id):
 				continue
 			var txt: String = p.name
 			if p.siege > 0.0:
@@ -677,6 +779,8 @@ func _draw_labels() -> void:
 					marks += "🏰"
 				if p.buildings.get("harbor", 0) > 0:
 					marks += "⚓"
+			if p.colonist != "":
+				marks += "🏕"
 			if marks != "":
 				txt += " " + marks
 			var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
@@ -688,7 +792,7 @@ func _draw_labels() -> void:
 		for rl in _realm_labels:
 			var tag: String = rl[0]
 			var s := to_screen(rl[1])
-			if not Rect2(Vector2(-300, -60), size + Vector2(600, 120)).has_point(s):
+			if not Rect2(Vector2(-300, -60), size + Vector2(600, 120)).has_point(s) or not known(game.nations[tag].capital):
 				continue
 			var txt: String = game.nations[tag].name
 			var big := clampf(sqrt(float(rl[2])) / 3.0, 1.0, 1.6)
@@ -750,7 +854,7 @@ func _draw_armies() -> void:
 			draw_polyline(pts, Color(1, 1, 1, 0.8), 2.0)
 	for a in game.armies:
 		var s: Vector2 = pos[a.id]
-		if not Rect2(Vector2(-20, -20), size + Vector2(40, 40)).has_point(s):
+		if not Rect2(Vector2(-20, -20), size + Vector2(40, 40)).has_point(s) or not known(a.pid):
 			continue
 		var c: Color = game.nations[a.owner].color
 		var ring := Color.WHITE if a.id == selected_army else Color(0, 0, 0, 0.9)
@@ -969,14 +1073,14 @@ func _tap(screen_pos: Vector2) -> void:
 	var best_d := ARMY_R + (22.0 if _touch_used else 8.0)
 	for id in pos:
 		var d: float = pos[id].distance_to(screen_pos)
-		if d < best_d:
+		if d < best_d and known(game.army_by_id(id).pid):
 			best_d = d
 			best = id
 	if best >= 0:
 		army_tapped.emit(best)
 		return
 	var pid := province_at(screen_pos)
-	if pid >= 0:
+	if pid >= 0 and known(pid):
 		province_tapped.emit(pid)
 
 

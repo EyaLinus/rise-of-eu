@@ -119,11 +119,71 @@ def main():
     with open(OUT, "w") as f:
         f.write('{"seas": [\n' + ",\n".join(json.dumps(s, ensure_ascii=False) for s in out) + '\n],\n"straits": '
                 + json.dumps(strait_sea, ensure_ascii=False, indent=0) + "}\n")
+    write_fog(m, label, water)
     for s in out:
         print(s["id"], len(s["provinces"]), s["provinces"][:12])
     print(strait_sea)
     lone = [k for k in coastal if not any(k in s["provinces"] for s in out)]
     print("coastal without sea:", lone)
+
+
+NEW_SEAS = {"ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes"}
+FOG_CELL = 8
+
+
+def write_fog(m, label, water):
+    """data/fog.json: a coarse grid (FOG_CELL px) over the map naming, for every cell that can be unknown,
+    the New World province or sea it shows. The map view fogs the cells the player has not discovered.
+    Background land takes the region of its nearest labelled neighbour. Rows are run-length encoded."""
+    H, W = label.shape
+    reg = np.zeros((H, W), np.int32)  # 0 = always known, else index + 1 into ids
+    ids = []
+    index = {}
+
+    def rid(key):
+        if key not in index:
+            ids.append(key)
+            index[key] = len(ids)
+        return index[key]
+    for i, s in enumerate(SEAS):
+        if s[0] in NEW_SEAS:
+            reg[(label == i) & water] = rid("s:" + s[0])
+    old = np.zeros((H, W), bool)
+    old[water & (reg == 0)] = True
+    for p in m["provinces"]:
+        mask = Image.new("L", (W, H), 0)
+        md = ImageDraw.Draw(mask)
+        for poly in p["polys"]:
+            md.polygon([tuple(c) for c in poly], fill=255)
+        mk = np.asarray(mask) > 0
+        if p.get("nw"):
+            reg[mk] = rid("p:%d" % p["id"])
+        else:
+            old[mk] = True
+    # unlabelled background land: nearest labelled pixel (old world land stays known)
+    known = (reg > 0) | old
+    _, (iy, ix) = ndimage.distance_transform_edt(~known, return_indices=True)
+    reg = np.where(known, reg, reg[iy, ix])
+    reg[old] = 0
+    gh, gw = H // FOG_CELL, W // FOG_CELL
+    rows = []
+    for gy in range(gh):
+        # majority label per cell (sample the cell centre region)
+        row = []
+        for gx in range(gw):
+            blk = reg[gy * FOG_CELL:(gy + 1) * FOG_CELL, gx * FOG_CELL:(gx + 1) * FOG_CELL].ravel()
+            vals, cnt = np.unique(blk, return_counts=True)
+            row.append(int(vals[cnt.argmax()]))
+        rle = []
+        for v in row:
+            if rle and rle[-2] == v:
+                rle[-1] += 1
+            else:
+                rle += [v, 1]
+        rows.append(rle)
+    with open(os.path.join(ROOT, "data", "fog.json"), "w") as f:
+        json.dump({"cell": FOG_CELL, "w": gw, "h": gh, "ids": ids, "rows": rows}, f, separators=(",", ":"))
+    print("fog grid", gw, "x", gh, "regions", len(ids))
 
 
 if __name__ == "__main__":

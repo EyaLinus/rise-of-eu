@@ -3017,7 +3017,10 @@ func from_dict(d: Dictionary) -> void:
 	for k in d.get("prev_prices", {}):
 		prev_prices[k] = float(d.prev_prices[k])
 	urban_start = d.get("urban_start", urban_start)
-	found = d.get("found", {})
+	found = {}
+	var fd: Dictionary = d.get("found", {})
+	for k in fd:
+		found[str(k)] = int(fd[k])
 	shocks = {}
 	for k in d.get("shocks", {}):
 		shocks[k] = {"mult": float(d.shocks[k].mult), "years": int(d.shocks[k].years)}

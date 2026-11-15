@@ -200,8 +200,6 @@ static func _expedition_tick(g, n) -> void:
 		g.log_msg("🧭 %s entdeckt %s und %d neue Küstenländer!" % [n.name, g.Naval.sea_name(g, sea), c])
 	elif n.tag == g.player:
 		g.log_msg("🧭 Unsere Expedition kartiert %s (%d Küstenländer)." % [g.Naval.sea_name(g, sea), c], [n.tag])
-	if n.tag == g.player:
-		g.fire_event(n.tag, "col_discovery")
 
 
 # ---------------------------------------------------------------- colonies
@@ -220,7 +218,8 @@ static func running_colonies(g, tag: String) -> Array:
 
 static func colony_cost(g, tag: String, pid: int) -> float:
 	var n = g.nations[tag]
-	return round(float(g.bal.colony_cost) * (1.0 + 0.1 * g.provinces[pid].dev) * maxf(0.5, 1.0 + g.mod(n, "colony_cost")))
+	var more: float = 1.0 + float(g.bal.colony_cost_per_colony) * colonies_owned(g, tag)  # far-flung empires cost more
+	return round(float(g.bal.colony_cost) * (1.0 + 0.1 * g.provinces[pid].dev) * more * maxf(0.5, 1.0 + g.mod(n, "colony_cost")))
 
 
 ## Months a colony needs; strong natives slow it down.
@@ -331,15 +330,17 @@ static func _colony_tick(g, p) -> void:
 	p.colony_months += 1
 	# native raids
 	if p.natives > 0.0 and g.rng.randf() < p.natives * float(g.bal.native_raid_chance):
-		p.colony_months -= int(g.bal.native_raid_months)
-		if p.colony_months < 0:
+		var young: bool = p.colony_months < int(g.bal.native_raid_months) * 2
+		p.colony_months = maxi(0, p.colony_months - int(g.bal.native_raid_months))
+		# a young settlement may be wiped out; an established one only loses time
+		if young and g.rng.randf() < float(g.bal.native_raid_destroy):
 			if n.tag == g.player:
 				g.log_msg("🔥 Ureinwohner zerstören unsere Kolonie in %s." % p.name, [n.tag])
 			p.colonist = ""
 			p.colony_months = 0
 			return
 		if n.tag == g.player:
-			g.log_msg("🏹 Ureinwohner überfallen unsere Kolonie in %s." % p.name, [n.tag])
+			g.log_msg("⚔️ Ureinwohner überfallen unsere Kolonie in %s." % p.name, [n.tag])
 	if p.colony_months >= colony_months(g, p):
 		_finish(g, p)
 
@@ -363,8 +364,6 @@ static func _finish(g, p) -> void:
 		reveal(g, tag, a)
 	g.stats.colonies = int(g.stats.get("colonies", 0)) + 1
 	g.log_msg("🏕 %s: Die Kolonie %s ist gewachsen und gehört nun fest zum Reich." % [n.name, p.name], [tag])
-	if tag == g.player:
-		g.fire_event(tag, "col_founded")
 
 
 static func colonies_owned(g, tag: String) -> int:
@@ -414,6 +413,7 @@ static func yearly(g) -> void:
 			continue
 		if k.begins_with("s:"):
 			common_seas.append(k.substr(2))
+			common_pids.append_array(g.sea_by_id.get(k.substr(2), {}).get("provinces", []))
 		else:
 			common_pids.append(int(k))
 	if common_seas.is_empty() and common_pids.is_empty():
