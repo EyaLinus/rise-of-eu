@@ -459,7 +459,8 @@ static func _ai(g, n) -> void:
 		if v > best_v:
 			best_v = v
 			best = pid
-	if best >= 0 and n.gold > colony_cost(g, n.tag, best) + reserve:
+	# only with a monthly surplus that carries the colony's upkeep (else colonies drive realms into debt)
+	if best >= 0 and n.gold > colony_cost(g, n.tag, best) + reserve and n.income - n.expenses > float(g.bal.colony_upkeep) * 2.0:
 		start_colony(g, n.tag, best)
 
 
