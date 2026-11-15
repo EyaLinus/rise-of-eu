@@ -72,6 +72,8 @@ func _run(tags: Array, years: int) -> void:
 			g.month = int(g.bal.total_months) - 1
 			g.tick()
 			m._show_game_over()
+			m._show_chronicle()
+			m._show_game_over()
 			m._play_on()
 			g.tick()
 			if g.game_over or not g.endless:
@@ -90,6 +92,7 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 	var n := 0
 	m.section_open["nat_formables"] = month % 24 < 12  # collapsed sections must render too
 	m.section_open["nat_monuments"] = month % 24 < 12
+	m.section_open["world_chronicle"] = month % 24 < 12
 	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "missions", "log", "ranking", "hre", "advice"]:
 		m._open_panel(mode)
 		n += 1
