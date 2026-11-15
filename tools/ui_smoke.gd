@@ -101,6 +101,8 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 		for h in hits.slice(0, 3):
 			m._search_go(h)
 		m._close_modal()
+		for i in 3:  # cycle through own armies
+			m._next_army()
 	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "navy", "missions", "log", "ranking", "hre", "advice"]:
 		m._open_panel(mode)
 		n += 1

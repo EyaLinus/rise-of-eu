@@ -1356,6 +1356,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif k in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN] and not modal.visible:
 		var d := {KEY_LEFT: Vector2(1, 0), KEY_RIGHT: Vector2(-1, 0), KEY_UP: Vector2(0, 1), KEY_DOWN: Vector2(0, -1)}[k] as Vector2
 		map.pan_by(d * 160.0)
+	elif k == KEY_A and not modal.visible and not event.ctrl_pressed:
+		_next_army()
 	elif (k == KEY_S or (k == KEY_F and event.ctrl_pressed)) and not modal.visible:
 		_show_search()
 	elif k == KEY_F5:
@@ -1450,6 +1452,34 @@ func _show_search() -> void:
 const SEARCH_MAX := 12
 
 
+## Own armies in a fixed order, idle ones (no march, no battle, manual) first; for cycling with A.
+func army_cycle() -> Array:
+	var idle := []
+	var busy := []
+	for a in game.armies_of(game.player):
+		var is_idle: bool = a.target < 0 and a.path.is_empty() and not a.auto
+		(idle if is_idle else busy).append(a.id)
+	idle.sort()
+	busy.sort()
+	return idle + busy
+
+
+## Select the army after the current one in army_cycle(), centre the map on it.
+func _next_army() -> void:
+	if game == null:
+		return
+	var ids := army_cycle()
+	if ids.is_empty():
+		_toast("Du hast keine Armee.")
+		return
+	var cur: int = panel_arg if panel_mode == "army" and side_panel.visible and panel_arg is int else -1
+	var i := ids.find(cur)
+	var id: int = ids[(i + 1) % ids.size()]
+	var a = game.army_by_id(id)
+	map.focus(game.provinces[a.pid].center, maxf(map.zoom, 1.2))
+	_on_army_tapped(id)
+
+
 ## Matches for `text`: nations first, then provinces; names that start with the text come first.
 func search_hits(text: String) -> Array:
 	var q := text.strip_edges().to_lower()
@@ -1540,7 +1570,7 @@ const SHORTCUTS := [
 	["Pfeile", "Karte verschieben"], ["Bild ↑ ↓", "Zoom (auch Mausrad)"], ["Tab", "nächster Kartenmodus"],
 	["V", "Kartenmodi + Legende"], ["N", "Nation"], ["E", "Wirtschaft"], ["T", "Technologie"], ["G", "Regierung"],
 	["D", "Diplomatie"], ["K", "Kriege"], ["F", "Flotte / Marine"], ["M", "Missionen"], ["L", "Chronik"], ["R", "Ratgeber"],
-	["S / Strg+F", "Provinz oder Nation suchen"], ["F5", "Schnellspeichern"], ["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F1", "diese Übersicht"],
+	["S / Strg+F", "Provinz oder Nation suchen"], ["A", "nächste Armee (untätige zuerst)"], ["F5", "Schnellspeichern"], ["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F1", "diese Übersicht"],
 ]
 
 
@@ -2497,6 +2527,8 @@ func _panel_army(id: int) -> void:
 	acts.append(_btn("🔗 Vereinen", func(): game.merge_armies(a.owner, a.pid); _act(""); map.refresh(), "Alle eigenen Armeen in dieser Provinz vereinen."))
 	acts.append(_btn("🛑 Halt", func(): a.target = -1; a.path = []; _act(""), "Den Marsch abbrechen."))
 	acts.append(_btn("➖ 1 Reg.", func(): game.disband(a, 1.0); _act(""); map.refresh(), "Ein Regiment entlassen (spart Unterhalt)."))
+	if a.owner == game.player and game.armies_of(a.owner).size() > 1:
+		acts.append(_btn("⏭️ Nächste Armee", _next_army, "Zur nächsten eigenen Armee springen, untätige zuerst (am PC: A)."))
 	if acts.size() % 2 == 1:
 		acts.append(Control.new())
 	side_box.add_child(_grid(acts))
