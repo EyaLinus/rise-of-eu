@@ -1,1 +1,0 @@
-- **Städte wachsen:** Eine Stadt, die ihr Besitzer in Frieden hält, gewinnt ab und zu von selbst +1 Entwicklung (Zuzug vom Land; Marktzentren und Häfen öfter), bis zur weichen Entwicklungsgrenze. Das Land wächst weiterhin nur durch Entwickeln.
