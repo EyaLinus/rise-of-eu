@@ -266,6 +266,13 @@ func zoom_by(factor: float, at: Vector2 = Vector2(-1, -1)) -> void:
 	queue_redraw()
 
 
+## Moves the map by `delta` screen pixels (arrow keys).
+func pan_by(delta: Vector2) -> void:
+	offset += delta
+	_clamp()
+	queue_redraw()
+
+
 func _clamp() -> void:
 	var margin := 200.0
 	var ws := world_size * zoom
