@@ -2040,9 +2040,10 @@ func _panel_province(pid: int) -> void:
 		side_box.add_child(l)
 	if own:
 		var acts: Array = []
+		var devs: Array = []  # the three develop buttons share one row
 		var dc: int = int(game.develop_cost(pid))
 		for k in [["adm", "📜", "Verwaltung"], ["dip", "🕊️", "Diplomatie"], ["mil", "⚔️", "Militär"]]:
-			acts.append(_btn("🏘️ %d %s" % [dc, k[1]], func(): _act(game.develop(me, pid, k[0]), "🏘️ Entwicklung erhöht"),
+			devs.append(_btn("🏘️ %d %s" % [dc, k[1]], func(): _act(game.develop(me, pid, k[0]), "🏘️ Entwicklung erhöht"),
 					"Entwickeln mit %s: kostet %d. +1 Entwicklung: mehr Steuer, Güter, Handelsmacht und Mannschaften. Alle %d Stufen ein Bauplatz mehr."
 					% [k[2], dc, int(game.bal.dev_per_building_slot)]))
 		if game.unrest(pid) > 0.0 and p.suppress_months == 0:
@@ -2065,9 +2066,13 @@ func _panel_province(pid: int) -> void:
 					(("Baut die Provinz in %d Monaten zur Stadt aus: mehr Steuern, Handel und ein Bauplatz, weniger Mannschaften, etwas Unruhe. Lohnt sich bei Stadtgütern und am Markt." % int(game.bal.urban_months)) if to_city
 					else ("Macht die Stadt in %d Monaten wieder zu Land: mehr Mannschaften und Ruhe, weniger Steuern und Handel." % int(game.bal.rural_months)))
 					+ (("\n❌ " + ub) if ub != "" else ""), ub != ""))
-		if acts.size() % 2 == 1:
-			acts.append(_btn("🏗️ Bauen", func(): prov_tab = "build"; _refresh(), "Gebäude dieser Provinz"))
-		side_box.add_child(_grid(acts))
+		side_box.add_child(_grid(devs, 3))
+		# pairs side by side, an odd last button gets the full width (no clipped price)
+		var last_act = acts.pop_back() if acts.size() % 2 == 1 else null
+		if not acts.is_empty():
+			side_box.add_child(_grid(acts))
+		if last_act != null:
+			side_box.add_child(last_act)
 	else:
 		if not p.buildings.is_empty():
 			var bl := []
@@ -2198,56 +2203,90 @@ func _economy_overview() -> void:
 	var budget: float = game.govt.budget_cost(game, n)
 	var realm: float = Eco.realm_cost(game, n)
 	var army_cost: float = n.expenses - Eco.upkeep(game, me) - intr - budget - realm
-	var lines := "Einnahmen %.2f/Monat\n  💰 Steuern %.2f\n  🏭 Güter %.2f\n  🏬 Handel %.2f" % [n.income, n.tax_income, n.prod_income, n.trade_income]
+	# income and expenses side by side instead of one long list
+	var bal: float = n.income - n.expenses
+	side_box.add_child(_lbl("Bilanz %+.2f 💰/Monat · Kasse %d 💰" % [bal, int(n.gold)], 19, Color(0.6, 0.9, 0.6) if bal >= 0.0 else Color(0.95, 0.6, 0.55)))
+	var inc := ["💰 Steuern %.2f" % n.tax_income, "🏭 Güter %.2f" % n.prod_income, "🏬 Handel %.2f" % n.trade_income]
 	if trib != 0.0:
-		lines += "\n  ⛓️ Tribut %+.2f" % trib
-	lines += "\nAusgaben %.2f/Monat\n  🛡️ Armee %.2f\n  🏰 Gebäude %.2f" % [n.expenses, army_cost, Eco.upkeep(game, me)]
+		inc.append("⛓️ Tribut %+.2f" % trib)
+	var outs := ["🛡️ Armee %.2f" % army_cost, "🏰 Gebäude %.2f" % Eco.upkeep(game, me)]
 	if intr > 0.0:
-		lines += "\n  🏦 Zinsen %.2f" % intr
+		outs.append("🏦 Zinsen %.2f" % intr)
 	if absf(budget) >= 0.01:
-		lines += "\n  ⚖️ Haushalt %+.2f" % budget
+		outs.append("⚖️ Haushalt %+.2f" % budget)
 	if realm > 0.0:
-		lines += "\n  🏛️ Verwaltung des Reichs %.2f (%d%% der Einnahmen)" % [realm, int(round(Eco.realm_cost_share(game, n) * 100))]
-	side_box.add_child(_lbl(lines))
-	side_box.add_child(_btn("⚖️ Haushalt: Steuern, Hof, Heer, Forschung", func(): _open_panel("government"),
-		"Schieberegler im Regierungs-Screen: Steuerdruck, Hofhaltung, Militärbudget und Forschung."))
-	# loans
+		outs.append("🏛️ Verwaltung %.2f" % realm)
+	var cols := []
+	for e in [["Einnahmen %.2f" % n.income, inc, "good", "Alle Einnahmen pro Monat."],
+			["Ausgaben %.2f" % n.expenses, outs, "bad", "Alle Ausgaben pro Monat.%s" % (
+				("\nVerwaltung des Reichs: %d %% der Einnahmen, steigt mit der Größe des Reichs." % int(round(Eco.realm_cost_share(game, n) * 100))) if realm > 0.0 else "")]]:
+		var pc := PanelContainer.new()
+		pc.add_theme_stylebox_override("panel", UiTheme.card(e[2], 6))
+		pc.tooltip_text = e[3]
+		pc.mouse_filter = Control.MOUSE_FILTER_STOP
+		var v := VBoxContainer.new()
+		v.add_theme_constant_override("separation", 0)
+		v.add_child(_lbl(e[0], 16, Color(1.0, 0.9, 0.6)))
+		for t in e[1]:
+			var l := _lbl(t, 15)
+			l.autowrap_mode = TextServer.AUTOWRAP_OFF
+			l.clip_text = true
+			l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			v.add_child(l)
+		for c in v.get_children():
+			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pc.add_child(v)
+		cols.append(pc)
+	side_box.add_child(_grid(cols))
+	# budget and loans in one row
 	var lrow := HBoxContainer.new()
+	lrow.add_theme_constant_override("separation", 6)
+	lrow.add_child(_btn("⚖️ Haushalt", func(): _open_panel("government"),
+		"Schieberegler im Regierungs-Screen: Steuerdruck, Hofhaltung, Militärbudget und Forschung."))
 	var lsize: float = Eco.loan_size(game, n)
-	lrow.add_child(_btn("🏦 Kredit +%d💰 (%d%%)" % [int(lsize), int(round(Eco.loan_rate(game, n) * 100))], func():
+	lrow.add_child(_btn("🏦 Kredit +%d" % int(lsize), func():
 		_act(Eco.take_loan(game, me), "🏦 Kredit aufgenommen"),
-		"Sofort %d Gold. Zinsen %.1f%% pro Jahr, jeder weitere Kredit wird teurer. Höchstens %d Kredite." % [int(lsize), Eco.loan_rate(game, n) * 100, int(game.bal.max_loans)],
+		"Kredit: sofort %d Gold. Zinsen %.1f%% pro Jahr, jeder weitere Kredit wird teurer. Höchstens %d Kredite." % [int(lsize), Eco.loan_rate(game, n) * 100, int(game.bal.max_loans)],
 		n.loans.size() >= int(game.bal.max_loans)))
 	if not n.loans.is_empty():
 		var last: float = n.loans[n.loans.size() - 1]
-		lrow.add_child(_btn("↩ Tilgen %d💰" % int(last), func(): _act(Eco.repay_loan(game, me), "🏦 Kredit getilgt"),
+		lrow.add_child(_btn("↩ Tilgen %d" % int(last), func(): _act(Eco.repay_loan(game, me), "🏦 Kredit getilgt"),
 				"Zahlt den teuersten Kredit zurück.", n.gold < last))
 	for c in lrow.get_children():
 		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	side_box.add_child(lrow)
 	if not n.loans.is_empty():
-		side_box.add_child(_lbl("🏦 %d Kredite · Schulden %d💰 · Zinsen %.2f/Monat" % [n.loans.size(), int(Eco.debt(n)), intr], 16, Color(0.95, 0.75, 0.5)))
+		side_box.add_child(_lbl("🏦 %d Kredite · Schulden %d💰 · Zinsen %.2f/Monat" % [n.loans.size(), int(Eco.debt(n)), intr], 15, Color(0.95, 0.75, 0.5)))
 	var best: Array = Eco.best_building(game, n, game.is_at_war(me))
 	if not best.is_empty():
 		var bd: Dictionary = game.buildings_def[best[1]]
 		var bp = game.provinces[best[0]]
 		side_box.add_child(_btn("✨ Bauvorschlag: %s %s in %s (%d💰)" % [bd.emoji, bd.name, bp.name, int(Eco.building_cost(game, me, best[0], best[1]))],
 				func(): _act(game.construct(me, best[0], best[1]), "🏗️ Bau begonnen: " + bd.name), "Das Gebäude mit dem besten Ertrag pro Gold."))
-	side_box.add_child(_btn("🤖 Autobau: " + ("AN" if n.autobuild else "AUS"), func():
+	# autobuild and its reserve in one row
+	var arow := HBoxContainer.new()
+	arow.add_theme_constant_override("separation", 6)
+	var ab := _btn("🤖 Autobau: " + ("AN" if n.autobuild else "AUS"), func():
 		n.autobuild = not n.autobuild
 		if n.autobuild:
 			Eco.autobuild(game, n)
-		_refresh(), "Baut automatisch das lohnendste Gebäude, solange die Kasse danach nicht unter die Mindestkasse fällt."))
+		_refresh(), "Baut automatisch das lohnendste Gebäude, solange die Kasse danach nicht unter die Mindestkasse fällt.")
+	ab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	arow.add_child(ab)
 	if n.autobuild:
-		var row := HBoxContainer.new()
-		row.add_child(_lbl("Mindestkasse %d💰" % int(n.autobuild_reserve)))
-		for step in [-100, -25, 25, 100]:
+		for step in [-50, 50]:
 			var st: int = step
-			var b := _btn("%+d" % st, func():
+			arow.add_child(_btn("−" if st < 0 else "+", func():
 				n.autobuild_reserve = clampf(n.autobuild_reserve + st, 0.0, 5000.0)
-				_refresh(), "Mindestkasse ändern: Autobau gibt nur Gold darüber aus.")
-			row.add_child(b)
-		side_box.add_child(row)
+				_refresh(), "Mindestkasse um %d ändern: Autobau gibt nur Gold darüber aus." % absi(st)))
+		var rl := _lbl("Rest ≥ %d💰" % int(n.autobuild_reserve), 15)
+		rl.autowrap_mode = TextServer.AUTOWRAP_OFF
+		rl.custom_minimum_size.x = 0
+		rl.tooltip_text = "Mindestkasse: Autobau gibt nur Gold darüber aus."
+		rl.mouse_filter = Control.MOUSE_FILTER_STOP
+		arow.add_child(rl)
+		arow.move_child(rl, 1)
+	side_box.add_child(arow)
 	var building := 0
 	for pid in game.provinces_of(me):
 		if not game.provinces[pid].constructing.is_empty():
@@ -2308,6 +2347,9 @@ func _economy_trade() -> void:
 		else:
 			b = _btn(txt + "  +%.2f" % gain, func(): _act(Eco.send_merchant(game, me, m), "🛒 Händler entsandt"), tip + " Antippen: Händler schicken.")
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		# compact rows: more markets fit without scrolling
+		b.custom_minimum_size.y = 48 if _big() else 38
+		b.add_theme_font_size_override("font_size", 16)
 		side_box.add_child(b)
 	if not rest.is_empty():
 		_section("trade_more", "Weitere Märkte (%d)" % rest.size(), false)
