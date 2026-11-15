@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.9.9 – 2026-11-15
+- 🎵 Hintergrundmusik: sechs eigene, prozedural erzeugte Stücke (Laute, Harfe, Blockflöte, Trommel), vier für den Frieden und zwei kriegerische, die spielen, solange du im Krieg bist. Lautstärke unter ⚙️ Einstellungen → 🎵 Musik (aus, 25–100 %).
+- 🛤 Straßen sehen jetzt aus wie auf einer alten Landkarte: sie schwingen über die gemeinsame Grenze statt quer über die Karte, Stufe 1 ist ein gestrichelter Pfad, Stufe 2 eine Straße, Stufe 3 eine doppelt gezogene Königsstraße. Keine Straßen mehr über Meerengen (Ärmelkanal).
+- **Westafrika:** 32 neue Provinzen von Arguin bis ins Nigerdelta, mit den Reichen Mali, Songhai, Jolof und Benin, Gold als neuer Ware und einem Markt in Timbuktu. Die Küste bis Sierra Leone und das Sahel sind von Anfang an bekannt, der Golf von Guinea muss erst erkundet werden. Freies Land an der Küste wird wie in Amerika besiedelt; Karawanenrouten verbinden Marokko über Taghaza mit Timbuktu.
+- **Truppen übers Meer:** Armeen schiffen sich in einem eigenen oder verbündeten Hafen ein und fahren an jede bekannte Küste, z. B. nach Amerika oder Afrika (Knopf „⛵ Seeweg“ im Armeefenster; ein Marschbefehl ohne Landweg nimmt automatisch das Schiff). Braucht 1 freies Schiff je 4 Regimenter und etwas Gold; feindlich beherrschte Meere sind gesperrt, bei der Landung kämpft die Armee schlechter. Die Fahrt ist auf der Karte zu sehen, die KI nutzt Seetransporte, wenn sie ihren Gegner zu Land nicht erreicht.
+- **Mehr Siedler:** „🏕 Siedler anwerben“ (Diplomatie, bis zu 3-mal, jedes Mal teurer) und je 4 fertige Kolonien ein Siedler mehr (höchstens +2).
+- **Kolonien auf der Karte:** Wachsende Kolonien sind in der Farbe des Siedlerreichs schraffiert und zeigen dessen Flagge mit Fortschrittsbalken und Prozent, auf jeder Zoomstufe.
+- Fernhandel: Ab 1480 kann ein Reich mit Atlantikküste und Diplomatie-Technologie 8 eine Kap-Expedition schicken. Wer zuerst ankommt, öffnet den Seeweg nach Indien und hütet die Seekarten 15 Jahre. Danach rüsten alle Reiche, die den Weg kennen, Ostindienfahrer aus und gründen Faktoreien (Sofala, Hormus, Goa, Kalikut, Ceylon, Malakka, Molukken, Macau). Der Gewürzhandel wird jedes Jahr wertvoller; im Krieg mit mehr Schiffen lassen sich fremde Faktoreien erobern. Zu finden unter 💰 Wirtschaft → Handel → Fernhandel.
+- Sobald der Seeweg offen ist, verlieren Venedig, Genua, Alexandria und Konstantinopel nach und nach bis zu 30 % Marktwert.
+- Überseehandel: Waren aus kolonisierten Provinzen der Neuen Welt zählen im Markt doppelt. Märkte in Amerika erreichen nur Reiche, die sie kennen und eine Atlantikküste oder eine Kolonie haben (vorher handelten auch Osmanen und Mailand in der Karibik).
+- Marktherr 👑: Wer mindestens 50 % der Handelsmacht eines Markts hält, bekommt dort +15 % Einnahmen und etwas Prestige. Das Handelsfenster zeigt die Krone, das Log meldet Gewinn und Verlust.
+- Diplomatische Kapazität: Bündnisse und Vasallen belegen je einen Platz (3 zu Beginn, mehr mit Diplomatie-Technologie). Über dem Limit kostet jeder Platz zu viel Diplomatie und Prestige, neue Bündnisse sind gesperrt; die KI lässt überzählige Bündnisse fallen und nimmt dann keine Vasallen mehr. Bündnisse kosten außerdem mehr, je größer das Reich ist.
+- Start mit 150 📜/🕊️/⚔️ (statt 50) und 150 Gold (statt 40).
+- **Suche:** Provinzen und Nationen lassen sich jetzt per Name finden (☰ Menü → 🔍 Suchen, am PC Taste S oder Strg+F). Ein Treffer zentriert die Karte und öffnet das passende Fenster; Nationen stehen vorn, Namen mit passendem Anfang zuerst. Unerforschtes Land bleibt verborgen.
+- **Nächste Armee:** Taste A (am Handy der Knopf „👉 Nächste Armee“ im Armeefenster) springt reihum zu deinen Armeen, untätige zuerst, und zentriert die Karte.
+- Wirtschaft › Kasse ist deutlich kürzer: oben die Bilanz, darunter Einnahmen und Ausgaben nebeneinander. Haushalt und Kredit teilen sich eine Zeile, ebenso Autobau und Mindestkasse (± 50). Auf 1280×720 passt die Seite jetzt ohne Scrollen.
+- Wirtschaft › Handel: Die Marktzeilen sind kompakter, dadurch passen mehr Märkte auf den Bildschirm.
+- Provinz: Die drei Entwickeln-Knöpfe stehen in einer Zeile. Ein einzelner Knopf darunter nutzt die volle Breite, statt den Preis abzuschneiden.
+- Kein abgeschnittener Text mehr: Buttons brechen in eine zweite Zeile um statt mit "…" zu enden, lange Fenstertitel werden kleiner statt gekürzt.
+- Obere Leiste: große Zahlen kurz (123k statt 123456, genaue Werte im Tooltip); wenn es eng wird, rückt die Leiste zusammen und blendet den Reichsnamen aus, damit AE und Truppen immer sichtbar bleiben (auch bei 140 % UI-Größe).
+- Stände: Jede Wahl, die einen Stand verärgert, zeigt jetzt, wohin seine Zufriedenheit fällt ("Würde setzen: Adel Ziel 55 → 45 (jetzt 52)", Warnung wenn er zornig würde). Gilt für Gesetze, Reformen, Berater, Kompanien, Haushalt, Technologien und Ereignisse ("Bürger −2 (50 → 48)").
+- Neue Pixel-Icons für alle Gesetze, Staatsreformen und Stände; Berater und Kompanien zeigen ihr Symbol.
+- Kurze Flavour-Texte für alle 52 Berater, 14 Herrschereigenschaften, 90 Technologien sowie Gesetzes- und Reformgruppen.
+- Reiche gründen ist etwas leichter: Italien braucht 5 statt 6 Kernprovinzen, das Deutsche Reich 6 statt 8, die Iberische Krone und das Römische Reich je 6 statt 7, der Maghreb 5 statt 6. In Testpartien gründete die KI vorher fast nur Großbritannien.
+
 ## v0.9.8 – 2026-11-15
 - Kriege enden jetzt: Wer sein ganzes Land (95 %) besetzt sieht oder bei 75 Kriegspunkten Rückstand erschöpft ist, kapituliert und gibt jede besetzte Provinz her, auch eine Totalannexion. Vorher zählt „Druck“ (Kriegsmüdigkeit und besetztes Land des Gegners) zu deinen Kriegspunkten dazu; das Friedensfenster zeigt beides an.
 - Besetztes eigenes Land treibt die Kriegsmüdigkeit nach oben, nach dem Frieden sinkt sie schneller, und sie erzeugt weniger Unruhe (weniger Revolten).

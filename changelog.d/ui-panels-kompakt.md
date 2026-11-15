@@ -1,3 +1,0 @@
-- Wirtschaft › Kasse ist deutlich kürzer: oben die Bilanz, darunter Einnahmen und Ausgaben nebeneinander. Haushalt und Kredit teilen sich eine Zeile, ebenso Autobau und Mindestkasse (± 50). Auf 1280×720 passt die Seite jetzt ohne Scrollen.
-- Wirtschaft › Handel: Die Marktzeilen sind kompakter, dadurch passen mehr Märkte auf den Bildschirm.
-- Provinz: Die drei Entwickeln-Knöpfe stehen in einer Zeile. Ein einzelner Knopf darunter nutzt die volle Breite, statt den Preis abzuschneiden.

@@ -1,5 +1,0 @@
-- Kein abgeschnittener Text mehr: Buttons brechen in eine zweite Zeile um statt mit "…" zu enden, lange Fenstertitel werden kleiner statt gekürzt.
-- Obere Leiste: große Zahlen kurz (123k statt 123456, genaue Werte im Tooltip); wenn es eng wird, rückt die Leiste zusammen und blendet den Reichsnamen aus, damit AE und Truppen immer sichtbar bleiben (auch bei 140 % UI-Größe).
-- Stände: Jede Wahl, die einen Stand verärgert, zeigt jetzt, wohin seine Zufriedenheit fällt ("Würde setzen: Adel Ziel 55 → 45 (jetzt 52)", Warnung wenn er zornig würde). Gilt für Gesetze, Reformen, Berater, Kompanien, Haushalt, Technologien und Ereignisse ("Bürger −2 (50 → 48)").
-- Neue Pixel-Icons für alle Gesetze, Staatsreformen und Stände; Berater und Kompanien zeigen ihr Symbol.
-- Kurze Flavour-Texte für alle 52 Berater, 14 Herrschereigenschaften, 90 Technologien sowie Gesetzes- und Reformgruppen.

@@ -1,2 +1,0 @@
-- **Suche:** Provinzen und Nationen lassen sich jetzt per Name finden (☰ Menü → 🔍 Suchen, am PC Taste S oder Strg+F). Ein Treffer zentriert die Karte und öffnet das passende Fenster; Nationen stehen vorn, Namen mit passendem Anfang zuerst. Unerforschtes Land bleibt verborgen.
-- **Nächste Armee:** Taste A (am Handy der Knopf „👉 Nächste Armee“ im Armeefenster) springt reihum zu deinen Armeen, untätige zuerst, und zentriert die Karte.
