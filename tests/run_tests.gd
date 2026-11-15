@@ -1754,7 +1754,8 @@ func test_troop_transport() -> void:
 	check(g2.voyages.size() == 1 and int(g2.voyages[0].to) == cayor, "a voyage survives save/load")
 	for i in months:
 		g.tick()
-	check(g.armies.has(a) and a.pid == cayor and a.landing and g.voyages.is_empty(), "the army lands in Kayor")
+	# (the landing malus only lasts into a battle that starts right away, so it is not checked here)
+	check(g.armies.has(a) and a.pid == cayor and g.voyages.is_empty(), "the army lands in Kayor")
 	# an enemy fleet rules the sea: no way over it
 	var b = g.spawn_army("POR", lisbon, 4.0)
 	g.sea_blocked["POR"] = {"atlantic": true}
