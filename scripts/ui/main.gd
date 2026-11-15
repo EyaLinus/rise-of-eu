@@ -2287,18 +2287,91 @@ func _economy_trade() -> void:
 	for r in shown:
 		var m: int = r[0]
 		var has: bool = n.merchants.has(m)
-		var txt := "%s %s  %.1f💰 · Anteil %d%%" % ["🛒" if has else "🏬", game.provinces[m].name, r[2], int(r[1] * 100)]
+		var lord: String = game.Trade.dominant(game, m)
+		var crown := " 👑" if lord == me else ""
+		var txt := "%s %s%s  %.1f💰 · Anteil %d%%" % ["🛒" if has else "🏬", game.provinces[m].name, crown, r[2], int(r[1] * 100)]
 		var gain: float = Eco.merchant_gain(game, me, m)
 		var tip := "Marktwert %.2f/Monat. Ein Händler hier brächte etwa +%.2f/Monat." % [r[2], gain]
+		if lord != "":
+			tip += "\n👑 Marktherr: %s (mind. %d %% der Handelsmacht): +%d %% Einnahmen aus diesem Markt und etwas Prestige." % [
+					nname(lord), int(float(game.bal.dom_share) * 100), int(float(game.bal.dom_bonus) * 100)]
+		if game.Trade.is_overseas_market(game, m):
+			tip += "\n⛵ Übersee-Markt: Kolonialwaren zählen hier doppelt."
+		if game.levant.has(m) and game.Trade.market_mult(game, m) < 1.0:
+			tip += "\n📉 Der Seeweg nach Indien umgeht die Levante: −%d %% Marktwert." % int((1.0 - game.Trade.market_mult(game, m)) * 100)
+		var far: String = game.Trade.market_block_reason(game, me, m)
 		var b: Button
 		if has:
 			b = _btn(txt + "  ↩", func(): Eco.recall_merchant(game, me, m); _refresh(), tip + " Antippen: Händler zurückrufen.")
+		elif far != "":
+			b = _btn(txt + "  🔒", func(): _act(far), tip + "\n❌ " + far)
 		else:
 			b = _btn(txt + "  +%.2f" % gain, func(): _act(Eco.send_merchant(game, me, m), "🛒 Händler entsandt"), tip + " Antippen: Händler schicken.")
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		side_box.add_child(b)
 	if not rest.is_empty():
 		_section("trade_more", "Weitere Märkte (%d)" % rest.size(), false)
+	_economy_far_trade()
+
+
+## Spice route around Africa: Cape voyage, Indiamen, factories (scripts/core/trade.gd).
+func _economy_far_trade() -> void:
+	var me: String = game.player
+	var n = game.nations[me]
+	var T = game.Trade
+	var b: Dictionary = game.bal
+	if not _section("far_trade", "🧭 Fernhandel: Seeweg nach Indien", true,
+			"Gewürze, Seide und Porzellan: der reichste Handel der Zeit. Wer das Kap der Guten Hoffnung umsegelt, öffnet den Seeweg. Danach teilen sich alle Reiche, die ihn kennen, den Wert nach Ostindienfahrern und Faktoreien."):
+		return
+	var dom: Array = T.dominated_by(game, me)
+	if not dom.is_empty():
+		var names := []
+		for m in dom:
+			names.append(game.provinces[m].name)
+		side_box.add_child(_lbl("👑 Marktherr in: %s" % ", ".join(names), 15, UiTheme.GOOD))
+	if not T.is_open(game) or not T.knows(game, me):
+		var why: String = T.voyage_block_reason(game, me)
+		var status := "Der Seeweg ist noch unbekannt." if not T.is_open(game) else "%s hat den Seeweg %s gefunden. Wert jetzt %.1f 💰 im Monat." % [nname(game.east.cape), game.date_string(int(game.east.cape_month)), T.route_value(game)]
+		if game.east.voyage.has(me):
+			status = "⛵ Eure Flotte ist unterwegs: noch %d Monate." % int(game.east.voyage[me])
+		side_box.add_child(_lbl(status, 15, Color(0.8, 0.85, 0.9)))
+		if not game.east.voyage.has(me):
+			side_box.add_child(_btn("🧭 Kap-Expedition  %d💰 %d🕊️" % [int(T.voyage_cost(game, me)), int(b.cape_dip)], func(): _act(T.start_voyage(game, me), "⛵ Die Flotte sticht in See"),
+					"Eine Flotte segelt um Afrika (%d Monate). Die erste Fahrt gelingt mit %d %% Wahrscheinlichkeit und bringt %d Prestige. Wer zuerst ankommt, hütet die Seekarten %d Jahre lang; danach geht es für andere schneller und billiger.%s" % [
+						int(b.cape_months), int(float(b.cape_success) * 100), int(b.cape_prestige), int(b.cape_monopoly_years), ("\n❌ " + why) if why != "" else ""], why != ""))
+		return
+	var raw: float = T.east_income(game, me)
+	var mult: float = maxf(0.0, 1.0 + game.mod(n, "trade") + game.Economy.income_bonus(game, n))
+	side_box.add_child(_grid([
+		_chip("💰 %.1f / Monat" % (raw * mult), "Dein Anteil am Gewürzhandel (inkl. Handelsboni). Gesamtwert des Seewegs: %.1f 💰 im Monat, er wächst jedes Jahr." % T.route_value(game), "gold"),
+		_chip("📈 Anteil %d %%" % int(T.share(game, me) * 100), "Deine Macht auf dem Seeweg: %.0f von %.0f. Jeder Ostindienfahrer zählt %d, jede Faktorei mehr." % [T.power(game, me), T.total_power(game), int(b.east_ship_power)]),
+		_chip("⛵ %d / %d Schiffe" % [T.ships(game, me), T.ship_cap(game, me)], "Ostindienfahrer: je %.2f 💰 Unterhalt im Monat. Stürme und Piraten kosten jedes Jahr ab und zu ein Schiff, Feinde auf der Route noch mehr." % float(b.east_ship_upkeep)),
+		_chip("🏪 %d / %d Faktoreien" % [T.factories_of(game, me).size(), T.max_factories(game, me)], "Faktoreien sind Handelsposten in Afrika und Asien. Jede gibt Macht auf dem Seeweg und erlaubt mehr Schiffe."),
+	]))
+	var sw: String = T.ship_block_reason(game, me)
+	side_box.add_child(_row([
+		_btn("⛵ Ostindienfahrer %d💰" % int(b.east_ship_cost), func(): _act(T.buy_ship(game, me), "⛵ Ein Ostindienfahrer läuft aus"), "Mehr Schiffe, mehr Anteil am Gewürzhandel." + (("\n❌ " + sw) if sw != "" else ""), sw != ""),
+		_btn("↩ Abziehen", func(): T.sell_ship(game, me); _refresh(), "Ein Schiff zurückholen: spart Unterhalt, kostet Anteil.", T.ships(game, me) == 0),
+	]))
+	var cells := []
+	for f in T.FACTORIES:
+		var holder: String = game.east.factories.get(f.id, "")
+		var why: String = T.factory_block_reason(game, me, f.id)
+		var label: String
+		if holder == me:
+			label = "%s %s ✅" % [f.emoji, f.name]
+		elif holder != "":
+			label = "%s %s · %s" % [f.emoji, f.name, holder]
+		else:
+			label = "%s %s %d💰" % [f.emoji, f.name, int(T.factory_cost(game, me))]
+		var tip: String = "%s Macht +%d auf dem Seeweg." % [f.desc, int(f.power)]
+		if holder != "" and holder != me:
+			tip += " Gehört %s; im Krieg mit mehr Schiffen zu erobern." % nname(holder)
+		if why != "" and holder != me:
+			tip += "\n❌ " + why
+		var fid: String = f.id
+		cells.append(_btn(label, func(): _act(T.take_factory(game, me, fid), "🏪 Faktorei gesichert"), tip, why != "" or holder == me))
+	side_box.add_child(_grid(cells))
 
 
 func _economy_goods() -> void:
@@ -2729,6 +2802,15 @@ func _panel_diplomacy() -> void:
 	var me: String = game.player
 	side_title.text = "🤝 Diplomatie"
 	side_box.add_child(_row([_btn("🏆 Rangliste", _open_panel.bind("ranking")), _btn("👑 Reich", _open_panel.bind("hre"))]))
+	var used: int = game.diplo_used(me)
+	var dcap: int = game.diplo_cap(me)
+	side_box.add_child(_grid([
+		_chip("🕊️ Diplomatie %d / %d" % [used, dcap],
+			"Diplomatische Kapazität: jedes Bündnis und jeder Vasall belegt einen Platz. Mehr Plätze mit Diplomatie-Technologie. Über dem Limit kostet jeder Platz zu viel %.1f 🕊️ und %.2f Prestige im Monat, und neue Bündnisse sind nicht möglich." % [float(game.bal.diplo_over_dip), float(game.bal.diplo_over_prestige)],
+			"bad" if used > dcap else ("gold" if used == dcap else "good")),
+		_chip("🤝 Bündnis %d🕊️" % int(game.alliance_cost(me)),
+			"Ein neues Bündnis kostet %d 🕊️. Je größer dein Reich (Entwicklung über %d), desto teurer werden Bündnisse." % [int(game.alliance_cost(me)), int(game.bal.alliance_cost_free_dev)]),
+	]))
 	var groups := [["Vasallen", []], ["Verbündete", []], ["Feinde", []], ["Rivalen", []], ["Nachbarn", []], ["Andere", []]]
 	var nbs: Array = game.neighbors_of(me)
 	var mn = game.nations[me]
@@ -2868,8 +2950,10 @@ func _panel_other(tag: String) -> void:
 		if game.is_allied(me, tag):
 			acts.append(_btn("💔 Bündnis lösen", func(): game.break_alliance(me, tag); _act("", "💔 Bündnis aufgelöst"), "Bündnis auflösen: −30 Beziehung."))
 		else:
-			acts.append(_btn("🤝 Bündnis %d🕊️" % int(b.alliance_cost), func(): _act(game.propose_alliance(me, tag), "🤝 Bündnis geschlossen!"),
-					"Bündnis anbieten: Verbündete kämpfen in Verteidigungskriegen mit und lassen deine Armeen durch."))
+			var full: bool = game.diplo_used(me) >= game.diplo_cap(me)
+			acts.append(_btn("🤝 Bündnis %d🕊️%s" % [int(game.alliance_cost(me)), " ❌" if full else ""], func(): _act(game.propose_alliance(me, tag), "🤝 Bündnis geschlossen!"),
+					"Bündnis anbieten: Verbündete kämpfen in Verteidigungskriegen mit und lassen deine Armeen durch. Kosten steigen mit der Größe deines Reichs. Diplomatische Plätze: %d / %d (Bündnisse + Vasallen).%s" % [
+						game.diplo_used(me), game.diplo_cap(me), "\n❌ Kapazität erschöpft: erst ein Bündnis lösen oder einen Vasallen annektieren." if full else ""], full))
 		var Eco = game.Economy
 		if mn.trade_pacts.has(tag):
 			acts.append(_btn("✂️ Abkommen kündigen", func(): Eco.cancel_pact(game, me, tag); _act("", "✂️ Handelsabkommen gekündigt"),
@@ -3501,6 +3585,12 @@ func _advice() -> Array:
 	var Eco = game.Economy
 	if not n.merchant_auto and n.merchants.size() < Eco.merchant_count(game, n):
 		add.call("🏬 Händler frei", "Schick ihn unter 💰 Wirtschaft → Handel in einen reichen Markt.", "", "economy")
+	if game.Trade.voyage_block_reason(game, me) == "":
+		add.call("🧭 Seeweg nach Indien", "Eine Kap-Expedition öffnet den Gewürzhandel: 💰 Wirtschaft → Handel → Fernhandel.", "", "economy")
+	elif game.Trade.knows(game, me) and game.Trade.ship_block_reason(game, me) == "" and game.Trade.ships(game, me) < int(game.bal.east_factory_ships):
+		add.call("⛵ Ostindienfahrer", "Rüste Schiffe für den Gewürzhandel aus und gründe Faktoreien: 💰 Wirtschaft → Handel → Fernhandel.", "", "economy")
+	if game.diplo_over(me) > 0:
+		add.call("🕊️ Zu viele Bündnisse", "Du hast %d Bündnisse und Vasallen bei %d Plätzen. Jeder Platz zu viel kostet Diplomatie und Prestige." % [game.diplo_used(me), game.diplo_cap(me)], "bad", "diplomacy")
 	if n.rivals.is_empty() and n.overlord == "" and game.year() >= int(game.bal.start_year) + 2:
 		var cand := ""
 		for t in game.nations_in_range(me, int(game.bal.rival_range)):

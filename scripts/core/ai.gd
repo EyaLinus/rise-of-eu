@@ -248,12 +248,20 @@ func _diplomacy(g, n) -> void:
 	for ally in n.allies.duplicate():
 		if g.get_rel(tag, ally) < -30.0:
 			g.break_alliance(tag, ally)
+	if g.diplo_over(tag) > 0 and not n.allies.is_empty() and not g.is_at_war(tag):
+		# over the diplomatic capacity: let the least useful alliance lapse (quietly, no relation hit)
+		var weakest: String = n.allies[0]
+		for ally in n.allies:
+			if g.strength(ally) < g.strength(weakest):
+				weakest = ally
+		n.allies.erase(weakest)
+		g.nations[weakest].allies.erase(tag)
 	_trade_pact(g, n)
 	_marriage(g, n)
 	_war_access(g, n)
 	_guarantee(g, n)
 	_rivals(g, n)
-	if n.allies.size() >= 2:
+	if n.allies.size() >= 2 or g.diplo_used(tag) >= g.diplo_cap(tag):
 		return
 	var best := ""
 	var best_score := -1e9
@@ -269,7 +277,7 @@ func _diplomacy(g, n) -> void:
 			best = t
 	if best == "":
 		return
-	if n.dip >= float(g.bal.alliance_cost) and accepts_alliance(g, best, tag):
+	if n.dip >= g.alliance_cost(tag) and accepts_alliance(g, best, tag):
 		g.propose_alliance(tag, best)
 	elif n.dip >= float(g.bal.improve_relation_cost) + 30.0:
 		g.improve_relations(tag, best)
@@ -394,7 +402,7 @@ func _guarantee(g, n) -> void:
 
 func accepts_alliance(g, target: String, from: String) -> bool:
 	var t = g.nations[target]
-	if t.allies.size() >= int(g.bal.max_allies):
+	if t.allies.size() >= int(g.bal.max_allies) or g.diplo_used(target) >= g.diplo_cap(target):
 		return false
 	if g.has_claim_on(from, target) or g.has_claim_on(target, from):
 		return false
