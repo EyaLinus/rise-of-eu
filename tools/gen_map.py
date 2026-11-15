@@ -301,7 +301,7 @@ PROVINCES = [
     ("quisqueya", "Quisqueya", -70.0, 18.8, "NAT", 4),
     ("boriken", "Borikén", -66.4, 18.2, "NAT", 3),
     ("antilles", "Kleine Antillen", -61.4, 15.6, "NAT", 1),
-    ("lucayas", "Lucayas", -77.8, 24.4, "NAT", 1),
+    ("lucayas", "Lucayas", -77.8, 24.4, "NAT", 1, 2.0),
     ("trinidad", "Trinidad", -61.3, 10.4, "NAT", 1, 0.7),
     # North America: Gulf and the south-east
     ("florida", "Florida", -81.4, 27.8, "NAT", 2),

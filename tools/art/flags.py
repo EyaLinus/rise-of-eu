@@ -336,6 +336,18 @@ M["TLE"] = (centred(field("w", "L"), recolor(CRESCENT, TO_RED), cy=3), "Tlemcen 
 M["MOR"] = (border(solid("R"), "L", 2), "Morocco – red field with green border (simplified)")
 M["CYP"] = (cross(solid("w"), "G", 4), "Cyprus – gold cross of Jerusalem on white (simplified)")
 M["KNI"] = (cross(solid("R"), "w", 3), "Knights Hospitaller – white cross on red")
+# the New World (stylised; these realms had no European-style flags)
+SUN = ["...Y...", ".Y.G.Y.", "..GGG..", "YGGGGGD", "..GGD..", ".D.D.D.", "...D..."]
+PLUME = ["..w..", ".ww..", ".wwa.", "wwwa.", ".wa..", "..a.."]
+BELT = ["w....w....w", "ww..www..ww", "w....w....w"]
+M["AZT"] = (centred(solid("L"), SUN), "Aztecs – gold sun on jade (stylised)")
+M["TLX"] = (per_pale("w", "R"), "Tlaxcala – white and red (stylised)")
+M["ZAP"] = (stripes(["G", "O", "G"], 3), "Zapotecs – gold and brown bands (stylised)")
+M["TAR"] = (centred(border(solid("U"), "G", 2), SUN), "Purépecha – sun in a gold border on purple (stylised)")
+M["MAY"] = (centred(solid("L"), PLUME), "Maya – white plume on jade (stylised)")
+M["KIC"] = (centred(solid("R"), recolor(PLUME, TO_GOLD)), "K'iche' – gold plume on red (stylised)")
+M["IRO"] = (centred(solid("U"), BELT), "Haudenosaunee – white wampum belt on purple (stylised)")
+M["NAT"] = (centred(solid("O"), PLUME), "uncolonised native land – feather on brown")
 FLAGS.update(M)
 
 # Naples: Aragon pallets impaled with Anjou (blue with gold fleur), to differ from Aragón

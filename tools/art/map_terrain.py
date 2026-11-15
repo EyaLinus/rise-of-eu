@@ -20,14 +20,9 @@ from scipy import ndimage
 ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 OUT = os.path.join(ROOT, "assets", "art", "map", "terrain.png")
 
-# must match tools/gen_map.py
-SCALE = 48.0
-LON0, LAT0 = -11.0, 63.0
-COSLAT = math.cos(math.radians(50))
-
-
-def proj(lon, lat):
-    return ((lon - LON0) * SCALE * COSLAT, (LAT0 - lat) * SCALE)
+# shared with tools/gen_map.py
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from mapproj import COSLAT, LAT0, LON0, SCALE, proj  # noqa: E402,F401
 
 
 # rough ridge lines (lon, lat); height = relative strength
@@ -58,6 +53,21 @@ RANGES = [
     (0.5, [(-5.6, 33.4), (-4.2, 33.8), (-3.0, 34.2)]),  # Middle Atlas
     (0.45, [(-1.5, 34.6), (1.0, 35.2), (3.4, 36.3), (5.4, 36.4), (7.0, 35.4), (8.6, 35.2)]),  # Tell Atlas
     (0.3, [(24.6, 35.2), (25.6, 35.2)]),  # Crete
+    # the New World
+    (0.55, [(-84.6, 34.4), (-83.0, 35.6), (-81.4, 36.6), (-79.8, 38.0), (-78.4, 39.6), (-76.8, 41.0), (-75.0, 42.0), (-73.8, 43.4), (-72.2, 44.4), (-70.8, 45.0)]),  # Appalachians
+    (0.35, [(-74.6, 44.0), (-74.0, 44.4)]),  # Adirondacks
+    (0.85, [(-100.8, 22.2), (-100.2, 23.8), (-100.6, 25.4), (-101.8, 26.8), (-102.8, 28.6)]),  # Sierra Madre Oriental
+    (0.8, [(-103.8, 22.0), (-103.6, 24.5), (-103.8, 27.0)]),  # Sierra Madre Occidental (edge)
+    (1.0, [(-103.4, 19.6), (-101.6, 19.4), (-99.8, 19.2), (-98.6, 19.0), (-97.3, 19.0)]),  # Trans-Mexican volcanic belt
+    (0.75, [(-98.8, 17.4), (-97.4, 17.0), (-96.2, 16.8), (-95.2, 16.6)]),  # Sierra Madre del Sur
+    (0.8, [(-93.4, 16.0), (-91.8, 15.2), (-90.0, 14.6), (-88.4, 14.0), (-86.6, 13.4), (-85.6, 12.2), (-84.4, 10.2), (-82.8, 9.0)]),  # Central American cordillera
+    (0.45, [(-103.6, 30.4), (-102.6, 31.2), (-103.4, 32.4)]),  # Davis / Guadalupe
+    (0.35, [(-94.4, 34.6), (-93.0, 34.8), (-92.4, 36.0)]),  # Ouachita / Ozarks
+    (0.5, [(-77.0, 18.2), (-76.4, 18.1)]),  # Blue Mountains
+    (0.55, [(-72.0, 19.0), (-71.0, 18.9), (-70.4, 19.0)]),  # Cordillera Central (Hispaniola)
+    (0.4, [(-77.0, 20.0), (-75.8, 20.1)]),  # Sierra Maestra
+    (0.4, [(-66.2, 49.0), (-65.4, 48.8)]),  # Chic-Chocs
+    (0.4, [(-63.0, 56.6), (-63.6, 58.4), (-64.4, 59.6)]),  # Torngat
 ]
 
 

@@ -114,17 +114,22 @@ func test_map_geometry() -> void:
 			check(arr.size() >= 3 and not Geometry2D.triangulate_polygon(arr).is_empty(), "polygon of %s triangulates" % p.key)
 
 
+## The Old World and the New World are each one connected landmass (no land route across the Atlantic).
 func test_map_connected() -> void:
 	var g = new_game()
-	var seen := {0: true}
-	var q := [0]
-	while not q.is_empty():
-		var c: int = q.pop_back()
-		for a in g.provinces[c].adj:
-			check(g.provinces[a].adj.has(c), "adjacency symmetric %d-%d" % [c, a])
-			if not seen.has(a):
-				seen[a] = true
-				q.append(a)
+	check(g.nw_first > 200 and g.nw_first < g.provinces.size(), "the map has a New World part (%d)" % g.nw_first)
+	var seen := {}
+	for start in [0, g.nw_first]:
+		seen[start] = true
+		var q := [start]
+		while not q.is_empty():
+			var c: int = q.pop_back()
+			for a in g.provinces[c].adj:
+				check(g.provinces[a].adj.has(c), "adjacency symmetric %d-%d" % [c, a])
+				check((a >= g.nw_first) == (c >= g.nw_first), "no adjacency across the Atlantic %d-%d" % [c, a])
+				if not seen.has(a):
+					seen[a] = true
+					q.append(a)
 	check(seen.size() == g.provinces.size(), "all provinces connected (%d/%d)" % [seen.size(), g.provinces.size()])
 
 

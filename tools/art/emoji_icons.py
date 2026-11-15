@@ -143,6 +143,15 @@ add("⚓", "anchor", layer(["....aaa.....", "...a.d.g....", "....aad.....", "..g
 add("🛤", "road", layer(["lLlL.HH.lLlL", "LlL.HOOH.LlL", "lLl.HOwOH.lL", "Ll.HOOOOH.Ll", "lL.HOOwOOH.l", "L.HOOOOOOH.L", "l.HOOOwOOOH.", ".HOOOOOOOOH.", ".HOOOOwOOOOH", "HOOOOOOOOOOH", "HOOOOOwOOOOH"], 2, 3))
 
 add("⛪", "church", layer([".....YY.....", "....YYYY....", ".....YD.....", "....RRRE....", "...RRRRRE...", "...PPkPPQ...", ".RRRRRRRRRE.", "RRRRRRRRRRRE", "PPPPPPPPPPPQ", "PPkPPHHPPkPQ", "PPPPPHHPPPPQ", "QQQQQHHQQQQQ"], 2, 2))
+# ---- the New World: colonial goods, exploration and colonies (scripts/core/colonial.gd)
+add("🍬", "sugar_loaf", layer(["....w.....", "...wwa....", "...wwa....", "..wwwwa...", "..wwwwa...", ".wwwwwwa..", ".BBBBBBN..", "BBBBBBBBN.", "BBBBBBBBN.", ".NNNNNNN.."], 3, 3))
+add("🍂", "tobacco_leaf", layer([".........O", ".......OOH", ".....GOOH.", "...GOOOHH.", "..GOOHOHH.", ".GOOHOOH..", ".GOHOOH...", "GOHOOH....", "OHHHH.....", "H........."], 3, 3))
+add("🫘", "cocoa_pod", layer(["...OOOO...", "..OoOOHO..", ".OoOOOOHO.", ".OoOOHOHO.", ".OoOOOOHO.", ".OoOHOOHO.", ".OoOOOOHO.", "..OoOOHO..", "...HHHH..."], 3, 3))
+add("⛵", "sailboat", layer([".....w......", ".....wa.....", "....wwa.....", "....wwwa....", "...wwwwa....", "...wwwwwa...", "..wwwwwwa...", ".....O......", "OOOOOOOOOOH.", ".OOOOOOOOH..", "..bBBBBBN...", "bBBBBBBBBBNN"], 2, 2))
+add("🧭", "compass", layer(["...GGGGG...", "..GPPPPPD..", ".GPPPRPPPD.", "GPPPPRPPPPD", "GPPPPRPPPPD", "GPPPPkPPPPD", "GPPPPBPPPPD", "GPPPPBPPPPD", ".GPPPBPPPD.", "..GPPPPPD..", "...DDDDD..."], 2, 2))
+add("🏕", "colony_tent", layer([".....k......", "....wPa.....", "...wPPPa....", "..wPPHPPa...", ".wPPHHHPPa..", "wPPPHHHPPPa.", "LLLLLLLLLLLF"], 2, 5))
+add("🪶", "feather", layer(["........wa", ".......wwa", "......wwa.", ".....wwag.", "....wwag..", "...wwag...", "..wwag....", ".wagG.....", ".aG.......", "G........."], 3, 3))
+
 
 # red ring with a diagonal bar: embargo / forbidden
 add("🚫", "no_entry", layer(["....RRRR....", "..RRrrrrRR..", ".RrrRR..rrR.", ".Rr..RR..rR.", "Rr....RR..rR", "Rr.....RR.rR",

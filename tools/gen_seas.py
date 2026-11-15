@@ -33,6 +33,17 @@ SEAS = [
     ("aegean", "Ägäis", (25.0, 38.5), [(25.0, 38.5), (25.5, 40.2), (28.0, 40.7), (26.5, 36.8)]),
     ("caspian", "Kaspisches Meer", (50.5, 42.0), [(50.5, 42.0), (51.0, 39.5), (50.0, 45.0)]),
     ("black", "Schwarzes Meer", (34.0, 43.3), [(34.0, 43.3), (30.5, 43.0), (38.0, 42.5), (35.5, 45.5), (40.5, 42.0), (31.5, 45.5)]),
+    # the New World and the open ocean (lon -35..-12 is open water drawn between the two land windows)
+    ("ocean", "Offener Atlantik", (-18.0, 40.0), [(-18.0, 40.0), (-18.0, 50.0), (-18.0, 30.0), (-19.0, 20.0), (-20.0, 12.0), (-20.0, 58.0), (-14.0, 62.0)]),
+    ("labrador", "Labradorsee", (-50.0, 53.0), [(-50.0, 53.0), (-50.0, 47.0), (-54.0, 57.0), (-58.0, 59.5), (-52.0, 61.0), (-47.0, 50.0)]),
+    ("st_lawrence", "Sankt-Lorenz-Golf", (-62.0, 48.4), [(-62.0, 48.4), (-66.0, 49.6), (-68.8, 48.4), (-61.0, 47.0), (-64.0, 47.0)]),
+    ("east_coast", "Neuenglandküste", (-69.0, 41.0), [(-69.0, 41.0), (-66.0, 43.5), (-72.0, 39.6), (-74.2, 37.0), (-75.0, 34.4), (-78.4, 31.4), (-62.0, 43.0)]),
+    ("sargasso", "Sargassosee", (-62.0, 30.0), [(-62.0, 30.0), (-56.0, 38.0), (-55.0, 25.0), (-68.0, 26.0), (-73.0, 27.5), (-50.0, 32.0)]),
+    ("caribbean", "Karibik", (-75.0, 15.0), [(-75.0, 15.0), (-80.0, 13.0), (-68.0, 14.0), (-63.0, 12.5), (-82.0, 17.0), (-86.0, 18.0), (-58.0, 15.0), (-79.0, 10.5)]),
+    ("gulf", "Golf von Mexiko", (-90.0, 25.0), [(-90.0, 25.0), (-94.5, 23.0), (-86.0, 27.0), (-95.0, 27.5), (-84.0, 24.6), (-92.5, 20.5), (-88.5, 29.6)]),
+    ("pacific", "Südsee", (-98.0, 13.0), [(-98.0, 13.0), (-102.5, 17.0), (-93.0, 13.5), (-88.0, 11.0), (-84.0, 8.0), (-80.0, 7.8), (-104.0, 19.5)]),
+    ("hudson", "Hudsonbucht", (-86.0, 59.0), [(-86.0, 59.0), (-80.0, 56.5), (-80.0, 53.0), (-91.0, 60.0), (-71.0, 62.0), (-67.5, 59.0), (-84.0, 63.5)]),
+    ("lakes", "Große Seen", (-85.0, 45.0), [(-87.5, 47.6), (-87.0, 43.5), (-82.4, 44.6), (-81.2, 42.2), (-77.8, 43.6), (-97.5, 52.5)]),
 ]
 
 
@@ -93,8 +104,18 @@ def main():
             if vals.size:
                 lab = int(np.bincount(vals).argmax())
         strait_sea[a + "|" + b] = SEAS[lab][0]
+    # neighbouring seas (their water touches): expeditions sail from a known sea to the next (Colonial)
+    adj = {s[0]: set() for s in SEAS}
+    for a, b in ((label[:, :-1], label[:, 1:]), (label[:-1, :], label[1:, :])):
+        mask = (a >= 0) & (b >= 0) & (a != b)
+        for x, y in set(zip(a[mask].tolist(), b[mask].tolist())):
+            if {SEAS[x][0], SEAS[y][0]} == {"caribbean", "pacific"}:  # touch only at the map's bottom edge
+                continue
+            adj[SEAS[x][0]].add(SEAS[y][0])
+            adj[SEAS[y][0]].add(SEAS[x][0])
     for sid, name, lbl, _ in SEAS:
-        out.append({"id": sid, "name": name, "center": [round(v, 1) for v in proj(*lbl)], "provinces": sorted(members[sid])})
+        out.append({"id": sid, "name": name, "center": [round(v, 1) for v in proj(*lbl)], "provinces": sorted(members[sid]),
+                    "adj": sorted(adj[sid])})
     with open(OUT, "w") as f:
         f.write('{"seas": [\n' + ",\n".join(json.dumps(s, ensure_ascii=False) for s in out) + '\n],\n"straits": '
                 + json.dumps(strait_sea, ensure_ascii=False, indent=0) + "}\n")
