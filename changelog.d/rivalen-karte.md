@@ -1,1 +1,0 @@
-- Kartenmodus Diplomatie: Rivalen (deine und die, die dich als Rivalen führen) erscheinen orange, mit eigenem Eintrag in der Legende.

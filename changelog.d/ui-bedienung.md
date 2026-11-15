@@ -1,7 +1,0 @@
-- Haushalts- und Investitions-Regler: Das Mausrad scrollt jetzt das Panel statt den Regler zu verstellen. Wer auf dem Handy senkrecht über einen Regler wischt, scrollt ebenfalls und der Regler springt auf den alten Wert zurück. Solange ein Regler gezogen wird, baut sich das Panel nicht mehr neu auf.
-- Fehler behoben: Beim Ziehen eines Reglers (oft bis zum Maximum) erschien eine riesige leere Hinweisbox. Ursache war ein Langdruck-Hinweis, dessen Text außerhalb des Bildschirms lag. Auf Reglern gibt es keinen Langdruck-Hinweis mehr, und Hinweisboxen sind immer so groß wie ihr Text.
-- Die Chronik-Meldungen erscheinen klein unten links über der Kartenleiste statt groß in der Bildschirmmitte.
-- Neue Kartenmodus-Leiste unten: ein Klick pro Modus, der aktive ist gold umrandet. Tab und Umschalt+Tab schalten weiter bzw. zurück.
-- Mehr Tastenkürzel am PC: N/E/T/G/D/K/M/L/R öffnen die Panels (ein zweiter Druck schließt sie), V die Kartenmodi, +/− das Tempo, Pfeiltasten verschieben die Karte, Bild↑/↓ zoomt, F5 speichert schnell, F11 schaltet randloses Vollbild um, F1 zeigt alle Kürzel.
-- PC: Einstellung „Fenster“ mit Fenster, Maximiert oder Randlos (Vollbild ohne Fensterrand).
-- Aufgeräumtes Menü: Einstellungen und Tastenkürzel haben eigene Seiten, das Hauptmenü zeigt nur noch die Aktionen.

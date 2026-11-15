@@ -1,1 +1,0 @@
-- **Ereignisse zur Reichsgründung:** Jedes der acht Reiche hat jetzt ein eigenes Ereignis beim Ausrufen (z. B. „Italia unita“, „Roma renata“, „Die Republik beider Völker“) mit drei Entscheidungen; es erscheint sofort nach dem Klick.
