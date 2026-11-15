@@ -11,15 +11,19 @@ extends RefCounted
 ## are ordinary nations that can be conquered once a colony borders them.
 
 const NATIVE := "NAT"  # owner of uncolonized native land
-## Seas beyond the Old World: unknown until explored. Old World realms know every other sea.
-const NEW_SEAS := ["ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes"]
+## Seas beyond the Old World: unknown until explored. Old World realms know every other sea (also the
+## West African coast down to Sierra Leone, which Portuguese caravels reached by 1444).
+const NEW_SEAS := ["guinea", "ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes"]
 
 
 static func setup(g, data: Dictionary) -> void:
 	g.nw_first = g.provinces.size()
+	g.wa_first = g.provinces.size()
 	for i in data.map.provinces.size():
-		if data.map.provinces[i].get("nw", false):
+		if data.map.provinces[i].get("nw", false) and g.nw_first == g.provinces.size():
 			g.nw_first = i
+		if data.map.provinces[i].get("wa", false):
+			g.wa_first = i
 			break
 	g.found = {}
 	if g.nations.has(NATIVE):
@@ -42,20 +46,41 @@ static func setup(g, data: Dictionary) -> void:
 			g.atlantic_tags.append(tag)
 
 
-## Start knowledge: the Old World knows its own seas, the native realms know the New World.
+## Start knowledge: the Old World knows its own seas and the coasts on them (West Africa down to Sierra
+## Leone), the native realms know their own continent and its seas.
 static func reset_knowledge(g, n) -> void:
 	n.known_seas = {}
 	n.known_nw = {}
 	n.expedition = {}
 	if is_native_realm(g, n.tag):
-		for sea in NEW_SEAS:
-			n.known_seas[sea] = true
+		var home := region(g, g.nations[n.tag].capital)
+		for s in g.seas:
+			for pid in s.provinces:
+				if region(g, pid) == home:
+					n.known_seas[s.id] = true
+					break
 		for pid in range(g.nw_first, g.provinces.size()):
-			n.known_nw[pid] = true
+			if region(g, pid) == home:
+				n.known_nw[pid] = true
 		return
 	for s in g.seas:
 		if not NEW_SEAS.has(s.id):
 			n.known_seas[s.id] = true
+			for pid in s.provinces:
+				if pid >= g.nw_first:
+					n.known_nw[pid] = true
+	# caravan routes: the land next to our own (Morocco knows the way to Taghaza)
+	for pid in g.provinces_of(n.tag):
+		for a in g.provinces[pid].adj:
+			if a >= g.nw_first:
+				n.known_nw[a] = true
+
+
+## "old" (Europe, North Africa, the Near East), "america" or "africa" (West Africa).
+static func region(g, pid: int) -> String:
+	if pid < g.nw_first:
+		return "old"
+	return "africa" if pid >= g.wa_first else "america"
 
 
 static func is_native_realm(g, tag: String) -> bool:
@@ -227,16 +252,24 @@ static func colony_months(g, p) -> int:
 	return int(round(float(g.bal.colony_months) * (1.0 + p.natives * float(g.bal.natives_slow))))
 
 
-## A province the realm can reach with settlers: a known coast on a sea it knows, or next to its land.
+## A province the realm can reach with settlers: next to its land, or a known coast on a sea it knows
+## (by ship, so the realm needs a coast of its own).
 static func reachable(g, tag: String, pid: int) -> bool:
 	var p = g.provinces[pid]
 	for a in p.adj:
 		if g.provinces[a].owner == tag:
 			return true
-	if not p.coastal:
+	if not p.coastal or not has_coast(g, tag):
 		return false
 	for s in g.province_seas.get(pid, []):
 		if knows_sea(g, tag, s):
+			return true
+	return false
+
+
+static func has_coast(g, tag: String) -> bool:
+	for pid in g.provinces_of(tag):
+		if g.province_seas.has(pid):
 			return true
 	return false
 

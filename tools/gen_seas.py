@@ -34,7 +34,10 @@ SEAS = [
     ("caspian", "Kaspisches Meer", (50.5, 42.0), [(50.5, 42.0), (51.0, 39.5), (50.0, 45.0)]),
     ("black", "Schwarzes Meer", (34.0, 43.3), [(34.0, 43.3), (30.5, 43.0), (38.0, 42.5), (35.5, 45.5), (40.5, 42.0), (31.5, 45.5)]),
     # the New World and the open ocean (lon -35..-12 is open water drawn between the two land windows)
-    ("ocean", "Offener Atlantik", (-18.0, 40.0), [(-18.0, 40.0), (-18.0, 50.0), (-18.0, 30.0), (-19.0, 20.0), (-20.0, 12.0), (-20.0, 58.0), (-14.0, 62.0)]),
+    ("ocean", "Offener Atlantik", (-18.0, 40.0), [(-18.0, 40.0), (-18.0, 50.0), (-19.0, 30.0), (-22.0, 20.0), (-22.0, 12.0), (-22.0, 6.0), (-20.0, 58.0), (-14.0, 62.0)]),
+    # West Africa: the coast down to Sierra Leone is known from the start, the Gulf of Guinea is not
+    ("west_africa", "Westafrikanische Küste", (-19.0, 17.0), [(-18.6, 21.5), (-18.2, 17.5), (-17.9, 13.5), (-16.8, 10.6), (-14.6, 8.2), (-15.5, 25.0)]),
+    ("guinea", "Golf von Guinea", (-2.0, 4.6), [(-11.0, 5.2), (-7.5, 4.4), (-3.0, 4.4), (1.0, 5.3), (4.0, 4.6), (7.5, 4.2)]),
     ("labrador", "Labradorsee", (-50.0, 53.0), [(-50.0, 53.0), (-50.0, 47.0), (-54.0, 57.0), (-58.0, 59.5), (-52.0, 61.0), (-47.0, 50.0)]),
     ("st_lawrence", "Sankt-Lorenz-Golf", (-62.0, 48.4), [(-62.0, 48.4), (-66.0, 49.6), (-68.8, 48.4), (-61.0, 47.0), (-64.0, 47.0)]),
     ("east_coast", "Neuenglandküste", (-69.0, 41.0), [(-69.0, 41.0), (-66.0, 43.5), (-72.0, 39.6), (-74.2, 37.0), (-75.0, 34.4), (-78.4, 31.4), (-62.0, 43.0)]),
@@ -109,7 +112,7 @@ def main():
     for a, b in ((label[:, :-1], label[:, 1:]), (label[:-1, :], label[1:, :])):
         mask = (a >= 0) & (b >= 0) & (a != b)
         for x, y in set(zip(a[mask].tolist(), b[mask].tolist())):
-            if {SEAS[x][0], SEAS[y][0]} == {"caribbean", "pacific"}:  # touch only at the map's bottom edge
+            if {SEAS[x][0], SEAS[y][0]} in ({"caribbean", "pacific"}, {"guinea", "east_med"}):  # touch only at the map's bottom edge
                 continue
             adj[SEAS[x][0]].add(SEAS[y][0])
             adj[SEAS[y][0]].add(SEAS[x][0])
@@ -127,7 +130,7 @@ def main():
     print("coastal without sea:", lone)
 
 
-NEW_SEAS = {"ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes"}
+NEW_SEAS = {"guinea", "ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes"}
 FOG_CELL = 8
 
 

@@ -30,6 +30,8 @@ MARSH_KEYS = {"holland"}
 HILL_KEYS = {"milan", "barcelona", "florence"}
 # the New World: woodland unless listed (no latitude rule: the Caribbean is not the Sahara)
 NW_DESERT = {"coahuila", "apacheria", "llano", "zacatecas", "nuevo_leon"}
+WA_MARSH = {"niger_delta"}
+WA_FOREST = {"oyo", "benin"}
 NW_MARSH = {"delta", "florida", "mosquitia", "tabasco"}
 NW_PLAINS = {"pawnee", "wichita", "lakota", "dakota", "ioway", "hasinai", "karankawa", "illinois", "assiniboine",
              "yucatan", "campeche", "bajio", "tamaulipas", "tenochtitlan", "tlaxcala", "cahokia", "natchez"}
@@ -61,6 +63,9 @@ def main():
             t = "mountains"
         elif relief > 0.2 or peak > 0.6 or p["key"] in HILL_KEYS:
             t = "hills"
+        elif p.get("wa"):  # West Africa: Sahara and Sahel, savanna, rain forest on the Guinea coast
+            k = p["key"]
+            t = "desert" if lat > 15.5 else "marsh" if k in WA_MARSH else "forest" if lat < 8.0 or k in WA_FOREST else "plains"
         elif p.get("nw"):
             k = p["key"]
             t = "desert" if k in NW_DESERT else "marsh" if k in NW_MARSH else "plains" if k in NW_PLAINS else "forest"

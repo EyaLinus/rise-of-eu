@@ -152,6 +152,17 @@
    "emoji": "🫘",
    "color": "#6b3a1e",
    "colonial": true
+  },
+  "gold": {
+   "name": "Gold",
+   "price": 0.6,
+   "bonus": {
+    "income": 0.08
+   },
+   "bonus_text": "+8 % Einkommen",
+   "emoji": "💰",
+   "color": "#e8c03a",
+   "colonial": true
   }
  },
  "provinces": {
@@ -477,7 +488,39 @@
   "kiwetinok": "furs",
   "ungava": "furs",
   "nunavik": "furs",
-  "assiniboine": "furs"
+  "assiniboine": "furs",
+  "arguin": "fish",
+  "adrar": "salt",
+  "taghaza": "salt",
+  "waalo": "livestock",
+  "jolof": "livestock",
+  "cayor": "grain",
+  "futa_toro": "livestock",
+  "gambia": "grain",
+  "casamance": "grain",
+  "futa_jallon": "livestock",
+  "sierra_leone": "fish",
+  "pepper_coast": "timber",
+  "ivory_coast": "timber",
+  "kong": "gold",
+  "gold_coast": "gold",
+  "akan": "gold",
+  "allada": "grain",
+  "oyo": "livestock",
+  "borgu": "grain",
+  "benin": "cloth",
+  "niger_delta": "fish",
+  "nupe": "cloth",
+  "hausa": "cloth",
+  "niani": "gold",
+  "kaarta": "grain",
+  "segu": "grain",
+  "djenne": "cloth",
+  "timbuktu": "salt",
+  "walata": "salt",
+  "mossi": "livestock",
+  "gao": "grain",
+  "dendi": "grain"
  },
  "markets": [
   "london",
@@ -498,6 +541,7 @@
   "tabriz",
   "tenochtitlan",
   "quisqueya",
-  "massachusett"
+  "massachusett",
+  "timbuktu"
  ]
 }

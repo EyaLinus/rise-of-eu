@@ -348,6 +348,11 @@ M["MAY"] = (centred(solid("L"), PLUME), "Maya – white plume on jade (stylised)
 M["KIC"] = (centred(solid("R"), recolor(PLUME, TO_GOLD)), "K'iche' – gold plume on red (stylised)")
 M["IRO"] = (centred(solid("U"), BELT), "Haudenosaunee – white wampum belt on purple (stylised)")
 M["NAT"] = (centred(solid("O"), PLUME), "uncolonised native land – feather on brown")
+# West Africa (stylised, no historical flags)
+M["MAL"] = (centred(solid("G"), recolor(CASTLE, {"Y": "O", "G": "O", "D": "H", "E": "k"})), "Mali – brown mud-brick mosque on gold (stylised)")
+M["SON"] = (centred(per_pale("O", "E"), SWORD), "Songhai – sword on brown and dark red (stylised)")
+M["JOL"] = (centred(solid("L"), CRESCENT), "Jolof – gold crescent on jade (stylised)")
+M["BEN"] = (centred(border(solid("E"), "G", 2), recolor(PLUME, TO_GOLD)), "Benin – gold plume in a gold border on dark red (stylised)")
 FLAGS.update(M)
 
 # Naples: Aragon pallets impaled with Anjou (blue with gold fleur), to differ from Aragón
