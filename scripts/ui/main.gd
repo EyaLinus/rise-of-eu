@@ -248,6 +248,7 @@ func _build_hud() -> void:
 	strip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	strip.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	strip.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	strip.resized.connect(func(): if game != null: _fit_top())  # window / UI size changed
 	hb.add_child(strip)
 	var res := HBoxContainer.new()
 	res.add_theme_constant_override("separation", 14)
@@ -433,9 +434,11 @@ func _btn(text: String, cb: Callable, tip: String = "", disabled: bool = false) 
 	b.disabled = disabled
 	b.custom_minimum_size = Vector2(64, 66) if _big() else Vector2(52, 52)
 	b.focus_mode = Control.FOCUS_NONE
-	# long labels are trimmed instead of widening the side panel past the screen edge
-	b.clip_text = true
+	# long labels wrap onto a second line instead of being cut off or widening the side panel past
+	# the screen edge (callers that need a one-line button set clip_text again)
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	b.tree_entered.connect(_word_floor.bind(b), CONNECT_ONE_SHOT)
 	# a press that turned into a scroll or a long-press tooltip is not a click
 	b.pressed.connect(func():
 		if _suppress_click:
@@ -443,6 +446,26 @@ func _btn(text: String, cb: Callable, tip: String = "", disabled: bool = false) 
 		_sfx("click", -14.0)
 		cb.call())
 	return b
+
+
+## A wrapping button may shrink, but never below its longest word ("Ändern" must not become "Änd/ern").
+static func _word_floor(b: Button) -> void:
+	if b.autowrap_mode == TextServer.AUTOWRAP_OFF or b.clip_text or b.text == "":
+		return
+	var font: Font = b.get_theme_font("font")
+	var fs: int = b.get_theme_font_size("font_size")
+	var w := 0.0
+	var words: Array = Array(b.text.split(" ", false))
+	if words.size() > 1 and words[0].length() <= 2:  # keep a leading emoji with its word
+		words[1] = words[0] + " " + words[1]
+	for word in words:
+		w = maxf(w, font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+	var sb: StyleBox = b.get_theme_stylebox("normal")
+	if sb != null:
+		w += sb.get_margin(SIDE_LEFT) + sb.get_margin(SIDE_RIGHT)
+	if b.icon != null and not b.expand_icon:
+		w += b.icon.get_width() + b.get_theme_constant("h_separation")
+	b.custom_minimum_size.x = maxf(b.custom_minimum_size.x, ceilf(w) + 2.0)
 
 
 ## Button with a title line and a BBCode line below (event options: green buffs, red nerfs).
@@ -572,10 +595,7 @@ func _chip(text: String, tip: String = "", kind: String = "") -> PanelContainer:
 	var pc := PanelContainer.new()
 	pc.add_theme_stylebox_override("panel", UiTheme.card(kind, 6))
 	var l := _lbl(text, 15)
-	l.autowrap_mode = TextServer.AUTOWRAP_OFF
-	l.clip_text = true
-	l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	l.custom_minimum_size.x = 60
+	l.custom_minimum_size.x = 60  # wraps when the row is narrow instead of cutting the text
 	pc.add_child(l)
 	if tip != "":
 		pc.tooltip_text = tip
@@ -1244,11 +1264,11 @@ func _update_top() -> void:
 	var n = game.nations[game.player]
 	var net: float = n.income - n.expenses + game.tribute_income(game.player)
 	top_labels.nation.text = nname(game.player)
-	top_labels.gold.text = Icons.prefix("gold") + "%d (%+.1f)" % [n.gold, net]
+	top_labels.gold.text = Icons.prefix("gold") + "%s (%s%s)" % [short_num(n.gold), "+" if net >= 0 else "", short_num(net) if absf(net) >= 100.0 else "%.1f" % net]
 	top_labels.adm.text = Icons.prefix("adm") + "%d" % n.adm
 	top_labels.dip.text = Icons.prefix("dip") + "%d" % n.dip
 	top_labels.mil.text = Icons.prefix("mil") + "%d" % n.mil
-	top_labels.manpower.text = Icons.prefix("manpower") + "%.0f" % n.manpower
+	top_labels.manpower.text = Icons.prefix("manpower") + short_num(n.manpower)
 	top_labels.army.text = Icons.prefix("army") + "%.0f/%.0f" % [game.army_regs(game.player), game.force_limit(game.player)]
 	top_labels.ae.text = Icons.prefix("ae") + "%d" % n.ae
 	top_labels.ae.add_theme_color_override("font_color", Color.TOMATO if n.ae >= game.coalition_threshold(game.player) * 0.7 else Color.WHITE)
@@ -1265,7 +1285,31 @@ func _update_top() -> void:
 	top_labels.army.tooltip_text = "Regimenter / Truppenlimit\nMehr Regimenter als das Limit kannst du nicht ausheben. Kasernen, Technik und Ränge erhöhen es."
 	top_labels.ae.tooltip_text = "Aggressive Expansion %d (Koalitionsgrenze %d)\nSinkt langsam; hohe Werte machen Nachbarn feindlich." % [n.ae, int(game.coalition_threshold(game.player))]
 	speed_label.text = "⏸" if speed == 0 else "▶".repeat(speed)
+	_fit_top()
 	_update_badges()
+
+
+## Keep every resource of the top bar visible (AE sits last and got pushed out by big gold numbers):
+## first tighter spacing, then the nation name collapses to the flag, then a smaller font.
+func _fit_top() -> void:
+	var res: HBoxContainer = top_labels.gold.get_parent()
+	var strip: Control = res.get_parent()
+	var avail: float = strip.size.x
+	if avail <= 0.0:
+		return
+	var base_sep := 10 if _big() else 14
+	var steps := [[base_sep, true, 20, 32], [6, true, 20, 32], [6, false, 20, 32], [4, false, 18, 28], [3, false, 16, 24], [2, false, 15, 20]]
+	for st in steps:
+		res.add_theme_constant_override("separation", st[0])
+		for c in res.get_children():
+			if c is TextureRect:
+				c.custom_minimum_size = Vector2(st[3], st[3])
+		top_labels.nation.visible = st[1]
+		for k in top_labels:
+			if k != "date" and top_labels[k] is Label:
+				top_labels[k].add_theme_font_size_override("font_size", st[2])
+		if res.get_combined_minimum_size().x <= avail:
+			return
 
 
 ## Small dots on the left tabs when something can be done there.
@@ -1866,6 +1910,32 @@ func _refresh() -> void:
 		"advice":
 			_panel_advice()
 	side_scroll.set_deferred("scroll_vertical", scroll)
+	_fit_title.call_deferred()
+
+
+## Long panel titles (nation names, "Heiliges Römisches Reich") get a smaller font instead of "…".
+func _fit_title() -> void:
+	var font: Font = side_title.get_theme_font("font")
+	var avail: float = side_title.size.x
+	var fs := 24
+	while fs > 15 and font.get_string_size(side_title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > avail:
+		fs -= 1
+	side_title.add_theme_font_size_override("font_size", fs)
+	side_title.tooltip_text = side_title.text
+	side_title.mouse_filter = Control.MOUSE_FILTER_PASS
+
+
+## Short number for tight spots: 950, 12.3k, 123k, 1.2M (the exact value goes into the tooltip).
+static func short_num(v: float) -> String:
+	var a := absf(v)
+	var sgn := "-" if v < 0 else ""
+	if a < 10000.0:
+		return "%d" % int(v)
+	if a < 100000.0:
+		return sgn + ("%.1fk" % (a / 1000.0)).replace(".0k", "k")
+	if a < 1000000.0:
+		return sgn + "%dk" % int(a / 1000.0)
+	return sgn + ("%.1fM" % (a / 1000000.0)).replace(".0M", "M")
 
 
 func _on_province_tapped(pid: int) -> void:
@@ -2335,7 +2405,6 @@ func _panel_mapmodes() -> void:
 	var modes := []
 	for i in map.MODE_NAMES.size():
 		var b := _btn(map.MODE_NAMES[i], _set_map_mode.bind(i), MODE_LEGENDS[i])
-		b.clip_text = true
 		if map.map_mode == i:
 			b.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
 			b.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
@@ -2507,7 +2576,7 @@ func _panel_nation() -> void:
 		_chip("📜+%.0f 🕊️+%.0f ⚔️+%.0f" % [game.monthly_power(n, "adm"), game.monthly_power(n, "dip"), game.monthly_power(n, "mil")], "Macht pro Monat."),
 		_chip("💰 %+.1f / Monat" % (n.income - n.expenses), "Einnahmen %.1f, Ausgaben %.1f." % [n.income, n.expenses], "good" if n.income >= n.expenses else "bad"),
 		_chip("🏘️ %d · %d Prov." % [n.dev_total, game.provinces_of(me).size()], "Gesamtentwicklung und Zahl der Provinzen."),
-		_chip("🛡️ %.0f · 👥 %.0f/%.0f" % [game.force_limit(me), n.manpower, n.max_manpower], "Truppenlimit und Mannschaften (aktuell / maximal)."),
+		_chip("🛡️ %.0f · 👥 %s/%s" % [game.force_limit(me), short_num(n.manpower), short_num(n.max_manpower)], "Truppenlimit und Mannschaften (aktuell / maximal)."),
 		_chip("⭐ %d · 🏆 %d" % [n.prestige, game.score(me)], "Prestige und Punkte (Rangliste)."),
 		_chip("😩 Müdigkeit %.1f" % n.we, "Kriegsmüdigkeit (höchstens %d): erhöht Unruhe, Gegner nehmen Frieden leichter an." % int(game.bal.we_max), "bad" if n.we >= 5.0 else ""),
 		_chip("😠 AE %d / %d" % [n.ae, thr], "Aggressive Expansion; ab %d drohen Koalitionen.\nKoalition gegen dich: %s" % [int(thr), ", ".join(co) if not co.is_empty() else "keine"], "bad" if not co.is_empty() or n.ae >= thr else ""),
@@ -2528,7 +2597,7 @@ func _panel_nation() -> void:
 					"Volk beruhigen: senkt die Kriegsmüdigkeit, die Unruhe in allen Provinzen erzeugt."),
 			_btn("😠 −%d · %d🕊️" % [int(game.bal.reputation_ae), int(game.bal.reputation_cost)], func(): _act(game.restore_reputation(me), "😠 Dein Ruf bessert sich"),
 					"Ruf verbessern: Gesandte beruhigen die Nachbarn, Koalitionen werden unwahrscheinlicher."),
-			_btn(("👥 +%d · %d⚔️" % [int(game.conscript_gain(me)), int(game.bal.conscript_cost)]) if cr == 0 else ("👥 in %d Mon." % cr), func(): _act(game.conscript(me), "👥 Neue Rekruten ausgehoben"),
+			_btn(("👥 +%d · %d⚔️" % [maxi(0, int(game.conscript_gain(me))), int(game.bal.conscript_cost)]) if cr == 0 else ("👥 in %d Mon." % cr), func(): _act(game.conscript(me), "👥 Neue Rekruten ausgehoben"),
 					"Rekrutierung: füllt sofort bis zu %d %% deiner maximalen Mannschaften auf. Danach %d Monate Pause." % [int(float(game.bal.conscript_share) * 100), int(game.bal.conscript_cooldown)]),
 		]
 		for r in Faith.FAITHS:
@@ -2975,7 +3044,6 @@ func _panel_navy() -> void:
 		var on: bool = Naval.mission(game, me) == k
 		var mk: String = k
 		var b := _btn(Naval.MISSIONS[k].name, func(): _act(Naval.set_mission(game, me, mk), ""), Naval.MISSIONS[k].tip)
-		b.clip_text = true
 		if on:
 			b.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
 		ms.append(b)
@@ -2993,7 +3061,6 @@ func _panel_navy() -> void:
 			var label: String = "Überall" if sid == "" else Naval.sea_name(game, sid)
 			var b := _btn(label, func(): _act(Naval.station(game, me, s_id), ""),
 					"Alle Schiffe auf deine Küstenmeere verteilen." if sid == "" else "Alle Schiffe in %s bündeln: dort stark, anderswo fehlen sie." % label)
-			b.clip_text = true
 			if on:
 				b.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
 			st.append(b)
@@ -3133,7 +3200,6 @@ func _panel_peace(war_id: int) -> void:
 			var on: bool = peace_selection.has(pid)
 			var tb := _btn(("✅ " if on else "") + "%s %d" % [p.name, int(game.peace_cost([pid]))], _toggle_peace.bind(not on, pid),
 					"%s: Entwicklung %d, kostet %d Kriegspunkte." % [p.name, p.dev, int(game.peace_cost([pid]))])
-			tb.clip_text = true
 			if on:
 				tb.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
 			tiles.append(tb)
@@ -3551,7 +3617,6 @@ func _first_steps_box() -> void:
 		else:
 			b = _btn(it.text, _first_step_go.bind(it.id, it.mode), it.tip)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.clip_text = true
 		tiles.append(b)
 	if tiles.size() % 2 == 1:
 		tiles.append(Control.new())
