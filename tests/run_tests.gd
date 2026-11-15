@@ -21,6 +21,9 @@ func _init() -> void:
 		"test_march_time_and_terrain", "test_interception", "test_battle_rounds",
 		"test_naval",
 		"test_ai_peace_spending",
+		"test_capitulation",
+		"test_coalition_softer_vs_player",
+		"test_fleet_missions",
 		"test_ai_war_odds",
 		"test_military_access",
 		"test_guarantee",
@@ -300,7 +303,7 @@ func test_unrest_and_revolt() -> void:
 	p.prev_owner = "BRI"
 	p.core_months = 60
 	g._rebuild_owned()
-	g.nations.FRA.we = 10.0
+	g.nations.FRA.we = 16.0
 	for a in g.armies.duplicate():
 		if a.pid == rennes:
 			g.armies.erase(a)
@@ -320,7 +323,7 @@ func test_unrest_and_revolt() -> void:
 	check(g.provinces[orl].dev == maxi(1, dev0 - 1) and g.provinces[orl].owner == "FRA", "revolt loots, province stays")
 	# war exhaustion makes the AI accept peace more easily and can be reduced
 	g.nations.FRA.dip = 999.0
-	check(g.reduce_we("FRA") == "" and g.nations.FRA.we < 10.0, "reduce war exhaustion")
+	check(g.reduce_we("FRA") == "" and g.nations.FRA.we < 16.0, "reduce war exhaustion")
 	# a strong vassal breaks free
 	var g2 = new_game("FRA")
 	g2.nations.BRI.overlord = "ENG"
@@ -3160,6 +3163,74 @@ func test_play_on() -> void:
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
 	check(g2.endless and not g2.game_over, "endless survives save/load")
 
+func test_capitulation() -> void:
+	var g = new_game("TUR")
+	for t in g.order:
+		g.nations[t].allies.clear()
+		g.nations[t].guarantees.clear()
+	g.nations.TUR.truces.erase("BYZ")
+	g.nations.BYZ.truces.erase("TUR")
+	g.declare_war("TUR", "BYZ")
+	var w = g.war_between("TUR", "BYZ")
+	check(w != null, "TUR declares war on BYZ")
+	w.defenders = ["BYZ"]
+	w.attackers = ["TUR"]
+	var all: Array = g.provinces_of("BYZ")
+	var half := []
+	for i in all.size():
+		if i * 2 < all.size():
+			g.provinces[all[i]].controller = "TUR"
+			half.append(all[i])
+	check(g.Warfare.pressure(g, w, false) > 0.0, "occupied land puts pressure on the loser")
+	var we0: float = g.nations.BYZ.we
+	g.nations.BYZ.we += g.Warfare.occupation_we(g, g.nations.BYZ)
+	check(g.nations.BYZ.we > we0, "occupation raises war exhaustion")
+	check(not g.Warfare.capitulated(g, w, false) or g.warscore(w) >= float(g.bal.surrender_ws), "half occupied, fresh: no capitulation yet")
+	for pid in all:
+		g.provinces[pid].controller = "TUR"
+	check(g.Warfare.capitulated(g, w, false), "fully occupied leader capitulates")
+	check(g.Warfare.peace_budget(g, w, true) >= 9999.0, "capitulation: unlimited budget")
+	var ok: bool = g.offer_peace("TUR", w, all, true)
+	check(ok, "capitulated BYZ accepts giving everything")
+	check(not g.nations.BYZ.alive or g.provinces_of("BYZ").is_empty(), "BYZ annexed")
+	check(g.nations.TUR.ae <= float(g.bal.ae_peace_cap_player) + 1.0, "player AE per peace is capped (%d)" % int(g.nations.TUR.ae))
+
+
+func test_coalition_softer_vs_player() -> void:
+	var g = new_game("FRA")
+	check(g.coalition_threshold("FRA") > g.coalition_threshold("ENG"), "player has a higher coalition threshold")
+	var n = g.nations.FRA
+	n.ae = g.coalition_threshold("FRA") - 1.0
+	g._coalitions_yearly()
+	check(n.coalition.is_empty(), "no coalition below the player threshold")
+	n.ae = 300.0
+	for i in 6:
+		g._coalitions_yearly()
+	check(n.coalition.size() <= int(g.bal.coalition_player_max), "player coalition capped (%d)" % n.coalition.size())
+	var e = g.nations.ENG
+	e.ae = 300.0
+	for i in 6:
+		g._coalitions_yearly()
+	check(e.coalition.size() <= int(g.bal.coalition_max), "AI coalition capped (%d)" % e.coalition.size())
+
+
+func test_fleet_missions() -> void:
+	var g = new_game("ENG")
+	var n = g.nations.ENG
+	check(g.Naval.mission(g, "ENG") == "patrol", "default mission is patrol")
+	var p0: float = g.Naval.power_mult(g, "ENG")
+	check(g.Naval.set_mission(g, "ENG", "blockade") == "", "mission can be set")
+	check(g.Naval.power_mult(g, "ENG") < p0, "blockade duty costs fighting power")
+	check(g.Naval.set_mission(g, "ENG", "nonsense") != "", "unknown mission refused")
+	g.Naval.set_mission(g, "ENG", "escort")
+	n.ships = g.Naval.limit(g, "ENG")
+	g.Naval.refresh(g)
+	if not g.is_at_war("ENG"):
+		check(n.bonus.has("escort"), "escort in peace gives trade income")
+	var g2 = new_game("ENG", 99)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.ENG.fleet_mission == "escort", "mission survives save/load")
+	check(g.Naval.blockade_strength(g, -1) == 0.0, "no blockade on unknown province")
 
 func test_formables() -> void:
 	var g = new_game("NAP")

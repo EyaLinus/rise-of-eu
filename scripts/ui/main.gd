@@ -60,7 +60,7 @@ var mode_strip: HBoxContainer  # map mode buttons at the bottom (one per MapView
 const MODE_ICONS := ["🏰", "🤝", "📈", "😠", "⚔️", "🌾", "🪙", "🏗️", "⛪", "👑"]
 ## Panel shortcuts (PC): key -> panel. Pressing it again closes the panel.
 const PANEL_KEYS := {KEY_N: "nation", KEY_E: "economy", KEY_T: "tech", KEY_G: "government", KEY_D: "diplomacy",
-	KEY_K: "wars", KEY_M: "missions", KEY_L: "log", KEY_R: "advice", KEY_V: "mapmodes"}
+	KEY_K: "wars", KEY_F: "navy", KEY_M: "missions", KEY_L: "log", KEY_R: "advice", KEY_V: "mapmodes"}
 const WINDOW_MODES := ["window", "maximized", "borderless"]
 const WINDOW_NAMES := {"window": "Fenster", "maximized": "Maximiert", "borderless": "Randlos (Vollbild)"}
 
@@ -78,6 +78,7 @@ var modal_box: VBoxContainer
 var toast: Label
 var toast_time := 0.0
 var hud: Control
+var left_tabs: GridContainer  # the tab column on the left
 var settings := {"ui_scale": 1.0, "tips": true, "tips_seen": [], "sound": true, "difficulty": "normal"}
 var sfx_players: Array = []
 # touch layer: drag-to-scroll over buttons and long-press tooltips (see _input)
@@ -216,6 +217,7 @@ func _cycle_ui_scale() -> void:
 	var i := UI_SCALES.find(float(settings.ui_scale))
 	settings.ui_scale = UI_SCALES[(i + 1) % UI_SCALES.size()]
 	_apply_settings()
+	_fit_left_tabs()
 	_save_settings()
 	_show_settings()
 
@@ -279,12 +281,13 @@ func _build_hud() -> void:
 
 	# 8 tabs: one column on desktop, two columns with large touch targets so they fit 720 px height
 	var left := GridContainer.new()
-	left.columns = 2  # 9 tabs do not fit one column above the zoom buttons on a 720 px screen
+	left.columns = 2  # 11 tabs: two columns, three on short windows (_fit_left_tabs)
+	left_tabs = left
 	left.position = Vector2(8, 72)
 	left.add_theme_constant_override("v_separation", 8)
 	left.add_theme_constant_override("h_separation", 8)
 	hud.add_child(left)
-	for e in [["nation", "Nation"], ["economy", "Wirtschaft"], ["tech", "Technologie"], ["government", "Regierung"], ["diplomacy", "Diplomatie"], ["wars", "Kriege"],
+	for e in [["nation", "Nation"], ["economy", "Wirtschaft"], ["tech", "Technologie"], ["government", "Regierung"], ["diplomacy", "Diplomatie"], ["wars", "Kriege"], ["navy", "Marine"],
 			["missions", "Missionen"], ["log", "Chronik"], ["mapmode", "Kartenmodus"], ["advice", "Ratgeber: was jetzt zu tun ist"]]:
 		var cb: Callable = _open_panel.bind("mapmodes") if e[0] == "mapmode" else _open_panel.bind(e[0])
 		var tip: String = e[1]
@@ -304,6 +307,8 @@ func _build_hud() -> void:
 		left.add_child(tb)
 		if e[0] == "advice":
 			badge.position = Vector2(36, -8)  # the advisor's badge counts the open to-dos
+	get_viewport().size_changed.connect(_fit_left_tabs)
+	_fit_left_tabs.call_deferred()
 
 	var zoom := HBoxContainer.new()
 	zoom.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -818,7 +823,7 @@ func _show_intro() -> void:
 	_open_modal()
 	modal_box.add_child(_lbl("%s, %s" % [nname(game.player), game.date_string()], 30))
 	modal_box.add_child(_lbl(n.idea, 18, Color(0.8, 0.85, 0.7)))
-	modal_box.add_child(_lbl("So spielst du:\n• Zeit läuft mit ▶/➕ oben rechts, ⏸ pausiert.\n• Tippe auf eine Provinz für Infos und Aktionen (Entwickeln, Rekrutieren, Krieg).\n• Tippe auf eine Armee (Kreis mit Zahl) und dann auf ein Ziel, um sie zu bewegen. 🤖 lässt sie automatisch kämpfen.\n• 📜 Admin, 🕊️ Diplomatie und ⚔️ Militär sammeln sich monatlich: für Technologie, Entwicklung, Bündnisse und Kriegsgründe.\n• 😠 Aggressive Expansion steigt bei Eroberungen. Ab %d bilden Nachbarn Koalitionen gegen dich.\n• ✊ Frisch eroberte Provinzen sind unruhig, Kriegsmüdigkeit verstärkt das. Garnisonen und Unterdrückung helfen.\n• Am PC: Leertaste = Pause, 1–5 = Tempo, Esc = Panel schließen." % int(game.bal.ae_coalition_threshold), 17))
+	modal_box.add_child(_lbl("So spielst du:\n• Zeit läuft mit ▶/➕ oben rechts, ⏸ pausiert.\n• Tippe auf eine Provinz für Infos und Aktionen (Entwickeln, Rekrutieren, Krieg).\n• Tippe auf eine Armee (Kreis mit Zahl) und dann auf ein Ziel, um sie zu bewegen. 🤖 lässt sie automatisch kämpfen.\n• 📜 Admin, 🕊️ Diplomatie und ⚔️ Militär sammeln sich monatlich: für Technologie, Entwicklung, Bündnisse und Kriegsgründe.\n• 😠 Aggressive Expansion steigt bei Eroberungen. Ab %d bilden Nachbarn Koalitionen gegen dich.\n• ✊ Frisch eroberte Provinzen sind unruhig, Kriegsmüdigkeit verstärkt das. Garnisonen und Unterdrückung helfen.\n• Am PC: Leertaste = Pause, 1–5 = Tempo, Esc = Panel schließen." % int(game.coalition_threshold(game.player)), 17))
 	modal_box.add_child(_btn("Los geht's ▶", func(): _close_modal(); _set_speed(2)))
 
 
@@ -978,13 +983,26 @@ func _check_long_press() -> void:
 
 
 ## Box hugs the text (max 420 px, wraps beyond), bottom left above the map mode strip, never under an open side panel.
+## Two tab columns, more when the window is too short to fit them above the zoom buttons (140 % UI, 720 px).
+func _fit_left_tabs() -> void:
+	if left_tabs == null or left_tabs.get_child_count() == 0:
+		return
+	var step: float = (left_tabs.get_child(0) as Control).custom_minimum_size.y + 8.0
+	var room: float = get_viewport_rect().size.y - left_tabs.position.y - step - 24.0  # zoom buttons below
+	var n := left_tabs.get_child_count()
+	var cols := 2
+	while cols < 4 and ceilf(float(n) / cols) * step > room:
+		cols += 1
+	left_tabs.columns = cols
+
+
 func _place_toast() -> void:
 	var f: Font = toast.get_theme_font("font")
 	var panel_w: float = -side_panel.offset_left if side_panel.visible else 0.0
 	var room: float = get_viewport_rect().size.x - panel_w - 24.0
 	var w: float = minf(minf(420.0, room), f.get_string_size(toast.text, HORIZONTAL_ALIGNMENT_LEFT, -1, toast.get_theme_font_size("font_size")).x + 24.0)
 	# right of the tab column, above the map mode strip (keeps clear of the tabs at 140 % UI size)
-	var left: float = 8.0 + 2 * 60 + 8 + 16
+	var left: float = 8.0 + (left_tabs.size.x if left_tabs != null else 128.0) + 16
 	toast.offset_left = left
 	toast.offset_right = left + minf(w, room - left)
 
@@ -1177,7 +1195,7 @@ func _check_tips() -> bool:
 		if game.unrest(pid) >= 3.0:
 			cand.append("unrest")
 			break
-	if n.ae >= float(game.bal.ae_coalition_threshold) * 0.5:
+	if n.ae >= float(game.coalition_threshold(game.player)) * 0.5:
 		cand.append("ae")
 	if game.month >= 6 and tab_badges.tech.visible:
 		cand.append("tech")
@@ -1203,7 +1221,7 @@ func _check_tips() -> bool:
 	_set_speed(0)
 	_open_modal()
 	var tip: Array = TIPS[due]
-	var body: String = tip[1] % int(game.bal.ae_coalition_threshold) if due == "ae" else tip[1]
+	var body: String = tip[1] % int(game.coalition_threshold(game.player)) if due == "ae" else tip[1]
 	modal_box.add_child(_lbl("💡 " + tip[0], 26))
 	modal_box.add_child(_lbl(body, 18))
 	modal_box.add_child(_row([_btn("Verstanden", _close_modal), _btn("Keine Tipps mehr", func():
@@ -1233,7 +1251,7 @@ func _update_top() -> void:
 	top_labels.manpower.text = Icons.prefix("manpower") + "%.0f" % n.manpower
 	top_labels.army.text = Icons.prefix("army") + "%.0f/%.0f" % [game.army_regs(game.player), game.force_limit(game.player)]
 	top_labels.ae.text = Icons.prefix("ae") + "%d" % n.ae
-	top_labels.ae.add_theme_color_override("font_color", Color.TOMATO if n.ae >= game.bal.ae_coalition_threshold * 0.7 else Color.WHITE)
+	top_labels.ae.add_theme_color_override("font_color", Color.TOMATO if n.ae >= game.coalition_threshold(game.player) * 0.7 else Color.WHITE)
 	top_labels.gold.add_theme_color_override("font_color", Color.TOMATO if n.gold < 0 else Color.WHITE)
 	top_labels.date.text = Icons.prefix("date") + game.date_string()
 	# live tooltips (long press on mobile)
@@ -1245,7 +1263,7 @@ func _update_top() -> void:
 		top_labels[k].tooltip_text = "%s\n%+.1f pro Monat, Obergrenze %d" % [HUD_TIPS[k], game.monthly_power(n, k), cap]
 	top_labels.manpower.tooltip_text = "Mannschaften %.0f / %.0f\nFüllen sich jeden Monat auf; Gutshöfe und Kasernen erhöhen das Maximum." % [n.manpower, n.max_manpower]
 	top_labels.army.tooltip_text = "Regimenter / Truppenlimit\nMehr Regimenter als das Limit kannst du nicht ausheben. Kasernen, Technik und Ränge erhöhen es."
-	top_labels.ae.tooltip_text = "Aggressive Expansion %d (Koalitionsgrenze %d)\nSinkt langsam; hohe Werte machen Nachbarn feindlich." % [n.ae, int(game.bal.ae_coalition_threshold)]
+	top_labels.ae.tooltip_text = "Aggressive Expansion %d (Koalitionsgrenze %d)\nSinkt langsam; hohe Werte machen Nachbarn feindlich." % [n.ae, int(game.coalition_threshold(game.player))]
 	speed_label.text = "⏸" if speed == 0 else "▶".repeat(speed)
 	_update_badges()
 
@@ -1442,7 +1460,7 @@ const SHORTCUTS := [
 	["Leertaste", "Pause / weiter"], ["1 – 5", "Spieltempo"], ["+ / −", "schneller / langsamer"],
 	["Pfeile", "Karte verschieben"], ["Bild ↑ ↓", "Zoom (auch Mausrad)"], ["Tab", "nächster Kartenmodus"],
 	["V", "Kartenmodi + Legende"], ["N", "Nation"], ["E", "Wirtschaft"], ["T", "Technologie"], ["G", "Regierung"],
-	["D", "Diplomatie"], ["K", "Kriege"], ["M", "Missionen"], ["L", "Chronik"], ["R", "Ratgeber"],
+	["D", "Diplomatie"], ["K", "Kriege"], ["F", "Flotte / Marine"], ["M", "Missionen"], ["L", "Chronik"], ["R", "Ratgeber"],
 	["F5", "Schnellspeichern"], ["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F1", "diese Übersicht"],
 ]
 
@@ -1823,6 +1841,8 @@ func _refresh() -> void:
 			_panel_other(panel_arg)
 		"wars":
 			_panel_wars()
+		"navy":
+			_panel_navy()
 		"peace":
 			_panel_peace(panel_arg)
 		"missions":
@@ -2477,7 +2497,7 @@ func _panel_nation() -> void:
 	var n = game.nations[me]
 	side_title.text = nname(me)
 	side_box.add_child(_bb(_idea_bb(n.idea, data.nations[me].get("bonus", {})), 15))
-	var thr: float = game.bal.ae_coalition_threshold
+	var thr: float = game.coalition_threshold(game.player)
 	var co := []
 	for t in n.coalition:
 		co.append(game.nations[t].name)
@@ -2520,7 +2540,9 @@ func _panel_nation() -> void:
 		if acts.size() % 2 == 1:
 			acts.append(Control.new())
 		side_box.add_child(_grid(acts))
-	_nation_fleet(me)
+	if Naval.limit(game, me) > 0.0:
+		side_box.add_child(_btn("⚓ Marine: %d / %d Schiffe · %s" % [int(round(game.nations[me].ships)), int(Naval.limit(game, me)), Naval.MISSIONS[Naval.mission(game, me)].name],
+				_open_panel.bind("navy"), "Flotte bauen, Auftrag und Station wählen, Seekrieg und Blockaden."))
 	_nation_monuments(me)
 	_nation_formables(me)
 	var vs: Array = game.vassals_of(me)
@@ -2532,7 +2554,7 @@ func _panel_nation() -> void:
 
 
 const MOD_SOURCES := {"": "Nationalgeist & Ereignisse", "goods": "Handelsgüter", "buildings": "Gebäude", "rank": "Rang",
-		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "rivals": "Rivalen", "embargo": "Embargos", "formed": "Reichsgründung"}
+		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "rivals": "Rivalen", "embargo": "Embargos", "blockade": "Blockaden", "escort": "Handelsschutz", "formed": "Reichsgründung"}
 const MOD_GROUPS := [
 	["💰 Wirtschaft", ["income", "tax", "production", "trade", "merchants", "build_cost", "develop_cost"]],
 	["⚔️ Militär", ["combat", "army_power", "army_power_regen", "manpower", "force_limit", "maintenance", "siege", "naval"]],
@@ -2894,16 +2916,35 @@ func _confirm_war(tag: String) -> void:
 	modal_box.add_child(_btn("Abbrechen", _close_modal))
 
 
-## Fleet: size, station, building. Ships rule seas in war (crossings, blockades), see Naval.
-func _nation_fleet(me: String) -> void:
+## Sea control per sea in one war, from the player's side: our ships : theirs, green = we rule it.
+func _sea_war_chips(w, att: bool) -> void:
+	var sea_chips := []
+	for s in game.seas:
+		var sea_us: float = Naval.side_power(game, game.side_tags(w, att), s.id)
+		var sea_them: float = Naval.side_power(game, game.side_tags(w, not att), s.id)
+		if sea_us <= 0.0 and sea_them <= 0.0:
+			continue
+		var c: String = Naval.control(game, w, s.id)
+		var ours: bool = c == ("att" if att else "def")
+		var kind := "good" if ours else ("bad" if c != "" else "")
+		sea_chips.append(_chip("⚓ %s %s:%s" % [s.name, Naval.fmt(sea_us), Naval.fmt(sea_them)],
+				("Wir beherrschen %s: feindliche Überfahrten gesperrt, feindliche Küsten blockiert." if ours else ("Der Feind beherrscht %s: unsere Überfahrten sind gesperrt, unsere Küsten blockiert." if c != "" else "%s ist umkämpft: niemand hat %.1f-fache Überzahl, Überfahrten bleiben offen.")) % ([s.name] if c != "" else [s.name, float(game.bal.sea_control_ratio)]), kind))
+	if not sea_chips.is_empty():
+		if sea_chips.size() % 2 == 1:
+			sea_chips.append(Control.new())
+		side_box.add_child(_grid(sea_chips))
+
+
+## Navy: fleet, mission, station, the sea war and blockades at a glance (rules in Naval).
+func _panel_navy() -> void:
+	var me: String = game.player
 	var n = game.nations[me]
+	side_title.text = "⚓ Marine"
 	var lim: float = Naval.limit(game, me)
 	if lim <= 0.0:
+		side_box.add_child(_lbl("Dein Reich hat keine Küste: keine Flotte möglich.", 16))
 		return
-	if not _section("nat_fleet", "⚓ Flotte: %d / %d Schiffe" % [int(round(n.ships)), int(lim)], true,
-			"Schiffe beherrschen im Krieg die Meere an deinen Küsten. Wer ein Meer mit %.1f-facher Überzahl beherrscht, sperrt dem Feind dort die Überfahrten (Meerengen, gestrichelt auf der Karte) und blockiert seine Küstenprovinzen (−%d %% Einkommen anteilig, Belagerungen dort +%d %% schneller). Treffen Flotten aufeinander, kommt es zur Seeschlacht." % [
-			float(game.bal.sea_control_ratio), int(float(game.bal.blockade_income) * 100), int(float(game.bal.blockade_siege) * 100)]):
-		return
+	side_box.add_child(_lbl("Schiffe beherrschen im Krieg die Meere an deinen Küsten. Mit %.1f-facher Überzahl sperrst du dem Feind die Überfahrten und blockierst seine Küsten (weniger Einkommen, schnellere Belagerungen)." % float(game.bal.sea_control_ratio), 15, Color(0.75, 0.8, 0.88)))
 	var where := []
 	var pres: Dictionary = Naval.presence(game, me)
 	for sid in pres:
@@ -2911,28 +2952,74 @@ func _nation_fleet(me: String) -> void:
 	side_box.add_child(_grid([
 		_chip("⚓ %d / %d" % [int(round(n.ships)), int(lim)], "Schiffe / Flottenlimit. Das Limit wächst mit der Entwicklung deiner Küstenprovinzen und mit Häfen."),
 		_chip("💰 %.1f / Mon." % Naval.upkeep(game, n), "Unterhalt der Flotte (im Frieden weniger)."),
+		_chip("⚔️ Kampfwert ×%.2f" % Naval.power_mult(game, me), "Kampfkraft je Schiff: Technologie, Boni und Auftrag."),
 		_chip("📍 " + ("überall" if n.fleet_sea == "" else Naval.sea_name(game, n.fleet_sea)), "Wo die Flotte kreuzt: " + (", ".join(where) if not where.is_empty() else "nirgends")),
-		_chip("⚓ %d Seegebiete" % Naval.coast_weights(game, me).size(), "Meere, an die dein Land grenzt."),
 	]))
 	var c := int(Naval.ship_cost(game, me))
-	var m := int(game.bal.ship_mil)
+	var mil := int(game.bal.ship_mil)
 	var r1: String = Naval.build_block_reason(game, me, 1)
 	var r5: String = Naval.build_block_reason(game, me, 5)
 	var acts := [
-		_btn("⚓ +1 · %d💰 %d⚔️" % [c, m], func(): _act(Naval.build_ships(game, me, 1), "⚓ Ein Schiff läuft vom Stapel"), r1 if r1 != "" else "Ein Schiff bauen.", r1 != ""),
-		_btn("⚓ +5 · %d💰 %d⚔️" % [c * 5, m * 5], func(): _act(Naval.build_ships(game, me, 5), "⚓ Fünf Schiffe laufen vom Stapel"), r5 if r5 != "" else "Fünf Schiffe bauen.", r5 != ""),
+		_btn("⚓ +1 · %d💰 %d⚔️" % [c, mil], func(): _act(Naval.build_ships(game, me, 1), "⚓ Ein Schiff läuft vom Stapel"), r1 if r1 != "" else "Ein Schiff bauen.", r1 != ""),
+		_btn("⚓ +5 · %d💰 %d⚔️" % [c * 5, mil * 5], func(): _act(Naval.build_ships(game, me, 5), "⚓ Fünf Schiffe laufen vom Stapel"), r5 if r5 != "" else "Fünf Schiffe bauen.", r5 != ""),
 	]
-	var seas_here: Array = Naval.coast_weights(game, me).keys()
-	if seas_here.size() > 1:
-		var order := [""] + seas_here
-		var nxt: String = order[(order.find(n.fleet_sea) + 1) % order.size()]
-		acts.append(_btn("📍 → " + ("überall" if nxt == "" else Naval.sea_name(game, nxt)), func(): _act(Naval.station(game, me, nxt), ""),
-				"Flotte stationieren: alle Schiffe in einem Meer bündeln (stark dort, fehlt anderswo) oder auf alle Küstenmeere verteilen."))
 	if n.ships >= 1.0:
 		acts.append(_btn("➖ 1 Schiff", func(): Naval.scrap_ships(game, me, 1); _act(""), "Ein Schiff abwracken (spart Unterhalt)."))
 	if acts.size() % 2 == 1:
 		acts.append(Control.new())
 	side_box.add_child(_grid(acts))
+	# mission
+	side_box.add_child(_lbl("🎯 Auftrag", 16, Color(0.7, 0.8, 0.9)))
+	var ms := []
+	for k in Naval.MISSIONS:
+		var on: bool = Naval.mission(game, me) == k
+		var mk: String = k
+		var b := _btn(Naval.MISSIONS[k].name, func(): _act(Naval.set_mission(game, me, mk), ""), Naval.MISSIONS[k].tip)
+		b.clip_text = true
+		if on:
+			b.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
+		ms.append(b)
+	if ms.size() % 2 == 1:
+		ms.append(Control.new())
+	side_box.add_child(_grid(ms))
+	# station
+	var seas_here: Array = Naval.coast_weights(game, me).keys()
+	if seas_here.size() > 1:
+		side_box.add_child(_lbl("📍 Station", 16, Color(0.7, 0.8, 0.9)))
+		var st := []
+		for sid in [""] + seas_here:
+			var on: bool = n.fleet_sea == sid
+			var s_id: String = sid
+			var label: String = "Überall" if sid == "" else Naval.sea_name(game, sid)
+			var b := _btn(label, func(): _act(Naval.station(game, me, s_id), ""),
+					"Alle Schiffe auf deine Küstenmeere verteilen." if sid == "" else "Alle Schiffe in %s bündeln: dort stark, anderswo fehlen sie." % label)
+			b.clip_text = true
+			if on:
+				b.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
+			st.append(b)
+		if st.size() % 2 == 1:
+			st.append(Control.new())
+		side_box.add_child(_grid(st))
+	# the sea war
+	for w in game.wars_of(me):
+		side_box.add_child(_lbl("🔥 " + w.name, 16, Color(1, 0.8, 0.6)))
+		_sea_war_chips(w, game.is_attacker(w, me))
+	# blockades both ways
+	var ours := []
+	var theirs := []
+	for pid in game.blockaded:
+		var o: String = game.provinces[pid].owner
+		if o == me:
+			ours.append(game.provinces[pid].name)
+		elif game.at_war(me, o):
+			theirs.append(game.provinces[pid].name)
+	if not ours.is_empty() or not theirs.is_empty():
+		side_box.add_child(_grid([
+			_chip("⚓ Wir blockieren %d" % theirs.size(), ", ".join(theirs) if not theirs.is_empty() else "Keine feindliche Küste blockiert.", "good" if not theirs.is_empty() else ""),
+			_chip("⚓ Blockiert: %d" % ours.size(), ", ".join(ours) if not ours.is_empty() else "Keine eigene Küste blockiert.", "bad" if not ours.is_empty() else ""),
+		]))
+	if game.wars_of(me).is_empty():
+		side_box.add_child(_lbl("Im Frieden: Handelsschutz bringt etwas Handelseinkommen, sobald ein Viertel des Flottenlimits auf See ist.", 15, Color(0.75, 0.8, 0.88)))
 
 
 func _panel_wars() -> void:
@@ -2981,21 +3068,7 @@ func _panel_wars() -> void:
 					"good" if pw[0] >= pw[1] else "bad"),
 			_chip("👑 " + game.nations[game.side_tags(w, att)[0]].tag, "Kriegsführer unserer Seite: %s. Nur er verhandelt den Frieden." % game.nations[game.side_tags(w, att)[0]].name),
 		]))
-		var sea_chips := []
-		for s in game.seas:
-			var sea_us: float = Naval.side_power(game, game.side_tags(w, att), s.id)
-			var sea_them: float = Naval.side_power(game, game.side_tags(w, not att), s.id)
-			if sea_us <= 0.0 and sea_them <= 0.0:
-				continue
-			var c: String = Naval.control(game, w, s.id)
-			var ours: bool = c == ("att" if att else "def")
-			var kind := "good" if ours else ("bad" if c != "" else "")
-			sea_chips.append(_chip("⚓ %s %s:%s" % [s.name, Naval.fmt(sea_us), Naval.fmt(sea_them)],
-					("Wir beherrschen %s: feindliche Überfahrten gesperrt, feindliche Küsten blockiert." if ours else ("Der Feind beherrscht %s: unsere Überfahrten sind gesperrt, unsere Küsten blockiert." if c != "" else "%s ist umkämpft: niemand hat %.1f-fache Überzahl, Überfahrten bleiben offen.")) % ([s.name] if c != "" else [s.name, float(game.bal.sea_control_ratio)]), kind))
-		if not sea_chips.is_empty():
-			if sea_chips.size() % 2 == 1:
-				sea_chips.append(Control.new())
-			side_box.add_child(_grid(sea_chips))
+		_sea_war_chips(w, att)
 		if game.side_tags(w, att)[0] == me:
 			side_box.add_child(_btn("🕊️ Friedensverhandlung", _open_panel.bind("peace", w.id)))
 		else:
@@ -3026,9 +3099,18 @@ func _panel_peace(war_id: int) -> void:
 	for pid in peace_selection:
 		dev_sel += game.provinces[pid].dev
 	var core_cost: int = int(dev_sel * float(game.bal.core_cost_per_dev))
+	var press: float = Warfare.pressure(game, w, not att)
+	var gave_up: bool = Warfare.capitulated(game, w, not att)
+	var budget: float = ws + press
+	var foe: String = game.side_tags(w, not att)[0]
+	if gave_up:
+		side_box.add_child(_bb("[color=#7cd67c]🏳️ %s kapituliert: jede Forderung auf besetzte Provinzen wird angenommen.[/color]" % nname(foe), 16))
 	side_box.add_child(_grid([
 		_chip("🏆 Punkte %+d" % int(ws), "Kriegspunkte: aus Schlachten und besetzten Provinzen.", "good" if ws > 0 else ("bad" if ws < 0 else "")),
-		_chip("📜 Forderung %d" % int(cost), "Was die ausgewählten Provinzen an Kriegspunkten kosten.", "bad" if cost > ws else ""),
+		_chip("🔥 Druck +%d" % int(press), "Militärischer Druck auf %s: Kriegsmüdigkeit %.1f und %d %% seines Landes besetzt. Zählt zu deinen Kriegspunkten dazu. Ab %d %% Besetzung (oder %d Punkten bei Kriegsmüdigkeit %d) kapituliert der Gegner." % [
+				nname(foe), game.nations[foe].we, int(Warfare.occupied_share(game, w, not att) * 100.0), int(float(game.bal.surrender_occupied) * 100.0),
+				int(game.bal.surrender_ws), int(game.bal.surrender_we)], "good" if gave_up else ""),
+		_chip("📜 Forderung %d" % int(cost), "Was die ausgewählten Provinzen an Kriegspunkten kosten (verfügbar: %d)." % int(budget), "bad" if cost > budget and not gave_up else ""),
 		_chip("📜 Integration %d / %d" % [core_cost, int(game.nations[me].adm)], "Die Integration der Forderung kostet so viel Verwaltungsmacht (du hast %d)." % int(game.nations[me].adm),
 				"bad" if core_cost > game.nations[me].adm else ""),
 		_chip("🏘️ %d Prov. · %d Entw." % [peace_selection.size(), dev_sel], "Ausgewählte Provinzen und ihre Entwicklung."),
@@ -3059,12 +3141,12 @@ func _panel_peace(war_id: int) -> void:
 			tiles.append(Control.new())
 		side_box.add_child(_grid(tiles))
 	var acts := []
-	if not cands.is_empty() and ws > 0:
+	if not cands.is_empty() and budget > 0:
 		acts.append(_btn("✨ Beste Auswahl", func():
 			peace_selection = {}
-			for pid in game.ai.pick_demands(game, w, att, ws):
+			for pid in game.ai.pick_demands(game, w, att, Warfare.peace_budget(game, w, att)):
 				peace_selection[pid] = true
-			_refresh(), "Wählt die wertvollsten Provinzen, die deine %d Kriegspunkte hergeben." % int(ws)))
+			_refresh(), "Wählt die wertvollsten Provinzen, die deine Kriegspunkte samt Druck hergeben." if not gave_up else "Wählt alle besetzten Provinzen (der Gegner kapituliert)."))
 	acts.append(_btn("📜 Fordern", func():
 		var ok: bool = game.offer_peace(me, w, peace_selection.keys(), true)
 		_after_peace(ok), "Frieden mit den ausgewählten Provinzen anbieten. Der Gegner nimmt an, wenn die Kriegspunkte reichen."))

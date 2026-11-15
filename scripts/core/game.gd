@@ -118,6 +118,7 @@ class Nation:
 	var autobuild_reserve: float = 100.0
 	var ships: float = 0.0  # fleet size (Naval)
 	var fleet_sea: String = ""  # player's fleet station: "" = spread over all own coastal seas
+	var fleet_mission: String = "patrol"  # Naval.MISSIONS
 	var army_stance: String = ""  # player's default for new armies: "" manual, "attack" or "defend"
 
 
@@ -163,7 +164,7 @@ var province_seas := {}  # pid -> [sea ids] of coastal provinces
 var strait_sea := {}  # Warfare.strait_key -> sea id
 var _fleet := {}  # tag -> {sea: ships}, Naval.refresh
 var sea_blocked := {}  # tag -> {sea: true} where an enemy rules the sea
-var blockaded := {}  # pid -> true
+var blockaded := {}  # pid -> blockade strength (1.0, more if the blockader is on blockade duty)
 var month: int = 0
 var rng := RandomNumberGenerator.new()
 var player: String = ""
@@ -749,7 +750,8 @@ func _economy(n: Nation) -> void:
 	var war := is_at_war(n.tag)
 	if not war:
 		maint *= float(bal.peace_maintenance_mult)
-	n.we = clampf(n.we + (float(bal.we_monthly) if war else -float(bal.we_decay)), 0.0, float(bal.we_max))
+	var dwe: float = float(bal.we_monthly) + Warfare.occupation_we(self, n) if war else -float(bal.we_decay)
+	n.we = clampf(n.we + dwe, 0.0, float(bal.we_max))
 	_unrest_tick(n)
 	Religion.monthly(self, n)
 	Monuments.tick(self, n)
@@ -1184,7 +1186,7 @@ func _siege(p: Province) -> void:
 		regs += b.regs
 	var prog: float = float(bal.siege_base) * minf(regs, 20.0) / (sqrt(p.dev) + 2.0) / (1.0 + Economy.fort_level(self, p) * float(bal.fort_siege_mult))
 	if Naval.is_blockaded(self, p.id):
-		prog *= 1.0 + float(bal.blockade_siege)  # no supply by sea
+		prog *= 1.0 + float(bal.blockade_siege) * Naval.blockade_strength(self, p.id)  # no supply by sea
 	p.siege += prog * maxf(0.2, 1.0 + mod(nations[besiegers[0].owner], "siege"))
 	if p.siege >= 100.0:
 		p.siege = 0.0
@@ -1340,7 +1342,9 @@ func _wars_tick() -> void:
 			if ai.wants_vassal(self, w, winner_att, 100.0):
 				make_peace(w, winner_att, [], true)
 				continue
-			var pick: Array = ai.pick_demands(self, w, winner_att, 100.0)
+			# a player winner keeps choosing his own demands; AI winners take what the pressure allows
+			var budget: float = 100.0 if side_tags(w, winner_att).has(player) else maxf(100.0, Warfare.peace_budget(self, w, winner_att))
+			var pick: Array = ai.pick_demands(self, w, winner_att, budget)
 			make_peace(w, winner_att, pick)
 			continue
 		if month - w.start >= int(bal.war_timeout_months):
@@ -1481,6 +1485,8 @@ func make_peace(w: War, winner_att: bool, pids: Array, vassalize: bool = false) 
 	var losers: Array = side_tags(w, not winner_att)
 	var lead: String = winners[0]
 	var new_vassal: String = losers[0] if vassalize else ""
+	# fun over realism: one peace deal never costs the player more AE than ae_peace_cap_player
+	var ae_player_start: float = nations[player].ae if player != "" else 0.0
 	for pid in pids:
 		var p: Province = provinces[pid]
 		var to: String = receiver_of(pid, winners)
@@ -1514,6 +1520,9 @@ func make_peace(w: War, winner_att: bool, pids: Array, vassalize: bool = false) 
 			stats.player_wins = stats.get("player_wins", 0) + 1
 		elif losers.has(player):
 			stats.player_losses = stats.get("player_losses", 0) + 1
+	if player != "" and winners.has(player):
+		var pn: Nation = nations[player]
+		pn.ae = minf(pn.ae, maxf(ae_player_start, ae_player_start + float(bal.ae_peace_cap_player)))
 	stats.peace_deals += 1
 	wars.erase(w)
 	if new_vassal != "":
@@ -1768,8 +1777,18 @@ func offer_peace(from: String, w: War, pids: Array, from_receives: bool = true, 
 		peace_offer_memo[w.id] = {"month": month, "ws": ws}
 		pending_peace.append({"war": w.id, "from": from, "pids": pids, "from_receives": from_receives, "vassal": vassalize})
 		return false
-	# an exhausted receiver gives in sooner
-	var ws_eff: float = ws + nations[other].we * float(bal.we_peace_factor) * (1.0 if from_receives else -1.0)
+	# a receiver under pressure (exhausted, own land occupied) gives in sooner; a capitulated one gives
+	# any occupied province it is asked for
+	if from_receives and Warfare.capitulated(self, w, not from_att):
+		var occupied: Array = demandable(w, from_att)
+		var all_occupied := true
+		for pid in pids:
+			if not occupied.has(pid):
+				all_occupied = false
+		if all_occupied:
+			make_peace(w, from_att, pids, vassalize)
+			return true
+	var ws_eff: float = ws + (Warfare.pressure(self, w, not from_att) if from_receives else -nations[other].we * float(bal.we_peace_factor))
 	if ai.accepts_peace(self, w, pids, ws_eff, from_receives, vassal_cost(w, from_att) if vassalize else 0.0):
 		make_peace(w, from_att == from_receives, pids, vassalize)
 		return true
@@ -1794,23 +1813,42 @@ func war_by_id(id: int) -> War:
 
 # ---------------------------------------------------------------- coalitions
 
+## Coalitions are softer against the player (fun over realism): higher AE threshold, smaller range,
+## fewer members, lower join chance, and they only attack when clearly stronger.
+func coalition_threshold(tag: String) -> float:
+	return float(bal.ae_coalition_threshold) * (float(bal.coalition_player_threshold_mult) if tag == player else 1.0)
+
+
+func coalition_max(tag: String) -> int:
+	return int(bal.coalition_player_max) if tag == player else int(bal.coalition_max)
+
+
 func _coalitions_yearly() -> void:
-	var thr := float(bal.ae_coalition_threshold)
 	for tag in order:
 		var n: Nation = nations[tag]
 		if not n.alive:
 			continue
+		var is_p: bool = tag == player
+		var thr := coalition_threshold(tag)
 		if n.ae < thr * 0.6:
 			if not n.coalition.is_empty():
 				log_msg("🤝 Die Koalition gegen %s löst sich auf." % n.name, n.coalition + [tag])
 			n.coalition.clear()
 			continue
 		if n.ae >= thr:
-			for t in nations_in_range(tag, int(bal.coalition_range)):
+			var cands: Array = nations_in_range(tag, int(bal.coalition_player_range) if is_p else int(bal.coalition_range))
+			# the most threatened (closest, angriest) neighbours come first, the list stops at the cap
+			cands.sort_custom(func(x, y): return get_rel(x, tag) < get_rel(y, tag))
+			for t in cands:
+				if n.coalition.size() >= coalition_max(tag):
+					break
 				var o: Nation = nations[t]
 				if not o.alive or n.coalition.has(t) or is_allied(t, tag) or t == player or o.overlord != "":
 					continue
-				if rng.randf() < 0.3 + (n.ae - thr) / thr + (float(bal.rival_coalition_bonus) if o.rivals.has(tag) else 0.0):
+				var chance: float = 0.3 + (n.ae - thr) / thr + (float(bal.rival_coalition_bonus) if o.rivals.has(tag) else 0.0)
+				if is_p:
+					chance *= float(bal.coalition_player_join_mult)
+				if rng.randf() < chance:
 					n.coalition.append(t)
 					add_rel(t, tag, -30.0)
 					log_msg("⚠️ %s tritt der Koalition gegen %s bei!" % [o.name, n.name], [tag, t])
@@ -1825,7 +1863,8 @@ func _coalitions_yearly() -> void:
 			for ally in n.allies + vassals_of(tag):
 				if not members.has(ally):
 					mine += strength(ally)
-			if members.size() >= 2 and cs >= mine * float(bal.coalition_strength_ratio):
+			var ratio: float = float(bal.coalition_player_strength_ratio) if is_p else float(bal.coalition_strength_ratio)
+			if members.size() >= 2 and cs >= mine * ratio:
 				members.sort_custom(func(x, y): return strength(x) > strength(y))
 				declare_war(members[0], tag, members)
 
@@ -1836,8 +1875,8 @@ func join_coalition(tag: String, target: String) -> String:
 	if nations[tag].overlord != "":
 		return "Vasallen treten keinen Koalitionen bei."
 
-	if t.ae < float(bal.ae_coalition_threshold):
-		return "%s ist nicht bedrohlich genug (AE < %d)." % [t.name, int(bal.ae_coalition_threshold)]
+	if t.ae < coalition_threshold(target):
+		return "%s ist nicht bedrohlich genug (AE < %d)." % [t.name, int(coalition_threshold(target))]
 	if is_allied(tag, target):
 		return "Ihr seid verbündet."
 	if not t.coalition.has(tag):
@@ -3013,7 +3052,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "embargoes": n.embargoes, "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "embargoes": n.embargoes, "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "fleet_mission": n.fleet_mission, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
 				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n), "colonial": Colonial.nation_save(n)}
 	d.nations = ns
 	var ar := []
@@ -3183,6 +3222,7 @@ func from_dict(d: Dictionary) -> void:
 		n.autobuild_reserve = float(e.get("autobuild_reserve", 100.0))
 		n.ships = float(e.get("ships", -1.0))
 		n.fleet_sea = str(e.get("fleet_sea", ""))
+		n.fleet_mission = str(e.get("fleet_mission", "patrol"))
 		tree.load_save(n, e.get("techs", {}))
 		n.tech_queue = Array(e.get("tech_queue", [])).filter(func(q): return tree.by_id.has(q))
 		govt.load_save(n, e.get("gov", {}))

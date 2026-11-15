@@ -93,7 +93,7 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 	m.section_open["nat_formables"] = month % 24 < 12  # collapsed sections must render too
 	m.section_open["nat_monuments"] = month % 24 < 12
 	m.section_open["world_chronicle"] = month % 24 < 12
-	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "missions", "log", "ranking", "hre", "advice"]:
+	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "navy", "missions", "log", "ranking", "hre", "advice"]:
 		m._open_panel(mode)
 		n += 1
 	if month % 108 == 36:  # beginner goals, a few passes only: every jump opens, finished ones get claimed

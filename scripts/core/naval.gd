@@ -14,6 +14,34 @@ extends RefCounted
 const Economy = preload("res://scripts/core/economy.gd")
 const Warfare = preload("res://scripts/core/warfare.gd")
 
+## Fleet missions (Nation.fleet_mission). Every mission but patrol costs fighting power at sea.
+##   patrol   - rule the seas: full power.
+##   blockade - close enemy ports: our blockades cost the enemy more income and speed up sieges more.
+##   escort   - guard our merchants: blockades against us hurt half as much, some trade income in peace.
+const MISSIONS := {
+	"patrol": {"name": "🛡️ Seeherrschaft", "tip": "Volle Kampfkraft auf See: Meere beherrschen, Überfahrten sperren, Seeschlachten gewinnen."},
+	"blockade": {"name": "⚓ Blockade", "tip": "Feindliche Häfen abriegeln: deine Blockaden kosten den Gegner mehr Einkommen und beschleunigen Belagerungen stärker. Etwas weniger Kampfkraft auf See."},
+	"escort": {"name": "🚢 Handelsschutz", "tip": "Geleitzüge für die Händler: feindliche Blockaden treffen dich nur halb so hart, im Frieden etwas mehr Handelseinkommen. Etwas weniger Kampfkraft auf See."},
+}
+
+
+static func mission(g, tag: String) -> String:
+	var m: String = g.nations[tag].fleet_mission
+	return m if MISSIONS.has(m) else "patrol"
+
+
+static func set_mission(g, tag: String, m: String) -> String:
+	if not MISSIONS.has(m):
+		return "Unbekannter Auftrag."
+	g.nations[tag].fleet_mission = m
+	refresh(g)
+	return ""
+
+
+## Blockade strength on a province: 0 = free, 1 = normal, more if the blockader is on blockade duty.
+static func blockade_strength(g, pid: int) -> float:
+	return float(g.blockaded.get(pid, 0.0))
+
 
 static func setup(g, data: Dictionary) -> void:
 	g.seas = []
@@ -155,7 +183,10 @@ static func presence(g, tag: String) -> Dictionary:
 
 static func power_mult(g, tag: String) -> float:
 	var n = g.nations[tag]
-	return maxf(0.2, 1.0 + g.mod(n, "naval") + n.tech.dip * float(g.bal.naval_per_dip_tech))
+	var m := maxf(0.2, 1.0 + g.mod(n, "naval") + n.tech.dip * float(g.bal.naval_per_dip_tech))
+	if mission(g, tag) != "patrol":
+		m *= float(g.bal.fleet_mission_power)
+	return m
 
 
 ## Naval strength of a war side in a sea.
@@ -193,25 +224,38 @@ static func refresh(g) -> void:
 			if c == "":
 				continue
 			var losers: Array = w.defenders if c == "att" else w.attackers
+			var rulers: Array = w.attackers if c == "att" else w.defenders
+			var strength := 1.0
+			for t in rulers:
+				if g.nations[t].alive and float(g._fleet.get(t, {}).get(s.id, 0.0)) > 0.0 and mission(g, t) == "blockade":
+					strength = float(g.bal.fleet_blockade_mult)
 			for t in losers:
 				if not g.sea_blocked.has(t):
 					g.sea_blocked[t] = {}
 				g.sea_blocked[t][s.id] = true
 				for pid in s.provinces:
 					if g.provinces[pid].owner == t:
-						g.blockaded[pid] = true
+						g.blockaded[pid] = maxf(float(g.blockaded.get(pid, 0.0)), strength)
 	for tag in g.order:
 		var n = g.nations[tag]
 		if not n.alive:
 			continue
-		var bdev := 0
+		var bdev := 0.0
 		for pid in g.provinces_of(tag):
 			if g.blockaded.has(pid):
-				bdev += g.provinces[pid].dev
-		if bdev > 0 and n.dev_total > 0:
-			n.bonus["blockade"] = {"income": -float(g.bal.blockade_income) * float(bdev) / float(n.dev_total)}
+				bdev += g.provinces[pid].dev * float(g.blockaded[pid])
+		var escort: bool = mission(g, tag) == "escort" and n.ships >= 1.0
+		if escort:
+			bdev *= float(g.bal.fleet_escort_blockade)
+		if bdev > 0.0 and n.dev_total > 0:
+			n.bonus["blockade"] = {"income": -float(g.bal.blockade_income) * bdev / float(n.dev_total)}
 		else:
 			n.bonus.erase("blockade")
+		# escorts pay off in peace: a share of the limit on guard duty gives trade income
+		if escort and not g.is_at_war(tag) and n.ships >= limit(g, tag) * 0.25:
+			n.bonus["escort"] = {"trade": float(g.bal.fleet_escort_trade)}
+		else:
+			n.bonus.erase("escort")
 
 
 ## May `tag`'s armies cross from a to b? Land steps always; straits not when the enemy rules that sea.
@@ -301,6 +345,17 @@ static func ai_build(g, n) -> void:
 	var l := limit(g, n.tag)
 	if l <= 0.0:
 		return
+	# mission: escort merchants in peace, close enemy ports when we rule a sea in war
+	var want_m := "escort"
+	if g.is_at_war(n.tag):
+		want_m = "patrol"
+		for w in g.wars_of(n.tag):
+			var side := "att" if g.is_attacker(w, n.tag) else "def"
+			for s in g.seas:
+				if float(g._fleet.get(n.tag, {}).get(s.id, 0.0)) > 0.0 and control(g, w, s.id) == side:
+					want_m = "blockade"
+	if n.fleet_mission != want_m:
+		n.fleet_mission = want_m
 	var want: float = l * float(g.bal.ai_navy_share_war if g.is_at_war(n.tag) else g.bal.ai_navy_share)
 	var gap: int = int(floor(want - n.ships))
 	if gap <= 0:
