@@ -114,6 +114,8 @@ def main():
         for x, y in set(zip(a[mask].tolist(), b[mask].tolist())):
             if {SEAS[x][0], SEAS[y][0]} in ({"caribbean", "pacific"}, {"guinea", "east_med"}):  # touch only at the map's bottom edge
                 continue
+            if "west_africa" in (SEAS[x][0], SEAS[y][0]) and {SEAS[x][0], SEAS[y][0]} & {"caribbean", "sargasso"}:
+                continue  # the squeezed Atlantic puts them side by side; the way west is the open ocean
             adj[SEAS[x][0]].add(SEAS[y][0])
             adj[SEAS[y][0]].add(SEAS[x][0])
     for sid, name, lbl, _ in SEAS:

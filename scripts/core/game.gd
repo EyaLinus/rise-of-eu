@@ -155,6 +155,7 @@ var key_to_pid := {}
 var nations := {}
 var order: Array = []
 var armies: Array = []
+var voyages: Array = []  # armies at sea (Naval.transport): {"army", "from", "to", "left", "total"}
 var wars: Array = []
 var battles: Array = []  # running Warfare.Battle
 var straits := {}  # sea crossings, Warfare.strait_key -> true
@@ -443,6 +444,9 @@ func army_regs(tag: String) -> float:
 	for a in armies:
 		if a.owner == tag:
 			s += a.regs
+	for v in voyages:  # armies at sea still count against the force limit
+		if v.army.owner == tag:
+			s += v.army.regs
 	return s
 
 
@@ -677,6 +681,7 @@ func tick() -> void:
 			_economy(n)
 			govt.estates_monthly(self, n)
 	Naval.monthly(self)
+	Naval.voyages_tick(self)
 	Colonial.monthly(self)
 	_armies_tick()
 	_wars_tick()
@@ -3058,10 +3063,12 @@ func to_dict() -> Dictionary:
 	d.nations = ns
 	var ar := []
 	for a in armies:
-		ar.append({"id": a.id, "owner": a.owner, "pid": a.pid, "regs": a.regs, "full": a.full,
-				"target": a.target, "auto": a.auto, "stance": a.stance, "power": a.power, "general": a.general,
-				"move": a.move, "landing": a.landing, "path": a.path})
+		ar.append(_army_save(a))
 	d.armies = ar
+	var vs := []
+	for v in voyages:
+		vs.append({"army": _army_save(v.army), "from": v.from, "to": v.to, "left": v.left, "total": v.total, "route": v.get("route", [])})
+	d.voyages = vs
 	d.battles = Warfare.to_save(self)
 	var ws := []
 	for w in wars:
@@ -3069,6 +3076,31 @@ func to_dict() -> Dictionary:
 				"start": w.start, "battle_score": w.battle_score, "coalition": w.coalition, "goal": w.goal})
 	d.wars = ws
 	return d
+
+
+func _army_save(a: Army) -> Dictionary:
+	return {"id": a.id, "owner": a.owner, "pid": a.pid, "regs": a.regs, "full": a.full,
+			"target": a.target, "auto": a.auto, "stance": a.stance, "power": a.power, "general": a.general,
+			"move": a.move, "landing": a.landing, "path": a.path}
+
+
+func _army_load(e: Dictionary) -> Army:
+	var a := Army.new()
+	a.id = int(e.id)
+	a.owner = e.owner
+	a.pid = int(e.pid)
+	a.regs = float(e.regs)
+	a.full = float(e.full)
+	a.target = int(e.target)
+	a.auto = e.auto
+	a.stance = e.get("stance", "attack")
+	a.power = float(e.get("power", 1.0))
+	a.general = int(e.get("general", 0))
+	a.move = float(e.get("move", 0.0))
+	for x in e.get("path", []):
+		a.path.append(int(x))
+	a.landing = e.get("landing", false)
+	return a
 
 
 func from_dict(d: Dictionary) -> void:
@@ -3230,22 +3262,11 @@ func from_dict(d: Dictionary) -> void:
 		Colonial.nation_load(self, n, e.get("colonial", {}))
 	armies.clear()
 	for e in d.armies:
-		var a := Army.new()
-		a.id = int(e.id)
-		a.owner = e.owner
-		a.pid = int(e.pid)
-		a.regs = float(e.regs)
-		a.full = float(e.full)
-		a.target = int(e.target)
-		a.auto = e.auto
-		a.stance = e.get("stance", "attack")
-		a.power = float(e.get("power", 1.0))
-		a.general = int(e.get("general", 0))
-		a.move = float(e.get("move", 0.0))
-		for x in e.get("path", []):
-			a.path.append(int(x))
-		a.landing = e.get("landing", false)
-		armies.append(a)
+		armies.append(_army_load(e))
+	voyages.clear()
+	for e in d.get("voyages", []):
+		voyages.append({"army": _army_load(e.army), "from": int(e.from), "to": int(e.to), "left": int(e.left), "total": int(e.total),
+				"route": Array(e.get("route", [])).map(func(x): return str(x))})
 	wars.clear()
 	for e in d.wars:
 		var w := War.new()
