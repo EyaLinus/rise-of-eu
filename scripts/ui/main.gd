@@ -55,7 +55,7 @@ var last_speed := 2
 var tab_badges := {}
 var mode_strip: HBoxContainer  # map mode buttons at the bottom (one per MapView.MODE_NAMES entry)
 ## Short icon per map mode for the bottom strip; modes without one show their first letters.
-const MODE_ICONS := ["🏰", "🤝", "🏘️", "😠", "⚔️", "🌾", "🪙", "🏗️", "⛪", "👑"]
+const MODE_ICONS := ["🏰", "🤝", "📈", "😠", "⚔️", "🌾", "🪙", "🏗️", "⛪", "👑"]
 ## Panel shortcuts (PC): key -> panel. Pressing it again closes the panel.
 const PANEL_KEYS := {KEY_N: "nation", KEY_E: "economy", KEY_T: "tech", KEY_G: "government", KEY_D: "diplomacy",
 	KEY_K: "wars", KEY_M: "missions", KEY_L: "log", KEY_R: "advice", KEY_V: "mapmodes"}
@@ -372,8 +372,8 @@ func _build_hud() -> void:
 	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	toast.offset_top = -110
 	toast.offset_bottom = -72
-	toast.offset_left = 8
-	toast.offset_right = 428
+	toast.offset_left = 152
+	toast.offset_right = 572
 	toast.add_theme_font_size_override("font_size", 17 if _big() else 15)
 	toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	toast.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -975,14 +975,16 @@ func _check_long_press() -> void:
 		_show_tip(c.tooltip_text, _press_pos)
 
 
-## Box hugs the text (max 420 px, wraps beyond), bottom left, never under an open side panel.
+## Box hugs the text (max 420 px, wraps beyond), bottom left above the map mode strip, never under an open side panel.
 func _place_toast() -> void:
 	var f: Font = toast.get_theme_font("font")
 	var panel_w: float = -side_panel.offset_left if side_panel.visible else 0.0
 	var room: float = get_viewport_rect().size.x - panel_w - 24.0
 	var w: float = minf(minf(420.0, room), f.get_string_size(toast.text, HORIZONTAL_ALIGNMENT_LEFT, -1, toast.get_theme_font_size("font_size")).x + 24.0)
-	toast.offset_left = 8
-	toast.offset_right = 8 + w
+	# right of the tab column, above the map mode strip (keeps clear of the tabs at 140 % UI size)
+	var left: float = 8.0 + 2 * 60 + 8 + 16
+	toast.offset_left = left
+	toast.offset_right = left + minf(w, room - left)
 
 
 func _process(delta: float) -> void:
@@ -1434,12 +1436,10 @@ func _show_settings() -> void:
 
 const SHORTCUTS := [
 	["Leertaste", "Pause / weiter"], ["1 – 5", "Spieltempo"], ["+ / −", "schneller / langsamer"],
-	["Pfeiltasten", "Karte verschieben"], ["Bild ↑ / Bild ↓", "Zoom (auch Mausrad)"],
-	["Tab / Umschalt+Tab", "nächster / voriger Kartenmodus"], ["V", "Kartenmodi mit Legende"],
-	["N", "Nation"], ["E", "Wirtschaft"], ["T", "Technologie"], ["G", "Regierung"], ["D", "Diplomatie"],
-	["K", "Kriege"], ["M", "Missionen"], ["L", "Chronik"], ["R", "Ratgeber"],
-	["F5", "Schnellspeichern (Autospeicherplatz)"], ["F11", "Randloses Vollbild an / aus"],
-	["Esc", "Fenster schließen / Menü"], ["F1 / H", "diese Übersicht"],
+	["Pfeile", "Karte verschieben"], ["Bild ↑ ↓", "Zoom (auch Mausrad)"], ["Tab", "nächster Kartenmodus"],
+	["V", "Kartenmodi + Legende"], ["N", "Nation"], ["E", "Wirtschaft"], ["T", "Technologie"], ["G", "Regierung"],
+	["D", "Diplomatie"], ["K", "Kriege"], ["M", "Missionen"], ["L", "Chronik"], ["R", "Ratgeber"],
+	["F5", "Schnellspeichern"], ["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F1", "diese Übersicht"],
 ]
 
 
@@ -1447,14 +1447,16 @@ func _show_shortcuts() -> void:
 	_set_speed(0)
 	_open_modal()
 	modal_box.add_child(_lbl("⌨️ Tastenkürzel", 30))
-	modal_box.add_child(_lbl("Ein Panel-Kürzel ein zweites Mal drücken schließt das Panel wieder.", 15, Color(0.72, 0.75, 0.82)))
+	modal_box.add_child(_lbl("Ein Panel-Kürzel ein zweites Mal gedrückt schließt das Panel wieder. Umschalt+Tab: voriger Kartenmodus.", 15, Color(0.72, 0.75, 0.82)))
+	# one "key  action" cell per shortcut, two columns where there is room
 	var g := GridContainer.new()
-	g.columns = 4
-	g.add_theme_constant_override("h_separation", 16)
-	g.add_theme_constant_override("v_separation", 2)
+	g.columns = 2 if get_viewport_rect().size.x >= 1000 else 1
+	g.add_theme_constant_override("h_separation", 24)
+	g.add_theme_constant_override("v_separation", 0)
 	for e in SHORTCUTS:
-		g.add_child(_lbl(e[0], 16, Color(1.0, 0.85, 0.45)))
-		g.add_child(_lbl(e[1], 16))
+		var c := _bb("[color=#ffd873]%s[/color]   %s" % e, 16)
+		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		g.add_child(c)
 	modal_box.add_child(g)
 	modal_box.add_child(_btn("◀ Zurück", _show_menu if game != null else _close_modal))
 
