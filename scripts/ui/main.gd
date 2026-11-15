@@ -2528,7 +2528,7 @@ func _panel_army(id: int) -> void:
 	acts.append(_btn("🛑 Halt", func(): a.target = -1; a.path = []; _act(""), "Den Marsch abbrechen."))
 	acts.append(_btn("➖ 1 Reg.", func(): game.disband(a, 1.0); _act(""); map.refresh(), "Ein Regiment entlassen (spart Unterhalt)."))
 	if a.owner == game.player and game.armies_of(a.owner).size() > 1:
-		acts.append(_btn("⏭️ Nächste Armee", _next_army, "Zur nächsten eigenen Armee springen, untätige zuerst (am PC: A)."))
+		acts.append(_btn("👉 Nächste Armee", _next_army, "Zur nächsten eigenen Armee springen, untätige zuerst (am PC: A)."))
 	if acts.size() % 2 == 1:
 		acts.append(Control.new())
 	side_box.add_child(_grid(acts))
