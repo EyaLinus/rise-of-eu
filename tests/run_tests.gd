@@ -52,6 +52,11 @@ func _init() -> void:
 		"test_gov_sources",
 		"test_regency",
 		"test_form_change",
+		"test_start_resources",
+		"test_diplo_capacity",
+		"test_cape_route",
+		"test_overseas_markets",
+		"test_market_dominance",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -594,6 +599,138 @@ func test_trade_pacts() -> void:
 	check(g2.nations.FRA.trade_pacts.has(other) and g2.mod(g2.nations.FRA, "trade") > trade0, "pacts are saved")
 	Eco.cancel_pact(g, "FRA", other)
 	check(n.trade_pacts.is_empty() and absf(g.mod(n, "trade") - trade0) < 0.0001, "cancel removes the bonus")
+
+
+func test_start_resources() -> void:
+	var g = new_game("FRA", 5)
+	var n = g.nations.FRA
+	check(n.adm >= 150.0 and n.dip >= 150.0 and n.mil >= 150.0, "start with 150 of each power")
+	check(n.gold >= 150.0, "start with more gold")
+
+
+func test_diplo_capacity() -> void:
+	var g = new_game("FRA", 5)
+	var n = g.nations.FRA
+	var small := 0.0
+	n.dev_total = 100
+	small = g.alliance_cost("FRA")
+	n.dev_total = 700
+	check(g.alliance_cost("FRA") > small * 3.0, "alliances cost more for big realms")
+	n.dip = 999.0
+	var free := []
+	for t in g.order:
+		if t != "FRA" and g.nations[t].alive and g.nations[t].overlord == "" and not g.is_allied("FRA", t) and not g.at_war("FRA", t):
+			free.append(t)
+	# fill every slot with vassals: then no new alliance is possible
+	for t in n.allies:
+		g.nations[t].allies.erase("FRA")
+	n.allies.clear()
+	var i := 0
+	while g.diplo_used("FRA") < g.diplo_cap("FRA"):
+		g.nations[free[i]].overlord = "FRA"
+		i += 1
+	check(g.diplo_used("FRA") == g.diplo_cap("FRA"), "vassals take diplomatic slots")
+	var err: String = g.propose_alliance("FRA", free[i + 1])
+	check(err.contains("Kapazität"), "no alliance over the diplomatic capacity: " + err)
+	check(not g.ai.accepts_alliance(g, "FRA", free[i + 1]), "AI realms at capacity refuse alliances")
+	g.nations[free[i]].overlord = "FRA"
+	check(g.diplo_over("FRA") == 1, "one over capacity")
+	var dip0: float = n.dip
+	var pr0: float = n.prestige
+	g.tick()
+	check(n.prestige < pr0 + 1.0 and n.dip < dip0 + g.monthly_power(n, "dip"), "over capacity costs diplomacy and prestige")
+
+
+func test_cape_route() -> void:
+	var g = new_game("FRA", 5)
+	var T = g.Trade
+	var tag := "POR" if g.atlantic_tags.has("POR") else String(g.atlantic_tags[0])
+	var n = g.nations[tag]
+	check(not T.is_open(g) and T.route_value(g) == 0.0, "the spice route starts closed")
+	check(T.voyage_block_reason(g, tag) != "", "no voyage at the start (year / tech)")
+	g.month = (int(g.bal.cape_year) - int(g.bal.start_year) + 1) * 12
+	n.tech.dip = int(g.bal.cape_dip_tech)
+	n.gold = 2000.0
+	n.dip = 500.0
+	check(T.voyage_block_reason(g, tag) == "", "voyage possible with tech, year and gold: " + T.voyage_block_reason(g, tag))
+	check(T.start_voyage(g, tag) == "" and g.east.voyage.has(tag), "voyage starts")
+	g.east.voyage.erase(tag)
+	g.bal.cape_success = 1.0
+	T._voyage_done(g, tag)
+	check(T.is_open(g) and T.knows(g, tag) and g.east.cape == tag, "first voyage opens the route")
+	check(T.route_value(g) > 0.0, "the route has value")
+	check(T.factory_block_reason(g, tag, "goa") != "", "a factory needs Indiamen")
+	g.month = (1500 - int(g.bal.start_year)) * 12
+	for k in int(g.bal.east_factory_ships):
+		check(T.buy_ship(g, tag) == "", "buy an Indiaman")
+	check(T.take_factory(g, tag, "sofala") == "" and g.east.factories.sofala == tag, "found a factory")
+	check(T.east_income(g, tag) > 0.0 and absf(T.share(g, tag) - 1.0) < 0.001, "sole trader takes the whole route")
+	var inc0: float = g.Economy.trade_income(g, n)
+	g.month += 120
+	check(T.route_value(g) > float(g.bal.east_value_base), "the route grows over time")
+	check(g.Economy.trade_income(g, n) > inc0, "route income is trade income")
+	if not g.levant.is_empty():
+		check(T.market_mult(g, g.levant[0]) < 1.0, "the Levant loses value once the Cape route is open")
+	# another realm storms the factory in war with more ships
+	var other := ""
+	for t in g.atlantic_tags:
+		if t != tag and g.nations[t].alive:
+			other = t
+			break
+	if other != "":
+		g.east.known[other] = true
+		g.east.ships[other] = T.ships(g, tag) + 2
+		check(T.factory_block_reason(g, other, "sofala") != "", "no storming in peace")
+		g.declare_war(other, tag)
+		if g.at_war(other, tag):
+			check(T.take_factory(g, other, "sofala") == "" and g.east.factories.sofala == other, "factory stormed in war")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.east.cape == tag and g2.Trade.knows(g2, tag) and g2.Trade.ships(g2, tag) == T.ships(g, tag), "far trade is saved")
+	check(g2.east.factories.size() == g.east.factories.size(), "factories are saved")
+
+
+func test_overseas_markets() -> void:
+	var g = new_game("FRA", 5)
+	var T = g.Trade
+	var nw := -1
+	for m in g.markets:
+		if T.is_overseas_market(g, m):
+			nw = m
+			break
+	check(nw >= 0, "there is a New World market")
+	check(T.market_block_reason(g, "BOH", nw) != "", "unknown New World market is closed")
+	check(not g.Economy.send_merchant(g, "BOH", nw).is_empty(), "no merchant into an unknown market")
+	g.nations.BOH.known_nw[nw] = true
+	check(T.market_block_reason(g, "BOH", nw) != "", "a landlocked realm cannot trade overseas")
+	var atl: String = g.atlantic_tags[0]
+	g.nations[atl].known_nw[nw] = true
+	check(T.market_block_reason(g, atl, nw) == "", "an Atlantic realm that knows the market may trade there")
+	g.Economy.auto_merchants(g, g.nations.BOH)
+	check(not g.nations.BOH.merchants.has(nw), "AI does not send merchants where it cannot trade")
+	var p = g.provinces[nw]
+	check(T.value_mult(g, p) == 1.0, "native land: normal value")
+	var old: String = p.owner
+	p.owner = atl
+	check(T.value_mult(g, p) > 1.0, "colonial goods are worth more")
+	p.owner = old
+
+
+func test_market_dominance() -> void:
+	var g = new_game("FRA", 5)
+	g.tick()
+	var any := false
+	for m in g.markets:
+		var lord: String = g.Trade.dominant(g, m)
+		if lord == "":
+			continue
+		any = true
+		check(g.Economy.trade_share(g, lord, m) >= float(g.bal.dom_share) - 0.0001, "market master holds the share")
+	check(any, "some realm dominates a market at the start")
+	var d: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(d)
+	check(g2.east.dom.size() == g.east.dom.size(), "dominance is saved")
 
 
 func test_mercenaries() -> void:
