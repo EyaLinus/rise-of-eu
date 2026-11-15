@@ -14,7 +14,8 @@
    "weight": 3,
    "effects": {
     "build_cost": -0.1
-   }
+   },
+   "text": "Lässt bauen, wo andere nur planen."
   },
   {
    "id": "feldherr",
@@ -23,7 +24,8 @@
    "effects": {
     "combat": 0.05,
     "army_power": 0.05
-   }
+   },
+   "text": "Führt seine Truppen selbst ins Feld."
   },
   {
    "id": "kaufmann",
@@ -31,7 +33,8 @@
    "weight": 3,
    "effects": {
     "trade": 0.1
-   }
+   },
+   "text": "Versteht Märkte besser als Mönche."
   },
   {
    "id": "fromm",
@@ -40,7 +43,8 @@
    "effects": {
     "conversion": 0.25,
     "estate_klerus": 5
-   }
+   },
+   "text": "Betet täglich und stiftet Kirchen."
   },
   {
    "id": "diplomat",
@@ -49,7 +53,8 @@
    "effects": {
     "ae_gen": -0.1,
     "ae_decay": 0.1
-   }
+   },
+   "text": "Gewinnt Freunde mit Worten statt Waffen."
   },
   {
    "id": "sparsam",
@@ -58,7 +63,8 @@
    "effects": {
     "maintenance": -0.05,
     "income": 0.02
-   }
+   },
+   "text": "Kein Fest zu viel, kein Taler verschwendet."
   },
   {
    "id": "gelehrt",
@@ -66,7 +72,8 @@
    "weight": 3,
    "effects": {
     "tech_cost": -0.05
-   }
+   },
+   "text": "Fördert Gelehrte und liest selbst."
   },
   {
    "id": "gerecht",
@@ -74,7 +81,8 @@
    "weight": 3,
    "effects": {
     "unrest": -0.5
-   }
+   },
+   "text": "Sein Urteil gilt für Bauer und Fürst gleich."
   },
   {
    "id": "leutselig",
@@ -83,7 +91,8 @@
    "effects": {
     "estate_buerger": 5,
     "estate_adel": 5
-   }
+   },
+   "text": "Plaudert mit jedem, Adel und Bürger lieben ihn."
   },
   {
    "id": "prunk",
@@ -92,7 +101,8 @@
    "effects": {
     "prestige": 1,
     "income": -0.03
-   }
+   },
+   "text": "Seide, Gold und Feste, solange die Kasse reicht."
   },
   {
    "id": "grausam",
@@ -101,7 +111,8 @@
    "effects": {
     "unrest": 0.5,
     "coring": -0.15
-   }
+   },
+   "text": "Herrscht mit Furcht. Eroberte fügen sich, aber murren."
   },
   {
    "id": "zaghaft",
@@ -110,7 +121,8 @@
    "effects": {
     "combat": -0.03,
     "ae_gen": -0.05
-   }
+   },
+   "text": "Zögert lieber, als etwas zu wagen."
   },
   {
    "id": "verschwender",
@@ -119,7 +131,8 @@
    "effects": {
     "income": -0.05,
     "estate_adel": 5
-   }
+   },
+   "text": "Beschenkt den Adel mit vollen Händen."
   },
   {
    "id": "misstrauisch",
@@ -128,7 +141,8 @@
    "effects": {
     "estate_adel": -5,
     "unrest": -0.25
-   }
+   },
+   "text": "Sieht überall Verrat, vor allem beim Adel."
   }
  ],
  "trait_none_chance": 0.2,
@@ -403,6 +417,7 @@
    "id": "grundlage",
    "name": "Herrschaftsgrundlage",
    "year": 1444,
+   "text": "Worauf die Krone ihre Macht stützt.",
    "options": [
     {
      "id": "lehnswesen",
@@ -439,6 +454,7 @@
    "id": "verwaltung",
    "name": "Verwaltung",
    "year": 1480,
+   "text": "Wer im Land regiert, wenn der Herrscher fern ist.",
    "options": [
     {
      "id": "hofrat",
@@ -475,6 +491,7 @@
    "id": "heerwesen",
    "name": "Heerwesen",
    "year": 1520,
+   "text": "Wie Truppen geworben, geführt und versorgt werden.",
    "options": [
     {
      "id": "kriegsrat",
@@ -511,6 +528,7 @@
    "id": "staatsidee",
    "name": "Staatsidee",
    "year": 1570,
+   "text": "Warum der Staat überhaupt besteht.",
    "options": [
     {
      "id": "gottesgnaden",
@@ -549,6 +567,7 @@
    "id": "herrschaft",
    "name": "Herrschaftsform",
    "year": 1610,
+   "text": "Die letzte Frage: Wer hat das letzte Wort?",
    "options": [
     {
      "id": "alleinherrschaft",
@@ -1135,7 +1154,8 @@
    "type": "adm",
    "effects": {
     "income": 0.06
-   }
+   },
+   "text": "Zählt jede Münze zweimal, bevor sie die Schatzkammer verlässt."
   },
   {
    "id": "steuermeister",
@@ -1145,7 +1165,8 @@
     "tax": 0.12,
     "unrest": 0.5,
     "estate_buerger": -10
-   }
+   },
+   "text": "Holt aus jedem Dorf das Letzte heraus. Die Bürger fluchen."
   },
   {
    "id": "baumeister",
@@ -1153,7 +1174,8 @@
    "type": "adm",
    "effects": {
     "build_cost": -0.15
-   }
+   },
+   "text": "Plant Brücken, Mauern und Paläste günstiger als jeder Zunftmeister."
   },
   {
    "id": "gelehrter",
@@ -1161,7 +1183,8 @@
    "type": "adm",
    "effects": {
     "tech_cost": -0.08
-   }
+   },
+   "text": "Liest Griechisch, rechnet mit arabischen Ziffern und korrespondiert mit halb Europa."
   },
   {
    "id": "landvogt",
@@ -1169,7 +1192,8 @@
    "type": "adm",
    "effects": {
     "unrest": -1.0
-   }
+   },
+   "text": "Reitet durchs Land, schlichtet Streit und hängt Räuber."
   },
   {
    "id": "reformer",
@@ -1179,7 +1203,8 @@
     "adm": 1,
     "unrest": 0.5,
     "estate_adel": -10
-   }
+   },
+   "text": "Will alles neu ordnen, sofort. Der alte Adel hasst ihn."
   },
   {
    "id": "zeremonienmeister",
@@ -1187,7 +1212,8 @@
    "type": "dip",
    "effects": {
     "prestige": 1.0
-   }
+   },
+   "text": "Ein Fest, ein Turnier, ein Einzug: Glanz ist auch Politik."
   },
   {
    "id": "gesandter",
@@ -1195,7 +1221,8 @@
    "type": "dip",
    "effects": {
     "ae_decay": 0.15
-   }
+   },
+   "text": "Kennt jeden Hof und lässt alte Kränkungen vergessen."
   },
   {
    "id": "meisterspion",
@@ -1203,7 +1230,8 @@
    "type": "dip",
    "effects": {
     "ae_gen": -0.15
-   }
+   },
+   "text": "Was im Ausland geflüstert wird, liegt am Abend auf deinem Tisch."
   },
   {
    "id": "handelsherr",
@@ -1211,7 +1239,8 @@
    "type": "dip",
    "effects": {
     "trade": 0.1
-   }
+   },
+   "text": "Hat Kontore in jedem Hafen und Freunde in jeder Gilde."
   },
   {
    "id": "hofprediger",
@@ -1221,7 +1250,8 @@
     "conversion": 0.5,
     "religious_unrest": -0.25,
     "estate_klerus": 5
-   }
+   },
+   "text": "Seine Predigten füllen die Kirchen und beruhigen die Zweifler."
   },
   {
    "id": "eiferer",
@@ -1232,7 +1262,8 @@
     "prestige": 0.5,
     "tech_cost": 0.05,
     "estate_klerus": 10
-   }
+   },
+   "text": "Brennt für den wahren Glauben. Neues Wissen ist ihm verdächtig."
   },
   {
    "id": "feldhauptmann",
@@ -1240,7 +1271,8 @@
    "type": "mil",
    "effects": {
     "combat": 0.05
-   }
+   },
+   "text": "Hat mehr Schlachten gesehen als Kirchen von innen."
   },
   {
    "id": "zeugmeister",
@@ -1248,7 +1280,8 @@
    "type": "mil",
    "effects": {
     "siege": 0.2
-   }
+   },
+   "text": "Kanonen, Pulver, Leitern: Er bricht jede Mauer."
   },
   {
    "id": "werbeoffizier",
@@ -1256,7 +1289,8 @@
    "type": "mil",
    "effects": {
     "manpower": 0.15
-   }
+   },
+   "text": "Trommeln auf dem Marktplatz, Handgeld für jeden Freiwilligen."
   },
   {
    "id": "quartiermeister",
@@ -1265,7 +1299,8 @@
    "effects": {
     "maintenance": -0.1,
     "army_power_regen": 0.2
-   }
+   },
+   "text": "Brot, Stiefel und Sold kommen pünktlich an."
   },
   {
    "id": "drillmeister",
@@ -1274,7 +1309,8 @@
    "effects": {
     "army_power": 0.1,
     "army_power_regen": 0.2
-   }
+   },
+   "text": "Exerzieren bis zum Umfallen. Seine Regimenter weichen nicht."
   },
   {
    "id": "kriegstreiber",
@@ -1283,7 +1319,8 @@
    "effects": {
     "combat": 0.08,
     "ae_gen": 0.1
-   }
+   },
+   "text": "Sieht überall Feinde und will sie alle schlagen."
   },
   {
    "id": "fra_coeur",
@@ -1295,7 +1332,8 @@
    "effects": {
     "trade": 0.15,
     "income": 0.03
-   }
+   },
+   "text": "Der reichste Kaufmann Frankreichs finanziert die Krone."
   },
   {
    "id": "fra_bureau",
@@ -1307,7 +1345,8 @@
    "effects": {
     "siege": 0.3,
     "combat": 0.03
-   }
+   },
+   "text": "Der Meister der Artillerie, dessen Kanonen den Hundertjährigen Krieg beendeten."
   },
   {
    "id": "fra_sully",
@@ -1319,7 +1358,8 @@
    "effects": {
     "income": 0.1,
     "unrest": -0.5
-   }
+   },
+   "text": "Ordnet die Finanzen nach den Religionskriegen."
   },
   {
    "id": "fra_richelieu",
@@ -1331,7 +1371,8 @@
    "effects": {
     "adm": 2,
     "unrest": 0.75
-   }
+   },
+   "text": "Der rote Kardinal: Staatsräson über alles."
   },
   {
    "id": "eng_suffolk",
@@ -1343,7 +1384,8 @@
    "effects": {
     "dip": 1,
     "prestige": -0.5
-   }
+   },
+   "text": "Verhandelt Frieden und Heiraten mit Frankreich, nicht immer zum Dank der Lords."
   },
   {
    "id": "eng_cromwell",
@@ -1355,7 +1397,8 @@
    "effects": {
     "adm": 2,
     "unrest": 0.5
-   }
+   },
+   "text": "Schafft Klöster ab und baut eine moderne Verwaltung."
   },
   {
    "id": "eng_cecil",
@@ -1367,7 +1410,8 @@
    "effects": {
     "dip": 1,
     "ae_decay": 0.1
-   }
+   },
+   "text": "Der treue Staatssekretär einer langen Regierung."
   },
   {
    "id": "eng_walsingham",
@@ -1379,7 +1423,8 @@
    "effects": {
     "ae_gen": -0.2,
     "unrest": -0.5
-   }
+   },
+   "text": "Elisabeths Spionagemeister: Kein Komplott bleibt geheim."
   },
   {
    "id": "spa_luna",
@@ -1391,7 +1436,8 @@
    "effects": {
     "adm": 1,
     "prestige": -0.5
-   }
+   },
+   "text": "Mächtiger Günstling des Königs, gefürchtet vom Adel."
   },
   {
    "id": "spa_cisneros",
@@ -1403,7 +1449,8 @@
    "effects": {
     "tech_cost": -0.1,
     "unrest": -0.5
-   }
+   },
+   "text": "Kardinal, Reformer und Gründer einer Universität."
   },
   {
    "id": "spa_cordoba",
@@ -1414,7 +1461,8 @@
    "to": 1515,
    "effects": {
     "combat": 0.1
-   }
+   },
+   "text": "El Gran Capitán: Er erfand die spanische Infanterie neu."
   },
   {
    "id": "spa_olivares",
@@ -1426,7 +1474,8 @@
    "effects": {
     "force_limit": 4,
     "unrest": 0.75
-   }
+   },
+   "text": "Will ein Weltreich mit vereinter Kraft. Die Provinzen murren."
   },
   {
    "id": "boh_podiebrad",
@@ -1438,7 +1487,8 @@
    "effects": {
     "adm": 1,
     "dip": 1
-   }
+   },
+   "text": "Der Landesverweser, der selbst König wurde."
   },
   {
    "id": "boh_rozmital",
@@ -1450,7 +1500,8 @@
    "effects": {
     "income": 0.08,
     "unrest": 0.25
-   }
+   },
+   "text": "Oberster Burggraf, ein Meister der Landesfinanzen."
   },
   {
    "id": "boh_rosenberg",
@@ -1462,7 +1513,8 @@
    "effects": {
     "dip": 1,
     "unrest": -0.5
-   }
+   },
+   "text": "Mächtigster Herr Böhmens, ein Vermittler zwischen den Lagern."
   },
   {
    "id": "hab_piccolomini",
@@ -1474,7 +1526,8 @@
    "effects": {
     "dip": 1,
     "prestige": 0.5
-   }
+   },
+   "text": "Humanist und Diplomat am Kaiserhof, später Papst."
   },
   {
    "id": "hab_salm",
@@ -1486,7 +1539,8 @@
    "effects": {
     "combat": 0.06,
     "unrest": -0.5
-   }
+   },
+   "text": "Verteidiger Wiens gegen die Osmanen."
   },
   {
    "id": "hab_wallenstein",
@@ -1499,7 +1553,8 @@
     "force_limit": 5,
     "combat": 0.05,
     "ae_gen": 0.1
-   }
+   },
+   "text": "Stellt dem Kaiser ganze Armeen auf, auf eigene Rechnung."
   },
   {
    "id": "rus_kholmsky",
@@ -1510,7 +1565,8 @@
    "to": 1493,
    "effects": {
     "combat": 0.07
-   }
+   },
+   "text": "Moskaus erfolgreichster Feldherr seiner Zeit."
   },
   {
    "id": "rus_adashev",
@@ -1522,7 +1578,8 @@
    "effects": {
     "adm": 1,
     "unrest": -0.5
-   }
+   },
+   "text": "Reformer am Hof des jungen Zaren."
   },
   {
    "id": "rus_godunov",
@@ -1535,7 +1592,8 @@
     "adm": 1,
     "income": 0.05,
     "prestige": -0.5
-   }
+   },
+   "text": "Schwager des Zaren, klug, reich und ehrgeizig."
   },
   {
    "id": "nap_petrucci",
@@ -1546,7 +1604,8 @@
    "to": 1487,
    "effects": {
     "income": 0.08
-   }
+   },
+   "text": "Königlicher Sekretär, der die Kassen Neapels füllt."
   },
   {
    "id": "nap_pontano",
@@ -1558,7 +1617,8 @@
    "effects": {
     "dip": 1,
     "tech_cost": -0.05
-   }
+   },
+   "text": "Dichter, Humanist und Staatsmann."
   },
   {
    "id": "nap_toledo",
@@ -1570,7 +1630,8 @@
    "effects": {
     "unrest": -1.0,
     "tax": 0.05
-   }
+   },
+   "text": "Vizekönig mit harter Hand: Ordnung in Stadt und Land."
   },
   {
    "id": "tur_candarli",
@@ -1582,7 +1643,8 @@
    "effects": {
     "adm": 1,
     "combat": -0.03
-   }
+   },
+   "text": "Großwesir aus alter Familie, vorsichtig mit Kriegen."
   },
   {
    "id": "tur_ibrahim",
@@ -1594,7 +1656,8 @@
    "effects": {
     "dip": 1,
     "ae_decay": 0.1
-   }
+   },
+   "text": "Freund des Sultans und gewandter Unterhändler."
   },
   {
    "id": "tur_sinan",
@@ -1606,7 +1669,8 @@
    "effects": {
     "build_cost": -0.25,
     "prestige": 0.5
-   }
+   },
+   "text": "Der größte Baumeister des Reiches."
   },
   {
    "id": "tur_sokollu",
@@ -1618,7 +1682,8 @@
    "effects": {
     "adm": 1,
     "dip": 1
-   }
+   },
+   "text": "Großwesir unter drei Sultanen, Herr der Verwaltung."
   },
   {
    "id": "pol_olesnicki",
@@ -1630,7 +1695,8 @@
    "effects": {
     "dip": 1,
     "unrest": -0.5
-   }
+   },
+   "text": "Bischof und Staatsmann, der eigentliche Lenker des Reiches."
   },
   {
    "id": "pol_zamoyski",
@@ -1642,7 +1708,8 @@
    "effects": {
     "adm": 1,
     "combat": 0.03
-   }
+   },
+   "text": "Kanzler und Hetman zugleich."
   },
   {
    "id": "pol_zolkiewski",
@@ -1653,7 +1720,8 @@
    "to": 1620,
    "effects": {
     "combat": 0.08
-   }
+   },
+   "text": "Hetman, dessen Reiter Moskau erreichten."
   },
   {
    "id": "bur_rolin",
@@ -1665,7 +1733,8 @@
    "effects": {
     "income": 0.08,
     "unrest": -0.25
-   }
+   },
+   "text": "Kanzler des Herzogs und Stifter des Hospitals von Beaune."
   },
   {
    "id": "bur_croy",
@@ -1677,7 +1746,8 @@
    "effects": {
     "dip": 1,
     "prestige": -0.25
-   }
+   },
+   "text": "Erster Kammerherr, mit Freunden in Paris."
   },
   {
    "id": "bur_marche",
@@ -1689,7 +1759,8 @@
    "effects": {
     "prestige": 1.0,
     "ae_decay": 0.05
-   }
+   },
+   "text": "Zeremonienmeister des prächtigsten Hofes Europas."
   }
  ],
  "companies": [
@@ -1902,6 +1973,7 @@
    "id": "wirtschaft",
    "name": "Wirtschaftsordnung",
    "power": "adm",
+   "text": "Wovon das Land lebt: Bauern, Städte oder Krieg.",
    "options": [
     {
      "id": "grundherrschaft",
@@ -1961,6 +2033,7 @@
    "id": "heer",
    "name": "Heeresverfassung",
    "power": "mil",
+   "text": "Wer kämpft für die Krone, und wer bezahlt ihn.",
    "options": [
     {
      "id": "lehnsheer",
@@ -2009,6 +2082,7 @@
    "id": "staat",
    "name": "Staatsaufbau",
    "power": "adm",
+   "text": "Wie viel Macht beim Herrscher liegt und wie viel bei den Ständen.",
    "options": [
     {
      "id": "feudal",
@@ -2060,6 +2134,7 @@
    "id": "kirche",
    "name": "Kirchenpolitik",
    "power": "dip",
+   "text": "Glaube, Toleranz und der Besitz der Kirche.",
    "options": [
     {
      "id": "tradition",
@@ -2111,6 +2186,7 @@
    "id": "aussen",
    "name": "Außenpolitik",
    "power": "dip",
+   "text": "Wie dein Reich der Welt begegnet.",
    "options": [
     {
      "id": "zurueckhaltung",

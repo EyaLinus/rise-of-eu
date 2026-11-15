@@ -58,7 +58,7 @@ func _run(fail: bool) -> void:
 	n.ae = 87.0
 	m._after_tick()
 	m._close_modal()
-	print("NAT ", m.top_labels.nation.visible, " ", m.top_labels.gold.get_theme_font_size("font_size"), " ", m.top_labels.gold.get_parent().get_theme_constant("separation"))
+
 	await _check(m, "topbar")
 	for p in ["nation", "diplomacy", "wars", "navy", "missions", "log", "mapmodes", "advice", "modifiers", "ranking", "hre"]:
 		m._open_panel(p)

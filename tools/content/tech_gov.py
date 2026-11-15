@@ -544,6 +544,183 @@ FORM_CHANGES = [
 ]
 
 
+
+# Short flavour line per advisor, ruler trait, law and reform group (shown under the name in the UI).
+FLAVOUR = {
+    # advisors
+    "kaemmerer": "Zählt jede Münze zweimal, bevor sie die Schatzkammer verlässt.",
+    "steuermeister": "Holt aus jedem Dorf das Letzte heraus. Die Bürger fluchen.",
+    "baumeister": "Plant Brücken, Mauern und Paläste günstiger als jeder Zunftmeister.",
+    "gelehrter": "Liest Griechisch, rechnet mit arabischen Ziffern und korrespondiert mit halb Europa.",
+    "landvogt": "Reitet durchs Land, schlichtet Streit und hängt Räuber.",
+    "reformer": "Will alles neu ordnen, sofort. Der alte Adel hasst ihn.",
+    "zeremonienmeister": "Ein Fest, ein Turnier, ein Einzug: Glanz ist auch Politik.",
+    "gesandter": "Kennt jeden Hof und lässt alte Kränkungen vergessen.",
+    "meisterspion": "Was im Ausland geflüstert wird, liegt am Abend auf deinem Tisch.",
+    "handelsherr": "Hat Kontore in jedem Hafen und Freunde in jeder Gilde.",
+    "hofprediger": "Seine Predigten füllen die Kirchen und beruhigen die Zweifler.",
+    "eiferer": "Brennt für den wahren Glauben. Neues Wissen ist ihm verdächtig.",
+    "feldhauptmann": "Hat mehr Schlachten gesehen als Kirchen von innen.",
+    "zeugmeister": "Kanonen, Pulver, Leitern: Er bricht jede Mauer.",
+    "werbeoffizier": "Trommeln auf dem Marktplatz, Handgeld für jeden Freiwilligen.",
+    "quartiermeister": "Brot, Stiefel und Sold kommen pünktlich an.",
+    "drillmeister": "Exerzieren bis zum Umfallen. Seine Regimenter weichen nicht.",
+    "kriegstreiber": "Sieht überall Feinde und will sie alle schlagen.",
+    "fra_coeur": "Der reichste Kaufmann Frankreichs finanziert die Krone.",
+    "fra_bureau": "Der Meister der Artillerie, dessen Kanonen den Hundertjährigen Krieg beendeten.",
+    "fra_sully": "Ordnet die Finanzen nach den Religionskriegen.",
+    "fra_richelieu": "Der rote Kardinal: Staatsräson über alles.",
+    "eng_suffolk": "Verhandelt Frieden und Heiraten mit Frankreich, nicht immer zum Dank der Lords.",
+    "eng_cromwell": "Schafft Klöster ab und baut eine moderne Verwaltung.",
+    "eng_cecil": "Der treue Staatssekretär einer langen Regierung.",
+    "eng_walsingham": "Elisabeths Spionagemeister: Kein Komplott bleibt geheim.",
+    "spa_luna": "Mächtiger Günstling des Königs, gefürchtet vom Adel.",
+    "spa_cisneros": "Kardinal, Reformer und Gründer einer Universität.",
+    "spa_cordoba": "El Gran Capitán: Er erfand die spanische Infanterie neu.",
+    "spa_olivares": "Will ein Weltreich mit vereinter Kraft. Die Provinzen murren.",
+    "boh_podiebrad": "Der Landesverweser, der selbst König wurde.",
+    "boh_rozmital": "Oberster Burggraf, ein Meister der Landesfinanzen.",
+    "boh_rosenberg": "Mächtigster Herr Böhmens, ein Vermittler zwischen den Lagern.",
+    "hab_piccolomini": "Humanist und Diplomat am Kaiserhof, später Papst.",
+    "hab_salm": "Verteidiger Wiens gegen die Osmanen.",
+    "hab_wallenstein": "Stellt dem Kaiser ganze Armeen auf, auf eigene Rechnung.",
+    "rus_kholmsky": "Moskaus erfolgreichster Feldherr seiner Zeit.",
+    "rus_adashev": "Reformer am Hof des jungen Zaren.",
+    "rus_godunov": "Schwager des Zaren, klug, reich und ehrgeizig.",
+    "nap_petrucci": "Königlicher Sekretär, der die Kassen Neapels füllt.",
+    "nap_pontano": "Dichter, Humanist und Staatsmann.",
+    "nap_toledo": "Vizekönig mit harter Hand: Ordnung in Stadt und Land.",
+    "tur_candarli": "Großwesir aus alter Familie, vorsichtig mit Kriegen.",
+    "tur_ibrahim": "Freund des Sultans und gewandter Unterhändler.",
+    "tur_sinan": "Der größte Baumeister des Reiches.",
+    "tur_sokollu": "Großwesir unter drei Sultanen, Herr der Verwaltung.",
+    "pol_olesnicki": "Bischof und Staatsmann, der eigentliche Lenker des Reiches.",
+    "pol_zamoyski": "Kanzler und Hetman zugleich.",
+    "pol_zolkiewski": "Hetman, dessen Reiter Moskau erreichten.",
+    "bur_rolin": "Kanzler des Herzogs und Stifter des Hospitals von Beaune.",
+    "bur_croy": "Erster Kammerherr, mit Freunden in Paris.",
+    "bur_marche": "Zeremonienmeister des prächtigsten Hofes Europas.",
+    # ruler traits
+    "t:baumeister": "Lässt bauen, wo andere nur planen.",
+    "t:feldherr": "Führt seine Truppen selbst ins Feld.",
+    "t:kaufmann": "Versteht Märkte besser als Mönche.",
+    "t:fromm": "Betet täglich und stiftet Kirchen.",
+    "t:diplomat": "Gewinnt Freunde mit Worten statt Waffen.",
+    "t:sparsam": "Kein Fest zu viel, kein Taler verschwendet.",
+    "t:gelehrt": "Fördert Gelehrte und liest selbst.",
+    "t:gerecht": "Sein Urteil gilt für Bauer und Fürst gleich.",
+    "t:leutselig": "Plaudert mit jedem, Adel und Bürger lieben ihn.",
+    "t:prunk": "Seide, Gold und Feste, solange die Kasse reicht.",
+    "t:grausam": "Herrscht mit Furcht. Eroberte fügen sich, aber murren.",
+    "t:zaghaft": "Zögert lieber, als etwas zu wagen.",
+    "t:verschwender": "Beschenkt den Adel mit vollen Händen.",
+    "t:misstrauisch": "Sieht überall Verrat, vor allem beim Adel.",
+    # law groups and reform tiers
+    "l:wirtschaft": "Wovon das Land lebt: Bauern, Städte oder Krieg.",
+    "l:heer": "Wer kämpft für die Krone, und wer bezahlt ihn.",
+    "l:staat": "Wie viel Macht beim Herrscher liegt und wie viel bei den Ständen.",
+    "l:kirche": "Glaube, Toleranz und der Besitz der Kirche.",
+    "l:aussen": "Wie dein Reich der Welt begegnet.",
+    "r:grundlage": "Worauf die Krone ihre Macht stützt.",
+    "r:verwaltung": "Wer im Land regiert, wenn der Herrscher fern ist.",
+    "r:heerwesen": "Wie Truppen geworben, geführt und versorgt werden.",
+    "r:staatsidee": "Warum der Staat überhaupt besteht.",
+    "r:herrschaft": "Die letzte Frage: Wer hat das letzte Wort?",
+}
+
+TECH_FLAVOUR = {
+    "adm_kanzlei": "Schreiber, Siegel und Register: Der Hof weiß endlich, was er besitzt.",
+    "adm_landvoegte": "Königliche Beamte sprechen Recht, wo früher nur der Grundherr galt.",
+    "adm_kataster": "Jedes Feld vermessen, jede Abgabe verzeichnet.",
+    "adm_gerichte": "Ein oberstes Gericht für das ganze Reich.",
+    "adm_beamte": "Diener des Staates statt Diener eines Herrn.",
+    "adm_intendanten": "Vertraute der Krone überwachen die Provinzen.",
+    "adm_kameral": "Die Lehre vom gut verwalteten Staatshaushalt.",
+    "adm_policey": "Ordnungen für Markt, Bauten und gute Sitten.",
+    "adm_absolut": "Alle Fäden laufen beim Herrscher zusammen.",
+    "adm_kabinett": "Wenige Minister entscheiden, schnell und im Geheimen.",
+    "adm_zuenfte": "Zünfte regeln Lehre, Preise und Qualität.",
+    "adm_muehlen": "Wasserkraft mahlt Korn, walkt Tuch und hämmert Eisen.",
+    "adm_saigerhuetten": "Neue Hütten trennen Silber aus dem Kupfererz.",
+    "adm_baukunst": "Kuppeln, Säulen und Proportion nach antikem Vorbild.",
+    "adm_verlag": "Kaufleute geben Rohstoffe aus und holen Waren ab.",
+    "adm_kanaele": "Schleusen bringen Schiffe über Hügel und Wasserscheiden.",
+    "adm_manufaktur": "Viele Hände unter einem Dach, jede mit einem Handgriff.",
+    "adm_polder": "Deiche und Pumpen ringen dem Meer neues Land ab.",
+    "adm_merkantil": "Mehr verkaufen als kaufen: So wird ein Land reich.",
+    "adm_colbert": "Der Staat fördert Gewerbe, Zölle schützen sie.",
+    "adm_universitaet": "Hohe Schulen bilden Juristen, Ärzte und Theologen.",
+    "adm_buchdruck": "Bewegliche Lettern: Bücher für viele statt für wenige.",
+    "adm_humanismus": "Zurück zu den Quellen der Antike.",
+    "adm_kirchenreform": "Konzile und Reformer wollen die Kirche erneuern.",
+    "adm_akademien": "Gelehrte treffen sich, streiten und veröffentlichen.",
+    "adm_vermessung": "Genaue Karten zeigen, was das Reich wirklich umfasst.",
+    "adm_naturphil": "Die Welt wird beobachtet, nicht nur gedeutet.",
+    "adm_wissenschaft": "Experiment und Mathematik erklären den Himmel und die Erde.",
+    "adm_aufklaerung": "Die Vernunft soll Staat und Gesellschaft leiten.",
+    "adm_akademie": "Eine königliche Akademie bündelt das Wissen des Landes.",
+    "dip_gesandte": "Botschafter bleiben dauerhaft an fremden Höfen.",
+    "dip_heraldik": "Wappen, Turniere und Ehre ordnen den Adel Europas.",
+    "dip_vertraege": "Verträge mit festen Formen werden verlässlich.",
+    "dip_zeremoniell": "Wer wo steht und wer zuerst spricht, ist hohe Politik.",
+    "dip_kabinett": "Briefe werden geöffnet, Chiffren geknackt.",
+    "dip_heiratspolitik": "Andere führen Kriege, du heiratest.",
+    "dip_kongresse": "Gesandte vieler Mächte verhandeln an einem Tisch.",
+    "dip_dienst": "Ein geschulter Dienst ersetzt Günstlinge und Zufall.",
+    "dip_gleichgewicht": "Keine Macht darf zu stark werden.",
+    "dip_westfalen": "Souveräne Staaten erkennen einander als gleich an.",
+    "dip_messen": "Große Messen ziehen Händler aus ganz Europa an.",
+    "dip_wechsel": "Ein Stück Papier ersetzt die Truhe voll Silber.",
+    "dip_gilden": "Kaufleute schließen sich zusammen und teilen das Risiko.",
+    "dip_karavellen": "Wendige Schiffe, die gegen den Wind kreuzen können.",
+    "dip_boersen": "Täglicher Handel mit Waren, Wechseln und Anteilen.",
+    "dip_girobanken": "Bezahlen durch Umbuchen statt durch Münzen.",
+    "dip_aktien": "Viele Anteilseigner tragen große Unternehmen gemeinsam.",
+    "dip_fernhandel": "Gewürze, Seide und Silber über Ozeane hinweg.",
+    "dip_handelsbilanz": "Zahlen zeigen, ob Gold ins Land fließt oder hinaus.",
+    "dip_ostindien": "Kompanien mit eigenen Schiffen, Festungen und Soldaten.",
+    "dip_lehnsrecht": "Treue gegen Land: die alte Ordnung der Herrschaft.",
+    "dip_staende": "Adel, Klerus und Städte beraten mit dem Herrscher.",
+    "dip_privilegien": "Freie Städte zahlen gern, wenn man ihre Rechte achtet.",
+    "dip_personalunion": "Ein Herrscher, mehrere Kronen, viele Empfindlichkeiten.",
+    "dip_statthalter": "Statthalter regieren ferne Länder im Namen der Krone.",
+    "dip_religionsfrieden": "Nach Jahrzehnten des Glaubenskriegs: leben und leben lassen.",
+    "dip_kammergericht": "Streit unter Fürsten wird vor Gericht statt im Feld entschieden.",
+    "dip_flugschriften": "Gedruckte Blätter tragen Meinungen in jede Schenke.",
+    "dip_staatsraison": "Was dem Staat nützt, ist gerechtfertigt.",
+    "dip_souveraenitaet": "Über dem Herrscher steht niemand.",
+    "mil_pikenhaufen": "Ein Wald aus Spießen hält jede Reiterei auf.",
+    "mil_ordonnanz": "Bezahlte Reiterkompanien stehen jederzeit bereit.",
+    "mil_arkebusiere": "Das Feuerrohr macht den Bauern zum Ritterschreck.",
+    "mil_gevierthaufen": "Pikeniere und Schützen in einem großen Viereck.",
+    "mil_pistoliere": "Reiter feuern im Vorbeireiten und schwenken ab.",
+    "mil_exerzieren": "Jeder Handgriff wird geübt, bis er sitzt.",
+    "mil_salven": "Glied um Glied feuert, ohne Pause.",
+    "mil_brigade": "Kleinere, bewegliche Verbände mit leichten Kanonen.",
+    "mil_lineartaktik": "Lange Linien, maximale Feuerkraft.",
+    "mil_bajonett": "Die Muskete wird zugleich zum Spieß.",
+    "mil_bombarden": "Riesige Rohre, die Steinkugeln gegen Mauern schleudern.",
+    "mil_feldgeschuetze": "Kanonen, die mit der Armee marschieren.",
+    "mil_bastionen": "Spitze Bollwerke decken jede Mauer mit Kreuzfeuer.",
+    "mil_minen": "Unter der Mauer graben, Pulver legen, warten.",
+    "mil_trace_italienne": "Niedrige, dicke Wälle trotzen jeder Kanone.",
+    "mil_bronzeguss": "Leichtere, sicherere Geschütze aus Bronze.",
+    "mil_moerser": "Steilfeuer über die Mauer hinweg.",
+    "mil_ingenieure": "Fachleute für Gräben, Brücken und Belagerungen.",
+    "mil_sternfestungen": "Festungen in Sternform ohne toten Winkel.",
+    "mil_vauban": "Belagern und Befestigen nach festen Regeln.",
+    "mil_lehnsaufgebot": "Vasallen folgen dem Ruf ihres Herrn in den Krieg.",
+    "mil_soldwesen": "Wer zahlt, bekommt Soldaten.",
+    "mil_landsknechte": "Söldner mit Pluderhosen, Spießen und schlechtem Ruf.",
+    "mil_magazine": "Vorratslager entlang der Marschwege.",
+    "mil_musterrollen": "Listen zeigen, wer dienen kann und wer gedient hat.",
+    "mil_kriegskanzlei": "Eine Behörde nur für den Krieg.",
+    "mil_garnisonen": "Truppen bleiben auch im Frieden unter Waffen.",
+    "mil_kasernen": "Soldaten wohnen nicht mehr bei den Bürgern.",
+    "mil_stehendes_heer": "Ein Heer, das nie aufgelöst wird.",
+    "mil_kommissariat": "Beamte organisieren Sold, Nachschub und Aushebung.",
+}
+
 def build():
     nations = json.load(open(os.path.join(ROOT, "data/nations.json")))
     techs = []
@@ -557,7 +734,7 @@ def build():
             for i, (tid, name, eff) in enumerate(lst):
                 assert tid not in ids, tid
                 ids.add(tid)
-                t = {"id": tid, "cat": cat, "branch": bid, "name": name, "year": BRANCH_YEARS[i], "effects": eff}
+                t = {"id": tid, "cat": cat, "branch": bid, "name": name, "year": BRANCH_YEARS[i], "effects": eff, "text": TECH_FLAVOUR[tid]}
                 if prev:
                     t["req"] = [prev]
                 techs.append(t)
@@ -577,10 +754,10 @@ def build():
            "branches": branches, "techs": techs, "special": special}
     json.dump(out, open(os.path.join(ROOT, "data/techs.json"), "w"), ensure_ascii=False, indent=1)
 
-    adv = [{"id": a, "name": n, "type": t, "effects": e} for a, n, t, e in ADVISORS]
+    adv = [{"id": a, "name": n, "type": t, "effects": e, "text": FLAVOUR[a]} for a, n, t, e in ADVISORS]
     for a, tag, n, t, y0, y1, e in NATIONAL_ADVISORS:
         assert tag in nations, tag
-        adv.append({"id": a, "tag": tag, "name": n, "type": t, "from": y0, "to": y1, "effects": e})
+        adv.append({"id": a, "tag": tag, "name": n, "type": t, "from": y0, "to": y1, "effects": e, "text": FLAVOUR[a]})
     comp = [{"id": c, "name": n, "year": y, "effects": e, "text": tx} for c, n, y, e, tx in COMPANIES]
     for c, tag, n, y, e, tx in NATIONAL_COMPANIES:
         comp.append({"id": c, "tag": tag, "name": n, "year": y, "effects": e, "text": tx})
@@ -593,7 +770,7 @@ def build():
             if req:
                 o["req"] = req
             lo.append(o)
-        laws.append({"id": lid, "name": name, "power": power, "options": lo})
+        laws.append({"id": lid, "name": name, "power": power, "text": FLAVOUR["l:" + lid], "options": lo})
     for f in ["Kaufmannsrepublik", "Stadtrepublik", "Städtebund", "Theokratie", "Ordensstaat", "Wahlmonarchie"]:
         assert f in FORM_EFFECTS, f
     for t in GOV_FORMS:
@@ -606,7 +783,7 @@ def build():
     gov = {"_doc": "Generated by tools/content/tech_gov.py, edit there.",
            "advisor_slots": 3, "advisor_cost": 75, "advisor_max_skill": 3, "advisor_skill_step": 0.5,
            "advisor_promote_mult": 1.5, "advisor_retire_years": 20, "advisor_retire_chance": 0.15,
-           "traits": [{"id": i, "name": nm, "weight": w, "effects": e} for i, nm, w, e in TRAITS], "trait_none_chance": 0.2,
+           "traits": [{"id": i, "name": nm, "weight": w, "effects": e, "text": FLAVOUR["t:" + i]} for i, nm, w, e in TRAITS], "trait_none_chance": 0.2,
            "heir_edu_cost": 60, "heir_edu_step": 0.5, "ai_heir_share": 0.6, "heir_disinherit_prestige": 25, "heir_disinherit_years": 10,
            "heir_start_age_max": 12, "regency_age": 15,
            "regency_effects": {"estate_adel": 10, "unrest": 0.5, "prestige": -1, "ae_gen": 0.1},
@@ -622,7 +799,7 @@ def build():
            "budget": [{"id": i, "name": nm, "text": tx, "steps": st, "per_step": e, "cost": c}
                       for i, nm, tx, st, e, c in BUDGET],
            "budget_default": 2,
-           "reforms": [{"id": i, "name": nm, "year": y, "options": [{"id": oi, "name": on, "effects": oe, "text": ot}
+           "reforms": [{"id": i, "name": nm, "year": y, "text": FLAVOUR["r:" + i], "options": [{"id": oi, "name": on, "effects": oe, "text": ot}
                                                                 for oi, on, oe, ot in opts]} for i, nm, y, opts in REFORMS],
            "reform_cost": 100, "reform_cost_step": 50, "reform_change_years": 25,
            "empire": {"authority_start": 10, "authority_max": 150, "authority_base": 2.0, "authority_per_member": 0.15,
