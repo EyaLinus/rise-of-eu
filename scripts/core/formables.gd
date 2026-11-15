@@ -88,7 +88,7 @@ static func form(g, tag: String, id: String) -> String:
 	for pid in missing(g, tag, id):
 		n.claims[pid] = true
 	g.stats["formed"] = g.stats.get("formed", 0) + 1
-	g.log_msg("👑 Neues Reich ausgerufen: %s (bisher %s)!" % [f.name, old])
+	g.world_event("👑 Neues Reich ausgerufen: %s (bisher %s)!" % [f.name, old])
 	g.fire_event(tag, "form_" + id.to_lower())
 	return ""
 
