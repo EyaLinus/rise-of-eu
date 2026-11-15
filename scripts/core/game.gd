@@ -9,6 +9,7 @@ const Tech = preload("res://scripts/core/tech.gd")
 const Government = preload("res://scripts/core/government.gd")
 const Religion = preload("res://scripts/core/religion.gd")
 const Monuments = preload("res://scripts/core/monuments.gd")
+const Formables = preload("res://scripts/core/formables.gd")
 const Warfare = preload("res://scripts/core/warfare.gd")
 const Naval = preload("res://scripts/core/naval.gd")
 const Urban = preload("res://scripts/core/urban.gd")
@@ -104,6 +105,7 @@ class Nation:
 	var embargoes: Array = []  # rivals whose trade we block (costs us a little trade too)
 	var religion: String = "catholic"  # state religion
 	var monuments := {}  # finished great works (Monuments)
+	var formed: String = ""  # id of the realm this nation proclaimed (Formables), "" = none
 	var monument_build := {}  # {"id", "months"} while one is being built
 	var autobuild: bool = false  # player: build the best building whenever the treasury stays above the reserve
 	var autobuild_reserve: float = 100.0
@@ -160,6 +162,7 @@ var rng := RandomNumberGenerator.new()
 var player: String = ""
 var event_defs: Array = []
 var monument_defs := {}
+var formable_defs := {}
 var event_by_id := {}
 var mission_defs := {}
 var log_lines: Array = []
@@ -278,6 +281,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	_rebuild_owned()
 	Religion.setup(self, data)
 	monument_defs = data.get("monuments", {})
+	Formables.setup(self, data)
 	Economy.setup(self, data)
 	Urban.setup(self)
 	for p in provinces:
@@ -903,6 +907,7 @@ func _yearly() -> void:
 	Urban.yearly(self)
 	Progression.yearly(self)
 	Religion.yearly(self)
+	Formables.ai_yearly(self)
 	_coalitions_yearly()
 	_liberty_yearly()
 	_record_history()
@@ -2965,7 +2970,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "embargoes": n.embargoes, "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "monuments": n.monuments.keys(), "monument_build": n.monument_build,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "embargoes": n.embargoes, "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
 				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n)}
 	d.nations = ns
 	var ar := []
@@ -3108,6 +3113,8 @@ func from_dict(d: Dictionary) -> void:
 		var mb: Dictionary = e.get("monument_build", {})
 		n.monument_build = {} if mb.is_empty() else {"id": str(mb.id), "months": int(mb.months)}
 		Monuments.refresh(self, n)
+		n.formed = str(e.get("formed", ""))
+		Formables.apply_identity(self, n)
 		n.guarantees = {}
 		for t in e.get("guarantees", []):
 			n.guarantees[str(t)] = true

@@ -10,6 +10,7 @@ const TechScreen = preload("res://scripts/ui/tech_screen.gd")
 const Tech = preload("res://scripts/core/tech.gd")
 const Faith = preload("res://scripts/core/religion.gd")
 const Monuments = preload("res://scripts/core/monuments.gd")
+const Formables = preload("res://scripts/core/formables.gd")
 const Warfare = preload("res://scripts/core/warfare.gd")
 const Naval = preload("res://scripts/core/naval.gd")
 const FirstSteps = preload("res://scripts/core/first_steps.gd")
@@ -100,7 +101,7 @@ func _ready() -> void:
 		add_child(p)
 		sfx_players.append(p)
 	data = Data.load_all()
-	PixelEmoji.add_nations(data.nations.keys())
+	PixelEmoji.add_nations(data.nations.keys() + data.formables.keys())  # formable flags too (Formables)
 	map = MapView.new()
 	map.set_anchors_preset(Control.PRESET_FULL_RECT)
 	map.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1103,6 +1104,7 @@ func _set_speed(s: int) -> void:
 func _update_top() -> void:
 	if game == null:
 		return
+	_sync_flags()
 	var n = game.nations[game.player]
 	var net: float = n.income - n.expenses + game.tribute_income(game.player)
 	top_labels.nation.text = nname(game.player)
@@ -2226,6 +2228,7 @@ func _panel_nation() -> void:
 		side_box.add_child(_grid(acts))
 	_nation_fleet(me)
 	_nation_monuments(me)
+	_nation_formables(me)
 	var vs: Array = game.vassals_of(me)
 	if not vs.is_empty() and _section("nat_vassals", Icons.prefix("vassal") + "Vasallen: %d (Tribut %+.1f 💰)" % [vs.size(), game.tribute_income(me)]):
 		for v in vs:
@@ -2235,7 +2238,7 @@ func _panel_nation() -> void:
 
 
 const MOD_SOURCES := {"": "Nationalgeist & Ereignisse", "goods": "Handelsgüter", "buildings": "Gebäude", "rank": "Rang",
-		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "rivals": "Rivalen", "embargo": "Embargos"}
+		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "rivals": "Rivalen", "embargo": "Embargos", "formed": "Reichsgründung"}
 const MOD_GROUPS := [
 	["💰 Wirtschaft", ["income", "tax", "production", "trade", "merchants", "build_cost", "develop_cost"]],
 	["⚔️ Militär", ["combat", "army_power", "army_power_regen", "manpower", "force_limit", "maintenance", "siege", "naval"]],
@@ -2290,6 +2293,40 @@ func _nation_monuments(me: String) -> void:
 		var br: String = Monuments.block_reason(game, me, id)
 		side_box.add_child(_btn("%s %s bauen (%d 💰, %d Mon.)" % [m.emoji, m.name, int(Monuments.cost(game, me, id)), int(m.months)],
 				func(): _start_monument(id),
+				tip + ("\n❌ " + br if br != "" else ""), br != ""))
+
+
+## Formed realms fly their new flag on the map and in every list.
+func _sync_flags() -> void:
+	var a := {}
+	for t in game.order:
+		if game.nations[t].formed != "":
+			a[t] = game.nations[t].formed
+	if a != Icons.flag_alias:
+		Icons.flag_alias = a
+		map.refresh()
+
+
+## Realms this nation may proclaim (Formables): progress on the core provinces and the button.
+func _nation_formables(me: String) -> void:
+	var ids: Array = Formables.options(game, me)
+	var ready := ids.any(func(id): return Formables.block_reason(game, me, id) == "")
+	if ids.is_empty() or not _section("nat_formables", "👑 Reich gründen" + (" ✨" if ready else ""), ready, "Mit genug Kernprovinzen ruft deine Nation ein größeres Reich aus: neuer Name, neue Farbe, Prestige, dauerhafter Bonus und Ansprüche auf die fehlenden Provinzen."):
+		return
+	for id in ids:
+		var f: Dictionary = game.formable_defs[id]
+		var pr: Array = Formables.progress(game, me, id)
+		var parts := []
+		for r in UiTheme.mod_rows(f.bonus):
+			parts.append("%s %s" % [r[0], r[1]])
+		var miss := []
+		for pid in Formables.missing(game, me, id):
+			miss.append(game.provinces[pid].name)
+		var tip: String = "%s\nBonus: %s, +%d ⭐\nKernprovinzen %d/%d.%s" % [f.text, ", ".join(parts), int(game.bal.form_prestige), pr[0], pr[1],
+				("\nEs fehlen: " + ", ".join(miss)) if not miss.is_empty() else ""]
+		var br: String = Formables.block_reason(game, me, id)
+		side_box.add_child(_btn("👑 %s ausrufen (%d/%d, %d 📜)" % [f.name, pr[0], pr[1], int(Formables.cost(game))],
+				func(): _act(Formables.form(game, me, id), "👑 " + f.name + " ausgerufen!"),
 				tip + ("\n❌ " + br if br != "" else ""), br != ""))
 
 
@@ -3046,6 +3083,10 @@ func _advice() -> Array:
 	for m in game.available_missions(me):
 		if game.mission_ready(me, m):
 			add.call("🎯 Mission erfüllt", "Hole dir die Belohnung ab.", "good", "missions")
+			break
+	for id in Formables.options(game, me):
+		if Formables.block_reason(game, me, id) == "":
+			add.call("👑 %s kann ausgerufen werden" % game.formable_defs[id].name, "Im Reichsfenster unter „Reich gründen“: neuer Name, Flagge, Prestige und ein dauerhafter Bonus.", "good", "nation")
 			break
 	for w in game.wars_of(me):
 		var att: bool = game.is_attacker(w, me)
