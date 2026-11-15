@@ -29,6 +29,10 @@ func _init() -> void:
 		"test_colonial",
 		"test_embargo",
 		"test_hall_of_fame",
+		"test_rival_missions",
+		"test_play_on",
+		"test_formables",
+		"test_chronicle",
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
@@ -1100,6 +1104,41 @@ func test_urban() -> void:
 		g.provinces[q].urban = true
 	check(Urb.demand_mult(g, "cloth") > dm0, "more cities raise demand for city goods")
 	check(Urb.demand_mult(g, "grain") < 1.0, "more cities lower demand for country goods")
+	# event hooks: conditions and the charter effect
+	var mine: int = Urb.count_of(g, "FRA")
+	check(g.check_conditions("FRA", {"cities_min": mine}) and not g.check_conditions("FRA", {"cities_min": mine + 1}), "cities_min counts own cities")
+	check(g.check_conditions("FRA", {"cities_max": mine}) and not g.check_conditions("FRA", {"cities_max": mine - 1}), "cities_max counts own cities")
+	for q in g.provinces_of("FRA"):
+		g.provinces[q].urban = false
+	g.apply_effects("FRA", {"urbanize": 2})
+	check(Urb.count_of(g, "FRA") == 2, "a charter founds cities at once")
+	var urb_events := 0
+	for e in data.events:
+		if e.id.begins_with("urb_"):
+			urb_events += 1
+	check(urb_events >= 8, "urb_ events present (%d)" % urb_events)
+	# cities grow by themselves in peace (forced chance), the countryside does not
+	var grow_c: int = g.provinces_of("FRA")[0]
+	var grow_p = g.provinces[grow_c]
+	grow_p.urban = true
+	grow_p.dev = 5
+	var rural_dev := -1
+	var rural_pid := -1
+	for q in g.provinces_of("FRA"):
+		if q != grow_c:
+			g.provinces[q].urban = false
+			rural_pid = q
+			rural_dev = g.provinces[q].dev
+	g.bal.city_growth_chance = 1.0
+	g.wars.clear()
+	Urb.yearly(g)
+	check(grow_p.dev == 6, "a city at peace grows by one development")
+	check(g.provinces[rural_pid].dev == rural_dev, "the countryside does not grow by itself")
+	grow_p.dev = int(g.bal.dev_soft_cap)
+	Urb.yearly(g)
+	check(grow_p.dev == int(g.bal.dev_soft_cap), "growth stops at the soft cap")
+	g.bal.city_growth_chance = 0.03
+	p.urban = true  # the growth check above made it countryside again
 	# save roundtrip keeps the status
 	var d := g.to_dict()
 	var g2 = new_game("FRA", 9)
@@ -1560,6 +1599,32 @@ func test_colonial() -> void:
 	g3.from_dict(d)
 	g3.tick()
 	check(g3.provinces[qis].owner == Col.NATIVE and g3.nations.POR.known_seas.has("atlantic") and not g3.nations.POR.known_seas.has("ocean"), "an old save gets an unknown New World")
+
+
+func test_rival_missions() -> void:
+	var g = new_game("ENG", 5)
+	for tag in g.mission_defs:
+		var ids := []
+		for m in g.mission_defs[tag]:
+			ids.append(m.id)
+		check(ids.has(tag.to_lower() + "_riv_declare") and ids.has(tag.to_lower() + "_riv_power"), "%s has rival missions" % tag)
+	var declare := ""
+	var power := ""
+	for m in g.available_missions("ENG"):
+		if m.id == "eng_riv_declare":
+			declare = m.id
+		if m.id == "eng_riv_power":
+			power = m.id
+	check(declare != "" and power == "", "declare is open, power waits for its predecessor")
+	check(g.complete_mission("ENG", "eng_riv_declare") != "", "no rival, no mission")
+	check(g.set_rival("ENG", "FRA") == "", "rivalry declared")
+	var mil_before: float = g.nations.ENG.mil
+	check(g.complete_mission("ENG", "eng_riv_declare") == "", "rival mission completes")
+	check(g.nations.ENG.mil > mil_before, "mission pays military points")
+	check(g.complete_mission("ENG", "eng_riv_power") != "", "power projection too low")
+	g.add_power_proj("ENG", 60.0)
+	check(g.complete_mission("ENG", "eng_riv_power") == "", "power mission completes at 50 pp")
+	check(g.mod(g.nations.ENG, "naval") > 0.0, "second mission grants its permanent modifier")
 
 
 func test_missions_complete() -> void:
@@ -3077,3 +3142,72 @@ func test_court_content() -> void:
 	g.apply_effects("FRA", {"spouse_rel": 20})
 	check(g.check_conditions("FRA", {"married": true}) and g.get_rel("FRA", "ENG") > r0, "spouse_rel improves relations with in-laws")
 
+
+
+func test_play_on() -> void:
+	var g = new_game()
+	check(not g.can_play_on(), "play on only after the end")
+	g.month = int(g.bal.total_months) - 1
+	g.tick()
+	check(g.game_over and g.can_play_on(), "game ends at the final month")
+	var m: int = g.month
+	check(g.play_on() and not g.game_over and g.endless, "play on reopens the game")
+	for i in 14:
+		g.tick()
+	check(not g.game_over and g.month == m + 14, "endless game keeps ticking past the end")
+	check(not g.play_on(), "play on only once")
+	var g2 = new_game()
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.endless and not g2.game_over, "endless survives save/load")
+
+
+func test_formables() -> void:
+	var g = new_game("NAP")
+	for id in g.formable_defs:
+		var f: Dictionary = g.formable_defs[id]
+		for t in f.from:
+			check(g.nations.has(t), "formable %s: unknown nation %s" % [id, t])
+		for k in f.provinces:
+			check(g.key_to_pid.has(k), "formable %s: unknown province %s" % [id, k])
+		check(int(f.need) <= f.provinces.size(), "formable %s: need too high" % id)
+		for t in g.order:
+			if t in f.from:
+				check(g.Formables.block_reason(g, t, id) != "", "%s can form %s at the start" % [t, id])
+	check("ITA" in g.Formables.options(g, "NAP"), "Naples may form Italy")
+	check(not "ITA" in g.Formables.options(g, "FRA"), "France may not form Italy")
+	for k in ["rome", "florence", "milan", "venice", "genoa"]:
+		var p = g.provinces[g.key_to_pid[k]]
+		p.owner = "NAP"
+		p.controller = "NAP"
+	g._rebuild_owned()
+	g.nations.NAP.adm = 500.0
+	check(g.Formables.block_reason(g, "NAP", "ITA") == "", "Naples holding 6 of 7 can form Italy: " + g.Formables.block_reason(g, "NAP", "ITA"))
+	var pr: float = g.nations.NAP.prestige
+	check(g.Formables.form(g, "NAP", "ITA") == "", "forming works")
+	var n = g.nations.NAP
+	check(n.formed == "ITA" and n.name == "Italien" and n.prestige > pr and n.bonus.has("formed"), "new identity and bonus")
+	check(n.claims.has(g.key_to_pid["bologna"]), "claim on the missing province")
+	check(g.Formables.options(g, "NAP").is_empty() and g.Formables.block_reason(g, "VEN", "ITA") != "", "only one formation")
+	var g2 = new_game("NAP")
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.NAP.name == "Italien" and g2.nations.NAP.bonus.has("formed"), "formed realm survives save/load")
+
+
+func test_chronicle() -> void:
+	var g = new_game("FRA")
+	check(g.chronicle.is_empty(), "chronicle starts empty")
+	for pid in g.provinces_of("NAV").duplicate():
+		g.provinces[pid].owner = "FRA"
+		g.provinces[pid].controller = "FRA"
+	g._rebuild_owned()
+	g._check_alive("NAV")
+	check(g.chronicle.size() == 1 and str(g.chronicle[0][1]).contains("Navarra"), "a fallen realm enters the chronicle")
+	g.declare_war("FRA", "ENG")
+	check(str(g.chronicle[-1][1]).contains("Großmächte"), "great power war enters the chronicle")
+	var n0: int = g.chronicle.size()
+	for i in 12 * 30:
+		g.tick()
+	check(g.chronicle.size() > n0, "30 years write world history (%d entries)" % g.chronicle.size())
+	var g2 = new_game("FRA")
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.chronicle.size() == g.chronicle.size() and g2.chronicle[0][1] == g.chronicle[0][1], "chronicle survives save/load")

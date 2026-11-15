@@ -33,6 +33,15 @@ static func count(g, urban: bool) -> int:
 	return c
 
 
+## Cities of one realm.
+static func count_of(g, tag: String) -> int:
+	var c := 0
+	for pid in g.provinces_of(tag):
+		if g.provinces[pid].urban:
+			c += 1
+	return c
+
+
 static func is_city_good(g, good: String) -> bool:
 	return g.bal.urban_goods.has(good)
 
@@ -111,6 +120,28 @@ static func change(g, tag: String, pid: int, to_urban: bool) -> String:
 	return ""
 
 
+## Yearly: cities grow by themselves now and then (markets and harbors draw people), up to the soft cap,
+## as long as the owner holds them in peace. Countryside only grows when the owner develops it.
+static func yearly(g) -> void:
+	var cap: int = int(g.bal.dev_soft_cap)
+	for p in g.provinces:
+		if not p.urban or p.dev >= cap or p.controller != p.owner or p.siege > 0.0:
+			continue
+		var n = g.nations[p.owner]
+		if not n.alive or g.is_at_war(n.tag):
+			continue
+		var chance: float = float(g.bal.city_growth_chance) * (1.0 + g.mod(n, "city_growth"))
+		if p.market == p.id:
+			chance *= 1.5
+		if p.buildings.get("harbor", 0) > 0:
+			chance *= 1.25
+		if g.rng.randf() < chance:
+			p.dev += 1
+			g._update_cached(n)
+			if n.tag == g.player:
+				g.log_msg("🏙️ %s wächst: Zuzug vom Land bringt +1 Entwicklung." % p.name, [n.tag])
+
+
 ## Monthly for every realm: finishes running changes, lets the AI found cities now and then.
 static func tick(g, n) -> void:
 	for pid in g.provinces_of(n.tag):
@@ -126,7 +157,7 @@ static func tick(g, n) -> void:
 					g.log_msg("🏙️ %s ist jetzt eine Stadt: mehr Steuern, Handel und ein Bauplatz, weniger Mannschaften." % p.name, [n.tag])
 				else:
 					g.log_msg("🌾 %s ist wieder Land: mehr Mannschaften und Ruhe, weniger Steuern." % p.name, [n.tag])
-			g.fire_event(n.tag, "urban_city_founded" if p.urban else "urban_back_to_land")
+			g.fire_event(n.tag, "urb_city_founded" if p.urban else "urb_back_to_land")
 	if n.tag != g.player and (g.month + n.tag.hash()) % 12 == 5:
 		ai_found_city(g, n)
 

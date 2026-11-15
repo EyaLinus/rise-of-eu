@@ -122,7 +122,7 @@ static func change_religion(g, tag: String, r: String) -> String:
 				g.add_rel(tag, t, float(g.bal.religion_change_rel))
 			elif o.religion == old:
 				g.add_rel(tag, t, -float(g.bal.religion_change_rel))
-	g.log_msg("⛪ %s wechselt zum Glauben: %s." % [n.name, faith_name(r)], [tag])
+	g.world_event("⛪ %s wechselt zum Glauben: %s." % [n.name, faith_name(r)], [tag])
 	return ""
 
 
@@ -177,7 +177,7 @@ static func _reformation(g, y: int) -> void:
 					break
 		if start >= 0:
 			g.provinces[start].religion = "protestant"
-			g.log_msg("⛪ Thesenanschlag in %s: Die Reformation beginnt!" % g.provinces[start].name, [])
+			g.world_event("⛪ Thesenanschlag in %s: Die Reformation beginnt!" % g.provinces[start].name, [])
 		return
 	var turn := []
 	for p in g.provinces:
