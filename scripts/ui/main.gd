@@ -1356,6 +1356,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif k in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN] and not modal.visible:
 		var d := {KEY_LEFT: Vector2(1, 0), KEY_RIGHT: Vector2(-1, 0), KEY_UP: Vector2(0, 1), KEY_DOWN: Vector2(0, -1)}[k] as Vector2
 		map.pan_by(d * 160.0)
+	elif (k == KEY_S or (k == KEY_F and event.ctrl_pressed)) and not modal.visible:
+		_show_search()
 	elif k == KEY_F5:
 		_act("" if _save_game() else "Speichern fehlgeschlagen", "💾 Gespeichert")
 	elif (k == KEY_F1 or k == KEY_H) and not modal.visible:
@@ -1408,6 +1410,7 @@ func _show_menu() -> void:
 		_btn("💾 Speichern", _show_slots.bind(true), "Drei Speicherplätze; dazu speichert das Spiel jedes Jahr automatisch. Schnellspeichern: F5"),
 		_btn("📂 Laden", _show_slots.bind(false)),
 		_btn("⚙️ Einstellungen", _show_settings, "UI-Größe, Ton, Tipps, Fenster"),
+		_btn("🔍 Suchen", _show_search, "Provinz oder Nation finden und auf der Karte zeigen (am PC: S)"),
 	]
 	if _has_keyboard():
 		acts.append(_btn("⌨️ Tastenkürzel", _show_shortcuts, "Alle Tasten auf einen Blick (F1)"))
@@ -1418,6 +1421,82 @@ func _show_menu() -> void:
 		acts.append(Control.new())
 	modal_box.add_child(_grid(acts))
 	modal_box.add_child(_lbl("⚔️ Schwierigkeit: %s" % Game.DIFFICULTY_NAMES.get(game.difficulty, "Normal"), 15, Color(0.75, 0.75, 0.75)))
+
+
+## Find a province or nation by name and jump there. Unexplored land (terra incognita) stays hidden.
+func _show_search() -> void:
+	if game == null:
+		return
+	_set_speed(0)
+	_open_modal()
+	modal_box.add_child(_lbl("🔍 Suchen", 30))
+	var edit := LineEdit.new()
+	edit.placeholder_text = "Name einer Provinz oder Nation"
+	edit.custom_minimum_size = Vector2(0, 52)
+	edit.add_theme_font_size_override("font_size", 20)
+	edit.clear_button_enabled = true
+	modal_box.add_child(edit)
+	var results := VBoxContainer.new()
+	modal_box.add_child(results)
+	modal_box.add_child(_btn("◀ Zurück", _close_modal))
+	edit.text_changed.connect(func(t: String): _search_fill(results, t))
+	edit.text_submitted.connect(func(_t: String):
+		if results.get_child_count() > 0 and results.get_child(0) is Button:
+			results.get_child(0).pressed.emit())
+	_search_fill(results, "")
+	(func(): if is_instance_valid(edit) and edit.is_inside_tree(): edit.grab_focus()).call_deferred()
+
+
+const SEARCH_MAX := 12
+
+
+## Matches for `text`: nations first, then provinces; names that start with the text come first.
+func search_hits(text: String) -> Array:
+	var q := text.strip_edges().to_lower()
+	var out := []
+	if q.length() < 2:
+		return out
+	var later := []
+	for t in game.order:
+		var n = game.nations[t]
+		var nm: String = n.name.to_lower()
+		if n.alive and nm.contains(q):
+			(out if nm.begins_with(q) else later).append(["nation", t])
+	for p in game.provinces:
+		var pn: String = p.name.to_lower()
+		if pn.contains(q) and Colonial.knows(game, game.player, p.id):
+			(out if pn.begins_with(q) else later).append(["province", p.id])
+	out.append_array(later)
+	return out.slice(0, SEARCH_MAX)
+
+
+func _search_fill(box: VBoxContainer, text: String) -> void:
+	_clear(box)
+	var hits := search_hits(text)
+	if hits.is_empty():
+		box.add_child(_lbl("Mindestens zwei Buchstaben eingeben." if text.strip_edges().length() < 2 else "Nichts gefunden.", 15, Color(0.75, 0.75, 0.8)))
+		return
+	for h in hits:
+		if h[0] == "nation":
+			var t: String = h[1]
+			box.add_child(_btn("%s · %d Prov." % [nname(t), game.provinces_of(t).size()], _search_go.bind(h)))
+		else:
+			var p = game.provinces[h[1]]
+			var owner: String = (" · " + nname(p.owner)) if game.nations.has(p.owner) and game.nations[p.owner].alive else ""
+			box.add_child(_btn("📍 %s%s" % [p.name, owner], _search_go.bind(h)))
+
+
+func _search_go(hit: Array) -> void:
+	_close_modal()
+	var pid: int = game.nations[hit[1]].capital if hit[0] == "nation" else int(hit[1])
+	if pid >= 0:
+		map.focus(game.provinces[pid].center, maxf(map.zoom, 1.2))
+	if hit[0] == "nation":
+		_open_panel("nation" if hit[1] == game.player else "other", hit[1] if hit[1] != game.player else null)
+	else:
+		_open_panel("province", pid)
+		map.selected_pid = pid
+	map.refresh()
 
 
 func _has_keyboard() -> bool:
@@ -1461,7 +1540,7 @@ const SHORTCUTS := [
 	["Pfeile", "Karte verschieben"], ["Bild ↑ ↓", "Zoom (auch Mausrad)"], ["Tab", "nächster Kartenmodus"],
 	["V", "Kartenmodi + Legende"], ["N", "Nation"], ["E", "Wirtschaft"], ["T", "Technologie"], ["G", "Regierung"],
 	["D", "Diplomatie"], ["K", "Kriege"], ["F", "Flotte / Marine"], ["M", "Missionen"], ["L", "Chronik"], ["R", "Ratgeber"],
-	["F5", "Schnellspeichern"], ["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F1", "diese Übersicht"],
+	["S / Strg+F", "Provinz oder Nation suchen"], ["F5", "Schnellspeichern"], ["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F1", "diese Übersicht"],
 ]
 
 

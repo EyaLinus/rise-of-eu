@@ -1,0 +1,1 @@
+- **Suche:** Provinzen und Nationen lassen sich jetzt per Name finden (☰ Menü → 🔍 Suchen, am PC Taste S oder Strg+F). Ein Treffer zentriert die Karte und öffnet das passende Fenster; Nationen stehen vorn, Namen mit passendem Anfang zuerst. Unerforschtes Land bleibt verborgen.
