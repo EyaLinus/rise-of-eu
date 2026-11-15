@@ -54,6 +54,14 @@ var known_wars := {}
 var known_coalition := 0
 var last_speed := 2
 var tab_badges := {}
+var mode_strip: HBoxContainer  # map mode buttons at the bottom (one per MapView.MODE_NAMES entry)
+## Short icon per map mode for the bottom strip; modes without one show their first letters.
+const MODE_ICONS := ["🏰", "🤝", "📈", "😠", "⚔️", "🌾", "🪙", "🏗️", "⛪", "👑"]
+## Panel shortcuts (PC): key -> panel. Pressing it again closes the panel.
+const PANEL_KEYS := {KEY_N: "nation", KEY_E: "economy", KEY_T: "tech", KEY_G: "government", KEY_D: "diplomacy",
+	KEY_K: "wars", KEY_M: "missions", KEY_L: "log", KEY_R: "advice", KEY_V: "mapmodes"}
+const WINDOW_MODES := ["window", "maximized", "borderless"]
+const WINDOW_NAMES := {"window": "Fenster", "maximized": "Maximiert", "borderless": "Randlos (Vollbild)"}
 
 var map: MapView
 var top_labels := {}
@@ -79,6 +87,8 @@ var _press_pos := Vector2.ZERO
 var _press_time := -1.0
 var _press_scroll: ScrollContainer = null
 var _press_scroll_start := 0
+var _press_range: Range = null  # slider pressed: no long-press tip, no panel rebuild under the finger
+var _press_range_value := 0.0
 var _dragging := false
 var _suppress_click := false
 var _tip_panel: PanelContainer
@@ -154,6 +164,44 @@ func _load_settings() -> void:
 
 func _apply_settings() -> void:
 	get_window().content_scale_factor = float(settings.ui_scale)
+	_apply_window_mode()
+
+
+## Desktop only: normal window, maximized window, or borderless fullscreen (no window frame; F11 toggles).
+func _apply_window_mode() -> void:
+	if not _is_desktop():
+		return
+	var want := DisplayServer.WINDOW_MODE_WINDOWED
+	match str(settings.get("window", "window")):
+		"maximized":
+			want = DisplayServer.WINDOW_MODE_MAXIMIZED
+		"borderless":
+			want = DisplayServer.WINDOW_MODE_FULLSCREEN  # Godot 4: borderless window over the whole screen, not exclusive
+	if DisplayServer.window_get_mode() != want:
+		DisplayServer.window_set_mode(want)
+
+
+func _is_desktop() -> bool:
+	return OS.has_feature("pc") and OS.get_name() != "Web" and DisplayServer.get_name() != "headless"
+
+
+func _cycle_window_mode(step: int = 1) -> void:
+	var i := WINDOW_MODES.find(str(settings.get("window", "window")))
+	settings.window = WINDOW_MODES[(maxi(i, 0) + step) % WINDOW_MODES.size()]
+	_apply_window_mode()
+	_save_settings()
+
+
+## F11: borderless fullscreen on/off (back to the last framed mode).
+func _toggle_fullscreen() -> void:
+	if str(settings.get("window", "window")) == "borderless":
+		settings.window = str(settings.get("window_framed", "maximized"))
+	else:
+		settings.window_framed = str(settings.get("window", "window"))
+		settings.window = "borderless"
+	_apply_window_mode()
+	_save_settings()
+	_toast("🖥 " + WINDOW_NAMES[settings.window])
 
 
 func _save_settings() -> void:
@@ -168,10 +216,7 @@ func _cycle_ui_scale() -> void:
 	settings.ui_scale = UI_SCALES[(i + 1) % UI_SCALES.size()]
 	_apply_settings()
 	_save_settings()
-	if game == null:
-		_show_start_menu()
-	else:
-		_show_menu()
+	_show_settings()
 
 
 func _setup_theme() -> void:
@@ -241,7 +286,11 @@ func _build_hud() -> void:
 	for e in [["nation", "Nation"], ["economy", "Wirtschaft"], ["tech", "Technologie"], ["government", "Regierung"], ["diplomacy", "Diplomatie"], ["wars", "Kriege"], ["navy", "Marine"],
 			["missions", "Missionen"], ["log", "Chronik"], ["mapmode", "Kartenmodus"], ["advice", "Ratgeber: was jetzt zu tun ist"]]:
 		var cb: Callable = _open_panel.bind("mapmodes") if e[0] == "mapmode" else _open_panel.bind(e[0])
-		var tb := _tab_button("tab_" + e[0], cb, e[1])
+		var tip: String = e[1]
+		for key in PANEL_KEYS:
+			if PANEL_KEYS[key] == (("mapmodes") if e[0] == "mapmode" else e[0]) and _has_keyboard():
+				tip += "  [%s]" % OS.get_keycode_string(key)
+		var tb := _tab_button("tab_" + e[0], cb, tip)
 		var badge := Label.new()
 		badge.text = "●"
 		badge.add_theme_color_override("font_color", Color(1.0, 0.75, 0.2))
@@ -265,6 +314,23 @@ func _build_hud() -> void:
 		zoom.add_child(b)
 	zoom.offset_left = 8
 	zoom.offset_top = -64
+
+	# map modes one click away (also Tab / Shift+Tab); the tab button keeps the legend
+	mode_strip = HBoxContainer.new()
+	mode_strip.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	mode_strip.add_theme_constant_override("separation", 4)
+	mode_strip.offset_left = 8 + 2 * 60 + 8 + 16
+	mode_strip.offset_top = -60 if _big() else -56
+	hud.add_child(mode_strip)
+	for i in map.MODE_NAMES.size():
+		var icon: String = MODE_ICONS[i] if i < MODE_ICONS.size() else map.MODE_NAMES[i].left(2)
+		var key := "Tab" if i == 0 else ""
+		var mb := _btn(icon, _set_map_mode.bind(i, false), "Kartenmodus %s\n%s%s" % [map.MODE_NAMES[i], MODE_LEGENDS[i] if i < MODE_LEGENDS.size() else "",
+				"\nTab / Umschalt+Tab: nächster / voriger Modus" if i == 0 else ""])
+		mb.custom_minimum_size = Vector2(52, 52) if _big() else Vector2(46, 46)
+		mb.clip_text = false
+		mode_strip.add_child(mb)
+	_update_mode_strip()
 
 	side_panel = PanelContainer.new()
 	side_panel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
@@ -301,20 +367,22 @@ func _build_hud() -> void:
 	side_scroll.add_child(side_box)
 	side_panel.visible = false
 
+	# latest log line: small, bottom left above the zoom buttons, out of the way of the map centre
 	toast = Label.new()
-	toast.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	toast.offset_top = -60
-	toast.offset_bottom = -16
-	toast.offset_left = -420
-	toast.offset_right = 420
+	toast.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	toast.offset_top = -110
+	toast.offset_bottom = -72
+	toast.offset_left = 152
+	toast.offset_right = 572
+	toast.add_theme_font_size_override("font_size", 17 if _big() else 15)
 	toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	toast.add_theme_color_override("font_outline_color", Color.BLACK)
 	toast.add_theme_constant_override("outline_size", 6)
 	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var tsb := UiTheme.box("tooltip", 6)
-	tsb.content_margin_left = 16
-	tsb.content_margin_right = 16
+	var tsb := UiTheme.box("tooltip", 4)
+	tsb.content_margin_left = 10
+	tsb.content_margin_right = 10
 	toast.add_theme_stylebox_override("normal", tsb)
 	toast.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	toast.visible = false
@@ -579,7 +647,7 @@ func _show_start_menu() -> void:
 		top.append(_btn("📂 Laden", _show_slots.bind(false)))
 	if FileAccess.file_exists(HallOfFame.PATH):
 		top.append(_btn("🏆 Ruhmeshalle", _show_hall))
-	top.append(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
+	top.append(_btn("⚙️ Einstellungen", _show_settings, "UI-Größe, Ton, Tipps, Fenster"))
 	if top.size() % 2 == 1:
 		top.append(Control.new())
 	modal_box.add_child(_grid(top))
@@ -766,6 +834,19 @@ func _scroll_at(pos: Vector2) -> ScrollContainer:
 	return null
 
 
+## Deepest visible Range control (slider, scroll bar) under `pos`, or null.
+func _range_node_at(node: Node, pos: Vector2) -> Range:
+	if node is CanvasItem and not node.visible:
+		return null
+	for i in range(node.get_child_count() - 1, -1, -1):
+		var hit := _range_node_at(node.get_child(i), pos)
+		if hit != null:
+			return hit
+	if node is Range and node.get_global_rect().has_point(pos):
+		return node
+	return null
+
+
 ## True if a visible Range control (slider, scroll bar, spin box) lies under `pos`.
 func _range_at(node: Node, pos: Vector2) -> bool:
 	if node is CanvasItem and not node.visible:
@@ -805,10 +886,17 @@ func _show_tip(text: String, pos: Vector2) -> void:
 		add_child(_tip_panel)
 	var w: float = minf(520.0, size.x - 32.0)
 	_tip_label.text = text
-	_tip_label.custom_minimum_size = Vector2(w - 20, 0)
-	_tip_panel.reset_size()
+	# An autowrap label measures its height at its current width. Width 0 (first tip, or a panel shrunk by
+	# the previous one) gave one character per line: a box over 1000 px high with the text far below the
+	# screen, seen as a big empty tooltip (budget/invest sliders). Size the label first, then hug it.
+	_tip_label.custom_minimum_size = Vector2(w - 24, 0)
+	_tip_label.size = Vector2(w - 24, 0)
+	var h: float = _tip_label.get_minimum_size().y
 	_tip_panel.size = Vector2(w, 0)
-	_tip_panel.position = Vector2(clampf(pos.x - w / 2, 16, size.x - w - 16), maxf(16, pos.y - 140))
+	_tip_panel.reset_size()
+	_tip_panel.size = Vector2(w, minf(h + 24.0, size.y - 32.0))
+	_tip_panel.position = Vector2(clampf(pos.x - w / 2, 16, size.x - w - 16),
+			clampf(pos.y - _tip_panel.size.y - 40.0, 16, size.y - _tip_panel.size.y - 16))
 	_tip_panel.visible = true
 	_sfx("click", -18.0)
 
@@ -849,23 +937,36 @@ func _input(event: InputEvent) -> void:
 		_dragging = false
 		_press_pos = pos
 		_press_time = Time.get_ticks_msec() / 1000.0
-		# sliders and scroll bars keep their own drag
-		_press_scroll = null if _range_at(self, pos) else _scroll_at(pos)
+		# sliders keep their own sideways drag; a mostly vertical swipe that starts on a slider still
+		# scrolls the panel and puts the slider back (see below). Scroll bars keep their own drag.
+		_press_range = _range_node_at(self, pos)
+		_press_range_value = _press_range.value if _press_range != null else 0.0
+		_press_scroll = null if _press_range is ScrollBar else _scroll_at(pos)
 		_press_scroll_start = _press_scroll.scroll_vertical if _press_scroll != null else 0
 	elif moved and _press_time >= 0.0:
 		if not _dragging and _press_scroll != null and pos.distance_to(_press_pos) > DRAG_START:
-			_dragging = true
-			_suppress_click = true
+			var d := pos - _press_pos
+			if _press_range != null and absf(d.y) < absf(d.x) * 1.5:
+				_press_scroll = null  # a sideways drag belongs to the slider
+			else:
+				_dragging = true
+				_suppress_click = true
+				if _press_range != null and is_instance_valid(_press_range):
+					_press_range.value = _press_range_value
+					_press_range = null
 		if _dragging:
 			_press_scroll.scroll_vertical = _press_scroll_start - int(pos.y - _press_pos.y)
 			get_viewport().set_input_as_handled()
 	elif up:
 		_press_time = -1.0
 		_press_scroll = null
+		_press_range = null
+		if _tip_panel != null and not DisplayServer.is_touchscreen_available():
+			_tip_panel.visible = false  # mouse: the tip lasts while the button is held
 
 
 func _check_long_press() -> void:
-	if _press_time < 0.0 or _dragging or _suppress_click:
+	if _press_time < 0.0 or _dragging or _suppress_click or _press_range != null:
 		return
 	if Time.get_ticks_msec() / 1000.0 - _press_time < LONG_PRESS:
 		return
@@ -875,16 +976,16 @@ func _check_long_press() -> void:
 		_show_tip(c.tooltip_text, _press_pos)
 
 
-## Box hugs the text (max 840 px, wraps beyond), centered over the free map area
-## (left of an open side panel, right of the tab column).
+## Box hugs the text (max 420 px, wraps beyond), bottom left above the map mode strip, never under an open side panel.
 func _place_toast() -> void:
 	var f: Font = toast.get_theme_font("font")
 	var panel_w: float = -side_panel.offset_left if side_panel.visible else 0.0
-	var room: float = get_viewport_rect().size.x - panel_w - 200.0
-	var w: float = minf(minf(840.0, room), f.get_string_size(toast.text, HORIZONTAL_ALIGNMENT_LEFT, -1, toast.get_theme_font_size("font_size")).x + 40.0)
-	var shift: float = (200.0 - panel_w) / 2.0
-	toast.offset_left = shift - w / 2.0
-	toast.offset_right = shift + w / 2.0
+	var room: float = get_viewport_rect().size.x - panel_w - 24.0
+	var w: float = minf(minf(420.0, room), f.get_string_size(toast.text, HORIZONTAL_ALIGNMENT_LEFT, -1, toast.get_theme_font_size("font_size")).x + 24.0)
+	# right of the tab column, above the map mode strip (keeps clear of the tabs at 140 % UI size)
+	var left: float = 8.0 + 2 * 60 + 8 + 16
+	toast.offset_left = left
+	toast.offset_right = left + minf(w, room - left)
 
 
 func _process(delta: float) -> void:
@@ -896,7 +997,7 @@ func _process(delta: float) -> void:
 			toast.text = ""
 			toast.visible = false
 	# a month skipped by the refresh spacing still shows, also once the game is paused
-	if _refresh_pending and Time.get_ticks_msec() - _last_refresh_ms >= PANEL_REFRESH_MS:
+	if _refresh_pending and _press_range == null and Time.get_ticks_msec() - _last_refresh_ms >= PANEL_REFRESH_MS:
 		_refresh_pending = false
 		_last_refresh_ms = Time.get_ticks_msec()
 		if game != null and side_panel.visible and panel_mode != "peace":
@@ -946,7 +1047,8 @@ func _after_tick() -> void:
 		_show_peace_offer(game.pending_peace[0])
 		return
 	if side_panel.visible and panel_mode != "peace":
-		if Time.get_ticks_msec() - _last_refresh_ms >= PANEL_REFRESH_MS:
+		# never rebuild the panel under a slider that is being dragged
+		if _press_range == null and Time.get_ticks_msec() - _last_refresh_ms >= PANEL_REFRESH_MS:
 			_refresh_pending = false
 			_last_refresh_ms = Time.get_ticks_msec()
 			_refresh()
@@ -978,14 +1080,29 @@ const MODE_KEYS := {
 }
 
 
-func _cycle_map_mode() -> void:
-	_set_map_mode((map.map_mode + 1) % map.MODE_NAMES.size())
+func _cycle_map_mode(step: int = 1) -> void:
+	var n: int = map.MODE_NAMES.size()
+	_set_map_mode((map.map_mode + step + n) % n)
 
 
-func _set_map_mode(i: int) -> void:
+## Gold frame on the active map mode button.
+func _update_mode_strip() -> void:
+	if mode_strip == null:
+		return
+	for i in mode_strip.get_child_count():
+		var b: Button = mode_strip.get_child(i)
+		if i == map.map_mode:
+			b.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
+		else:
+			b.remove_theme_stylebox_override("normal")
+
+
+func _set_map_mode(i: int, toast_it: bool = true) -> void:
 	map.map_mode = i
 	map.refresh()
-	_toast("🗺️ Kartenmodus: " + map.MODE_NAMES[i])
+	_update_mode_strip()
+	if toast_it:
+		_toast("🗺️ Kartenmodus: " + map.MODE_NAMES[i])
 	if panel_mode == "mapmodes" or panel_mode == "hre":
 		_refresh()
 
@@ -1186,7 +1303,13 @@ func _update_badges() -> void:
 
 ## Desktop shortcuts: Space pauses/resumes, 1-5 set the speed, Esc closes panels.
 func _unhandled_input(event: InputEvent) -> void:
-	if game == null or not (event is InputEventKey) or not event.pressed or event.echo:
+	if not (event is InputEventKey) or not event.pressed or event.echo:
+		return
+	if event.keycode == KEY_F11 and _is_desktop():
+		_toggle_fullscreen()
+		get_viewport().set_input_as_handled()
+		return
+	if game == null:
 		return
 	var k: int = event.keycode
 	if k == KEY_SPACE and not modal.visible:
@@ -1197,6 +1320,27 @@ func _unhandled_input(event: InputEvent) -> void:
 			_set_speed(0)
 	elif k >= KEY_1 and k <= KEY_5 and not modal.visible:
 		_set_speed(k - KEY_0)
+	elif (k == KEY_EQUAL or k == KEY_PLUS or k == KEY_KP_ADD) and not modal.visible:
+		_set_speed(mini(SPEEDS.size() - 1, speed + 1))
+	elif (k == KEY_MINUS or k == KEY_KP_SUBTRACT) and not modal.visible:
+		_set_speed(maxi(1, speed - 1))
+	elif k == KEY_TAB and not modal.visible:
+		_cycle_map_mode(-1 if event.shift_pressed else 1)
+	elif PANEL_KEYS.has(k) and not modal.visible and not event.ctrl_pressed and not event.alt_pressed:
+		var pm: String = PANEL_KEYS[k]
+		if side_panel.visible and panel_mode == pm:
+			_close_panel()
+		else:
+			_open_panel(pm)
+	elif (k == KEY_PAGEUP or k == KEY_PAGEDOWN) and not modal.visible:
+		map.zoom_by(1.3 if k == KEY_PAGEUP else 1.0 / 1.3)
+	elif k in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN] and not modal.visible:
+		var d := {KEY_LEFT: Vector2(1, 0), KEY_RIGHT: Vector2(-1, 0), KEY_UP: Vector2(0, 1), KEY_DOWN: Vector2(0, -1)}[k] as Vector2
+		map.pan_by(d * 160.0)
+	elif k == KEY_F5:
+		_act("" if _save_game() else "Speichern fehlgeschlagen", "💾 Gespeichert")
+	elif (k == KEY_F1 or k == KEY_H) and not modal.visible:
+		_show_shortcuts()
 	elif k == KEY_ESCAPE:
 		if side_panel.visible:
 			_close_panel()
@@ -1242,38 +1386,82 @@ func _show_menu() -> void:
 	modal_box.add_child(_lbl("☰ Menü", 30))
 	modal_box.add_child(_btn("▶ Weiter", _close_modal))
 	var acts := [
-		_btn("💾 Speichern", _show_slots.bind(true), "Drei Speicherplätze; dazu speichert das Spiel jedes Jahr automatisch."),
+		_btn("💾 Speichern", _show_slots.bind(true), "Drei Speicherplätze; dazu speichert das Spiel jedes Jahr automatisch. Schnellspeichern: F5"),
 		_btn("📂 Laden", _show_slots.bind(false)),
-		_btn("🏠 Hauptmenü", func(): _save_game(); game = null; _show_start_menu(), "Speichert und kehrt zum Startmenü zurück."),
+		_btn("⚙️ Einstellungen", _show_settings, "UI-Größe, Ton, Tipps, Fenster"),
 	]
+	if _has_keyboard():
+		acts.append(_btn("⌨️ Tastenkürzel", _show_shortcuts, "Alle Tasten auf einen Blick (F1)"))
+	acts.append(_btn("🏠 Hauptmenü", func(): _save_game(); game = null; _show_start_menu(), "Speichert und kehrt zum Startmenü zurück."))
 	if OS.get_name() != "Android" and OS.get_name() != "Web":
 		acts.append(_btn("🚪 Beenden", func(): _save_game(); get_tree().quit(), "Speichert und beendet das Spiel."))
 	if acts.size() % 2 == 1:
 		acts.append(Control.new())
 	modal_box.add_child(_grid(acts))
-	modal_box.add_child(_lbl("Einstellungen", 18, Color(0.7, 0.8, 0.9)))
+	modal_box.add_child(_lbl("⚔️ Schwierigkeit: %s" % Game.DIFFICULTY_NAMES.get(game.difficulty, "Normal"), 15, Color(0.75, 0.75, 0.75)))
+
+
+func _has_keyboard() -> bool:
+	return not OS.has_feature("mobile")
+
+
+## Settings on their own page (from the in-game menu or the start menu).
+func _show_settings() -> void:
+	_open_modal()
+	modal_box.add_child(_lbl("⚙️ Einstellungen", 30))
 	var opts := [
 		_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale),
 		_btn("🔊 Ton: %s" % ("an" if settings.get("sound", true) else "aus"), func():
 			settings.sound = not settings.get("sound", true)
 			_save_settings()
-			_show_menu()),
+			_show_settings()),
 		_btn("💡 Tipps: %s" % ("an" if settings.tips else "aus"), func():
 			settings.tips = not settings.tips
 			if settings.tips:
 				settings.tips_seen = []
 			_save_settings()
-			_show_menu(), "Einmalige Hinweise, wenn etwas Neues passiert. Einschalten zeigt alle wieder."),
+			_show_settings(), "Einmalige Hinweise, wenn etwas Neues passiert. Einschalten zeigt alle wieder."),
 	]
+	if OS.has_feature("pc") and OS.get_name() != "Web":
+		opts.append(_btn("🖥 Fenster: %s" % WINDOW_NAMES.get(str(settings.get("window", "window")), "Fenster"), func():
+			_cycle_window_mode()
+			_show_settings(), "Fenster, maximiertes Fenster oder randlos über den ganzen Bildschirm. F11 schaltet randlos an und aus."))
 	if not OS.has_feature("mobile"):
 		opts.append(_btn("👆 Große Knöpfe: %s" % ("an" if settings.get("big_ui", false) else "aus"), func():
 			settings.big_ui = not settings.get("big_ui", false)
 			_save_settings()
-			_show_menu(), "Größere Bedienelemente für Touchscreens. Die Leisten ändern sich nach einem Neustart."))
+			_show_settings(), "Größere Bedienelemente für Touchscreens. Die Leisten ändern sich nach einem Neustart."))
 	if opts.size() % 2 == 1:
 		opts.append(Control.new())
 	modal_box.add_child(_grid(opts))
-	modal_box.add_child(_lbl("⚔️ Schwierigkeit: %s" % Game.DIFFICULTY_NAMES.get(game.difficulty, "Normal"), 15, Color(0.75, 0.75, 0.75)))
+	modal_box.add_child(_btn("◀ Zurück", _show_menu if game != null else _show_start_menu))
+
+
+const SHORTCUTS := [
+	["Leertaste", "Pause / weiter"], ["1 – 5", "Spieltempo"], ["+ / −", "schneller / langsamer"],
+	["Pfeile", "Karte verschieben"], ["Bild ↑ ↓", "Zoom (auch Mausrad)"], ["Tab", "nächster Kartenmodus"],
+	["V", "Kartenmodi + Legende"], ["N", "Nation"], ["E", "Wirtschaft"], ["T", "Technologie"], ["G", "Regierung"],
+	["D", "Diplomatie"], ["K", "Kriege"], ["M", "Missionen"], ["L", "Chronik"], ["R", "Ratgeber"],
+	["F5", "Schnellspeichern"], ["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F1", "diese Übersicht"],
+]
+
+
+func _show_shortcuts() -> void:
+	_set_speed(0)
+	_open_modal()
+	modal_box.add_child(_lbl("⌨️ Tastenkürzel", 30))
+	modal_box.add_child(_lbl("Ein Panel-Kürzel ein zweites Mal gedrückt schließt das Panel wieder. Umschalt+Tab: voriger Kartenmodus.", 15, Color(0.72, 0.75, 0.82)))
+	# one "key  action" cell per shortcut, two columns where there is room
+	var g := GridContainer.new()
+	g.columns = 2 if get_viewport_rect().size.x >= 1000 else 1
+	g.add_theme_constant_override("h_separation", 24)
+	g.add_theme_constant_override("v_separation", 0)
+	for e in SHORTCUTS:
+		var c := _bb("[color=#ffd873]%s[/color]   %s" % e, 16)
+		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		g.add_child(c)
+	modal_box.add_child(g)
+	modal_box.add_child(_btn("◀ Zurück", _show_menu if game != null else _close_modal))
 
 
 func _show_event(event_id: String) -> void:

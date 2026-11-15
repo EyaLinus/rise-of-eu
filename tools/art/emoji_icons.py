@@ -159,6 +159,13 @@ add("🏔", "mountains", layer([".....w......", "....wwa.....", "...wwaag....", 
 add("🏜", "desert", layer(["........YY..", ".......YGGD.", "........DD..", "............", "......GGGD..", "...GGGGGGGD.", ".GGGGGGGGGGD", "GGGGGGGGGGGG", "DDDDDDDDDDDD"], 2, 4))
 add("💧", "marsh", layer(["....B.....", "...BBN....", "..BBBBN...", ".BwBBBBN..", ".BwBBBBN..", ".BBBBBBN..", "..BBBBN...", "...NNN...."], 3, 4))
 
+# ---- menu: settings, shortcuts, window mode
+add("⚙", "gear", E["🤖"][1])  # same cog as automation
+add("⌨", "keyboard", layer(["aaaaaaaaaaaa", "agggggggggga", "agwgwgwgwgga", "agggggggggga", "aggwgwgwgwga",
+                           "agggggggggga", "aggwwwwwwgga", "agggggggggga", "dddddddddddd"], 2, 4))
+add("🖥", "monitor", layer(["aaaaaaaaaaaa", "aBBBBBBBBBBd", "aBwBBBBBBBNd", "aBBBBBBBBBNd", "aBBBBBBBBNNd", "aBBBBBBBNNNd",
+                          "aNNNNNNNNNNd", "dddddddddddd", ".....gd.....", "....aggd....", "...gggggd..."], 2, 3))
+
 if __name__ == "__main__":
     os.makedirs(SRC, exist_ok=True)
     os.makedirs(OUT, exist_ok=True)

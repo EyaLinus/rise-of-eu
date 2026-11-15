@@ -551,6 +551,7 @@ func _invest(id: String) -> void:
 		slider.ticks_on_borders = true
 		slider.custom_minimum_size = Vector2(0, 56 if m._big() else 44)
 		slider.focus_mode = Control.FOCUS_NONE
+		slider.scrollable = false  # the mouse wheel scrolls the panel, it never moves a slider
 		box.add_child(slider)
 		box.add_child(preview)
 		go = m._btn("", func():
@@ -618,6 +619,7 @@ func _budget_card(b: Dictionary) -> Control:
 	slider.value = gv.budget_step(g.nations[me], b.id)
 	slider.custom_minimum_size = Vector2(0, 44 if m._big() else 30)
 	slider.focus_mode = Control.FOCUS_NONE
+	slider.scrollable = false  # the mouse wheel scrolls the panel, it never moves a slider
 	v.add_child(slider)
 	var info := VBoxContainer.new()
 	v.add_child(info)
