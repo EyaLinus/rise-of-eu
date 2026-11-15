@@ -33,6 +33,17 @@ SEAS = [
     ("aegean", "Ägäis", (25.0, 38.5), [(25.0, 38.5), (25.5, 40.2), (28.0, 40.7), (26.5, 36.8)]),
     ("caspian", "Kaspisches Meer", (50.5, 42.0), [(50.5, 42.0), (51.0, 39.5), (50.0, 45.0)]),
     ("black", "Schwarzes Meer", (34.0, 43.3), [(34.0, 43.3), (30.5, 43.0), (38.0, 42.5), (35.5, 45.5), (40.5, 42.0), (31.5, 45.5)]),
+    # the New World and the open ocean (lon -35..-12 is open water drawn between the two land windows)
+    ("ocean", "Offener Atlantik", (-18.0, 40.0), [(-18.0, 40.0), (-18.0, 50.0), (-18.0, 30.0), (-19.0, 20.0), (-20.0, 12.0), (-20.0, 58.0), (-14.0, 62.0)]),
+    ("labrador", "Labradorsee", (-50.0, 53.0), [(-50.0, 53.0), (-50.0, 47.0), (-54.0, 57.0), (-58.0, 59.5), (-52.0, 61.0), (-47.0, 50.0)]),
+    ("st_lawrence", "Sankt-Lorenz-Golf", (-62.0, 48.4), [(-62.0, 48.4), (-66.0, 49.6), (-68.8, 48.4), (-61.0, 47.0), (-64.0, 47.0)]),
+    ("east_coast", "Neuenglandküste", (-69.0, 41.0), [(-69.0, 41.0), (-66.0, 43.5), (-72.0, 39.6), (-74.2, 37.0), (-75.0, 34.4), (-78.4, 31.4), (-62.0, 43.0)]),
+    ("sargasso", "Sargassosee", (-62.0, 30.0), [(-62.0, 30.0), (-56.0, 38.0), (-55.0, 25.0), (-68.0, 26.0), (-73.0, 27.5), (-50.0, 32.0)]),
+    ("caribbean", "Karibik", (-75.0, 15.0), [(-75.0, 15.0), (-80.0, 13.0), (-68.0, 14.0), (-63.0, 12.5), (-82.0, 17.0), (-86.0, 18.0), (-58.0, 15.0), (-79.0, 10.5)]),
+    ("gulf", "Golf von Mexiko", (-90.0, 25.0), [(-90.0, 25.0), (-94.5, 23.0), (-86.0, 27.0), (-95.0, 27.5), (-84.0, 24.6), (-92.5, 20.5), (-88.5, 29.6)]),
+    ("pacific", "Südsee", (-98.0, 13.0), [(-98.0, 13.0), (-102.5, 17.0), (-93.0, 13.5), (-88.0, 11.0), (-84.0, 8.0), (-80.0, 7.8), (-104.0, 19.5)]),
+    ("hudson", "Hudsonbucht", (-86.0, 59.0), [(-86.0, 59.0), (-80.0, 56.5), (-80.0, 53.0), (-91.0, 60.0), (-71.0, 62.0), (-67.5, 59.0), (-84.0, 63.5)]),
+    ("lakes", "Große Seen", (-85.0, 45.0), [(-87.5, 47.6), (-87.0, 43.5), (-82.4, 44.6), (-81.2, 42.2), (-77.8, 43.6), (-97.5, 52.5)]),
 ]
 
 
@@ -93,16 +104,86 @@ def main():
             if vals.size:
                 lab = int(np.bincount(vals).argmax())
         strait_sea[a + "|" + b] = SEAS[lab][0]
+    # neighbouring seas (their water touches): expeditions sail from a known sea to the next (Colonial)
+    adj = {s[0]: set() for s in SEAS}
+    for a, b in ((label[:, :-1], label[:, 1:]), (label[:-1, :], label[1:, :])):
+        mask = (a >= 0) & (b >= 0) & (a != b)
+        for x, y in set(zip(a[mask].tolist(), b[mask].tolist())):
+            if {SEAS[x][0], SEAS[y][0]} == {"caribbean", "pacific"}:  # touch only at the map's bottom edge
+                continue
+            adj[SEAS[x][0]].add(SEAS[y][0])
+            adj[SEAS[y][0]].add(SEAS[x][0])
     for sid, name, lbl, _ in SEAS:
-        out.append({"id": sid, "name": name, "center": [round(v, 1) for v in proj(*lbl)], "provinces": sorted(members[sid])})
+        out.append({"id": sid, "name": name, "center": [round(v, 1) for v in proj(*lbl)], "provinces": sorted(members[sid]),
+                    "adj": sorted(adj[sid])})
     with open(OUT, "w") as f:
         f.write('{"seas": [\n' + ",\n".join(json.dumps(s, ensure_ascii=False) for s in out) + '\n],\n"straits": '
                 + json.dumps(strait_sea, ensure_ascii=False, indent=0) + "}\n")
+    write_fog(m, label, water)
     for s in out:
         print(s["id"], len(s["provinces"]), s["provinces"][:12])
     print(strait_sea)
     lone = [k for k in coastal if not any(k in s["provinces"] for s in out)]
     print("coastal without sea:", lone)
+
+
+NEW_SEAS = {"ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes"}
+FOG_CELL = 8
+
+
+def write_fog(m, label, water):
+    """data/fog.json: a coarse grid (FOG_CELL px) over the map naming, for every cell that can be unknown,
+    the New World province or sea it shows. The map view fogs the cells the player has not discovered.
+    Background land takes the region of its nearest labelled neighbour. Rows are run-length encoded."""
+    H, W = label.shape
+    reg = np.zeros((H, W), np.int32)  # 0 = always known, else index + 1 into ids
+    ids = []
+    index = {}
+
+    def rid(key):
+        if key not in index:
+            ids.append(key)
+            index[key] = len(ids)
+        return index[key]
+    for i, s in enumerate(SEAS):
+        if s[0] in NEW_SEAS:
+            reg[(label == i) & water] = rid("s:" + s[0])
+    old = np.zeros((H, W), bool)
+    old[water & (reg == 0)] = True
+    for p in m["provinces"]:
+        mask = Image.new("L", (W, H), 0)
+        md = ImageDraw.Draw(mask)
+        for poly in p["polys"]:
+            md.polygon([tuple(c) for c in poly], fill=255)
+        mk = np.asarray(mask) > 0
+        if p.get("nw"):
+            reg[mk] = rid("p:%d" % p["id"])
+        else:
+            old[mk] = True
+    # unlabelled background land: nearest labelled pixel (old world land stays known)
+    known = (reg > 0) | old
+    _, (iy, ix) = ndimage.distance_transform_edt(~known, return_indices=True)
+    reg = np.where(known, reg, reg[iy, ix])
+    reg[old] = 0
+    gh, gw = H // FOG_CELL, W // FOG_CELL
+    rows = []
+    for gy in range(gh):
+        # majority label per cell (sample the cell centre region)
+        row = []
+        for gx in range(gw):
+            blk = reg[gy * FOG_CELL:(gy + 1) * FOG_CELL, gx * FOG_CELL:(gx + 1) * FOG_CELL].ravel()
+            vals, cnt = np.unique(blk, return_counts=True)
+            row.append(int(vals[cnt.argmax()]))
+        rle = []
+        for v in row:
+            if rle and rle[-2] == v:
+                rle[-1] += 1
+            else:
+                rle += [v, 1]
+        rows.append(rle)
+    with open(os.path.join(ROOT, "data", "fog.json"), "w") as f:
+        json.dump({"cell": FOG_CELL, "w": gw, "h": gh, "ids": ids, "rows": rows}, f, separators=(",", ":"))
+    print("fog grid", gw, "x", gh, "regions", len(ids))
 
 
 if __name__ == "__main__":

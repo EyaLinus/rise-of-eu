@@ -14,7 +14,9 @@ from PIL import Image, ImageDraw
 from scipy import ndimage
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "art"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from map_terrain import RANGES, SCALE, LAT0, LON0, COSLAT, proj  # noqa: E402
+from mapproj import unproj  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 OUT = os.path.join(ROOT, "data", "terrain.json")
@@ -26,10 +28,15 @@ FOREST_LAT = 57.0  # northern taiga and Baltic woods
 MARSH_KEYS = {"holland"}
 # river plains next to big ridges: the ridge glow overstates them
 HILL_KEYS = {"milan", "barcelona", "florence"}
+# the New World: woodland unless listed (no latitude rule: the Caribbean is not the Sahara)
+NW_DESERT = {"coahuila", "apacheria", "llano", "zacatecas", "nuevo_leon"}
+NW_MARSH = {"delta", "florida", "mosquitia", "tabasco"}
+NW_PLAINS = {"pawnee", "wichita", "lakota", "dakota", "ioway", "hasinai", "karankawa", "illinois", "assiniboine",
+             "yucatan", "campeche", "bajio", "tamaulipas", "tenochtitlan", "tlaxcala", "cahokia", "natchez"}
 
 
 def lonlat(x, y):
-    return x / (SCALE * COSLAT) + LON0, LAT0 - y / SCALE
+    return unproj(x, y)
 
 
 def main():
@@ -54,7 +61,10 @@ def main():
             t = "mountains"
         elif relief > 0.2 or peak > 0.6 or p["key"] in HILL_KEYS:
             t = "hills"
-        elif p["key"] in DESERT_KEYS or lat < DESERT_LAT:
+        elif p.get("nw"):
+            k = p["key"]
+            t = "desert" if k in NW_DESERT else "marsh" if k in NW_MARSH else "plains" if k in NW_PLAINS else "forest"
+        elif p["key"] in DESERT_KEYS or (lat < DESERT_LAT and p["key"] != "alexandria"):  # the Nile delta is farmland
             t = "desert"
         elif p["key"] in MARSH_KEYS:
             t = "marsh"

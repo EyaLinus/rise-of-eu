@@ -17,6 +17,8 @@ static func setup(g) -> void:
 
 
 static func default_urban(g, p) -> bool:
+	if p.owner == "NAT":  # uncolonized native land has no towns
+		return false
 	if p.dev >= int(g.bal.urban_start_dev) or g.markets.has(p.id):
 		return true
 	var n = g.nations.get(p.owner)

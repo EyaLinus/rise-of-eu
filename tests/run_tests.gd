@@ -29,6 +29,7 @@ func _init() -> void:
 		"test_guarantee",
 		"test_rivals",
 		"test_urban",
+		"test_colonial",
 		"test_embargo",
 		"test_hall_of_fame",
 		"test_rival_missions",
@@ -121,17 +122,22 @@ func test_map_geometry() -> void:
 			check(arr.size() >= 3 and not Geometry2D.triangulate_polygon(arr).is_empty(), "polygon of %s triangulates" % p.key)
 
 
+## The Old World and the New World are each one connected landmass (no land route across the Atlantic).
 func test_map_connected() -> void:
 	var g = new_game()
-	var seen := {0: true}
-	var q := [0]
-	while not q.is_empty():
-		var c: int = q.pop_back()
-		for a in g.provinces[c].adj:
-			check(g.provinces[a].adj.has(c), "adjacency symmetric %d-%d" % [c, a])
-			if not seen.has(a):
-				seen[a] = true
-				q.append(a)
+	check(g.nw_first > 200 and g.nw_first < g.provinces.size(), "the map has a New World part (%d)" % g.nw_first)
+	var seen := {}
+	for start in [0, g.nw_first]:
+		seen[start] = true
+		var q := [start]
+		while not q.is_empty():
+			var c: int = q.pop_back()
+			for a in g.provinces[c].adj:
+				check(g.provinces[a].adj.has(c), "adjacency symmetric %d-%d" % [c, a])
+				check((a >= g.nw_first) == (c >= g.nw_first), "no adjacency across the Atlantic %d-%d" % [c, a])
+				if not seen.has(a):
+					seen[a] = true
+					q.append(a)
 	check(seen.size() == g.provinces.size(), "all provinces connected (%d/%d)" % [seen.size(), g.provinces.size()])
 
 
@@ -1519,6 +1525,83 @@ func test_save_roundtrip() -> void:
 		g2.tick()
 	# JSON keeps ~15 significant digits, so allow tiny float drift
 	check(g.month == g2.month and absf(g.nations.ENG.gold - g2.nations.ENG.gold) < 1.0, "game continues identically after load")
+
+
+## The New World: terra incognita, expeditions, colonies, natives, save/load and old saves.
+func test_colonial() -> void:
+	const Col = preload("res://scripts/core/colonial.gd")
+	var g = new_game("POR", 5)
+	var nat = g.nations[Col.NATIVE]
+	check(not nat.alive and g.provinces_of(Col.NATIVE).size() > 50, "native land belongs to a nation that is never alive")
+	check(g.armies_of(Col.NATIVE).is_empty() and not g.neighbors_of("AZT").has(Col.NATIVE), "native land has no army and is nobody's neighbour")
+	check(g.nations.AZT.alive and g.nations.AZT.known_nw.size() > 50, "the Aztecs are a living realm that knows its continent")
+	var n = g.nations.POR
+	var hav: int = g.key_to_pid["havana"]
+	check(not Col.knows(g, "POR", hav) and Col.knows(g, "POR", g.key_to_pid["lisbon"]), "the New World starts unknown, the Old World known")
+	check(g.atlantic_tags.has("POR") and not g.atlantic_tags.has("HAB") and not g.atlantic_tags.has("AZT"), "only Atlantic realms explore")
+	check(Col.explore_targets(g, "POR").has("ocean") and not Col.explore_targets(g, "POR").has("caribbean"), "the first voyages go into the Atlantic")
+	check(Col.explore(g, "POR", "ocean").contains("Technologie"), "expeditions need diplomatic technology")
+	g.bal.explore_dip_tech = 0  # (raising n.tech directly would not survive the save test below)
+	n.gold = 5000.0
+	n.dip = 500.0
+	check(Col.explore(g, "POR", "caribbean") != "", "an expedition cannot skip a sea")
+	g.bal.explore_success = 1.0
+	check(Col.explore(g, "POR", "ocean") == "" and not n.expedition.is_empty(), "the expedition sails")
+	check(Col.explore(g, "POR", "ocean") != "", "one expedition at a time")
+	for i in int(g.bal.explore_months):
+		g.tick()
+	check(n.known_seas.has("ocean") and n.expedition.is_empty(), "the expedition comes back with a map")
+	check(Col.explore_targets(g, "POR").has("caribbean"), "new seas open up behind the ocean")
+	Col.reveal_sea(g, "POR", "caribbean")
+	var qis: int = g.key_to_pid["quisqueya"]
+	check(Col.knows(g, "POR", qis) and not Col.knows(g, "ENG", qis), "a discovery is first only ours")
+	# a colony
+	var tenoch: int = g.key_to_pid["tenochtitlan"]
+	check(Col.colony_block_reason(g, "POR", tenoch) != "", "native realms are no colony targets")
+	check(Col.colony_block_reason(g, "POR", g.key_to_pid["cree"]) != "", "unknown land cannot be settled")
+	var gold0: float = n.gold
+	check(Col.start_colony(g, "POR", qis) == "" and g.provinces[qis].colonist == "POR", "a colony is founded")
+	check(n.gold < gold0, "the colony costs gold")
+	check(Col.start_colony(g, "POR", g.key_to_pid["boriken"]).contains("Siedler"), "settlers are limited")
+	g.provinces[qis].natives = 6.0
+	check(Col.native_treaty(g, "POR", qis) == "" and g.provinces[qis].natives == 3.0, "a treaty halves the natives")
+	g.provinces[qis].natives = 0.0
+	var months: int = Col.colony_months(g, g.provinces[qis])
+	for i in months + 1:
+		g.tick()
+	var q = g.provinces[qis]
+	check(q.owner == "POR" and q.colonist == "" and q.dev >= int(g.bal.colony_dev), "the colony becomes a Portuguese province")
+	check(g.provinces_of("POR").has(qis) and not g.provinces_of(Col.NATIVE).has(qis), "ownership lists follow")
+	check(q.religion == n.religion and q.core_months == 0, "the colony is cored and shares the faith")
+	check(Col.knows(g, "POR", g.key_to_pid["ayiti"]), "settlers reveal the neighbouring land")
+	# raids can wipe out a young colony
+	var bor: int = g.key_to_pid["boriken"]
+	check(Col.start_colony(g, "POR", bor) == "", "the next colony starts")
+	g.provinces[bor].natives = 50.0
+	g.bal.native_raid_destroy = 1.0
+	for i in 12:
+		g.tick()
+	check(g.provinces[bor].colonist == "" and g.provinces[bor].owner == Col.NATIVE, "strong natives destroy a young colony")
+	# knowledge spreads after some decades
+	g.found["s:caribbean"] = g.month - int(g.bal.map_spread_years) * 12
+	Col.yearly(g)
+	check(Col.knows_sea(g, "ENG", "caribbean") and Col.knows(g, "ENG", qis), "old discoveries become common knowledge")
+	# save and load
+	var text := JSON.stringify(g.to_dict())
+	var g2 = new_game("POR", 9)
+	g2.from_dict(JSON.parse_string(text))
+	check(JSON.stringify(g2.to_dict()) == text, "colonial state survives save/load")
+	# a save from before the New World (fewer provinces, no colonial data) still loads
+	var d: Dictionary = JSON.parse_string(text)
+	d.provinces = d.provinces.slice(0, g.nw_first)
+	for t in d.nations:
+		d.nations[t].erase("colonial")
+	for t in ["AZT", "TLX", "ZAP", "TAR", "MAY", "KIC", "IRO", "NAT"]:
+		d.nations.erase(t)
+	var g3 = new_game("POR", 9)
+	g3.from_dict(d)
+	g3.tick()
+	check(g3.provinces[qis].owner == Col.NATIVE and g3.nations.POR.known_seas.has("atlantic") and not g3.nations.POR.known_seas.has("ocean"), "an old save gets an unknown New World")
 
 
 func test_rival_missions() -> void:
@@ -3175,6 +3258,7 @@ func test_formables() -> void:
 	var n = g.nations.NAP
 	check(n.formed == "ITA" and n.name == "Italien" and n.prestige > pr and n.bonus.has("formed"), "new identity and bonus")
 	check(n.claims.has(g.key_to_pid["bologna"]), "claim on the missing province")
+	check(g.pending_events.has("form_ita"), "the player gets the formation event")
 	check(g.Formables.options(g, "NAP").is_empty() and g.Formables.block_reason(g, "VEN", "ITA") != "", "only one formation")
 	var g2 = new_game("NAP")
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))

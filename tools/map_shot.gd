@@ -45,9 +45,9 @@ func _run(m) -> void:
 	await _shot("map_default")
 	m.map.focus(paris, 3.0)
 	await _shot("map_zoomed_in")
-	m.map.focus(Vector2(1000, 700), 0.45)
+	m.map.focus(Vector2(3000, 750), 0.45)
 	await _shot("map_europe")
-	m.map.focus(Vector2(1100, 950), 1.2)
+	m.map.focus(Vector2(3100, 1000), 1.2)
 	await _shot("map_mediterranean")
 	# selection, hover tooltip, war map mode
 	m.map.focus(paris, 1.4)
@@ -61,7 +61,7 @@ func _run(m) -> void:
 	m.map.map_mode = m.map.MODE_WAR
 	m.map.refresh()
 	await _shot("map_war")
-	m.map.focus(Vector2(1000, 700), 0.45)
+	m.map.focus(Vector2(3000, 750), 0.45)
 	await _shot("map_war_europe")
 	# development map mode: cities in brick tones, countryside green-gold
 	m.map.map_mode = 2

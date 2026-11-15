@@ -452,7 +452,7 @@ static func update_markets(g) -> void:
 		if not nms.has(p.owner):
 			nms[p.owner] = nation_mods(g, g.nations[p.owner])
 		e.value += production_value(g, p, nms[p.owner]) * float(g.bal.trade_value_mult)
-		if p.controller == p.owner:
+		if p.controller == p.owner and g.nations[p.owner].alive:  # uncolonized native land holds no trade power
 			e.power[p.owner] = e.power.get(p.owner, 0.0) + province_trade_power(g, p)
 	for tag in g.order:
 		var n = g.nations[tag]

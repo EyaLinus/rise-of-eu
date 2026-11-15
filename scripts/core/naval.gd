@@ -50,7 +50,8 @@ static func setup(g, data: Dictionary) -> void:
 	g.strait_sea = {}
 	var sd: Dictionary = data.get("seas", {})
 	for e in sd.get("seas", []):
-		var s := {"id": str(e.id), "name": str(e.name), "center": Vector2(e.center[0], e.center[1]), "provinces": []}
+		var s := {"id": str(e.id), "name": str(e.name), "center": Vector2(e.center[0], e.center[1]), "provinces": [],
+				"adj": e.get("adj", [])}
 		for key in e.provinces:
 			var pid: int = g.key_to_pid.get(key, -1)
 			if pid < 0:
