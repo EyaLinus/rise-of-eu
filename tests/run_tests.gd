@@ -1109,6 +1109,28 @@ func test_urban() -> void:
 		if e.id.begins_with("urb_"):
 			urb_events += 1
 	check(urb_events >= 8, "urb_ events present (%d)" % urb_events)
+	# cities grow by themselves in peace (forced chance), the countryside does not
+	var grow_c: int = g.provinces_of("FRA")[0]
+	var grow_p = g.provinces[grow_c]
+	grow_p.urban = true
+	grow_p.dev = 5
+	var rural_dev := -1
+	var rural_pid := -1
+	for q in g.provinces_of("FRA"):
+		if q != grow_c:
+			g.provinces[q].urban = false
+			rural_pid = q
+			rural_dev = g.provinces[q].dev
+	g.bal.city_growth_chance = 1.0
+	g.wars.clear()
+	Urb.yearly(g)
+	check(grow_p.dev == 6, "a city at peace grows by one development")
+	check(g.provinces[rural_pid].dev == rural_dev, "the countryside does not grow by itself")
+	grow_p.dev = int(g.bal.dev_soft_cap)
+	Urb.yearly(g)
+	check(grow_p.dev == int(g.bal.dev_soft_cap), "growth stops at the soft cap")
+	g.bal.city_growth_chance = 0.03
+	p.urban = true  # the growth check above made it countryside again
 	# save roundtrip keeps the status
 	var d := g.to_dict()
 	var g2 = new_game("FRA", 9)

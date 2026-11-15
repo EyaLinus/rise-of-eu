@@ -118,6 +118,28 @@ static func change(g, tag: String, pid: int, to_urban: bool) -> String:
 	return ""
 
 
+## Yearly: cities grow by themselves now and then (markets and harbors draw people), up to the soft cap,
+## as long as the owner holds them in peace. Countryside only grows when the owner develops it.
+static func yearly(g) -> void:
+	var cap: int = int(g.bal.dev_soft_cap)
+	for p in g.provinces:
+		if not p.urban or p.dev >= cap or p.controller != p.owner or p.siege > 0.0:
+			continue
+		var n = g.nations[p.owner]
+		if not n.alive or g.is_at_war(n.tag):
+			continue
+		var chance: float = float(g.bal.city_growth_chance) * (1.0 + g.mod(n, "city_growth"))
+		if p.market == p.id:
+			chance *= 1.5
+		if p.buildings.get("harbor", 0) > 0:
+			chance *= 1.25
+		if g.rng.randf() < chance:
+			p.dev += 1
+			g._update_cached(n)
+			if n.tag == g.player:
+				g.log_msg("🏙️ %s wächst: Zuzug vom Land bringt +1 Entwicklung." % p.name, [n.tag])
+
+
 ## Monthly for every realm: finishes running changes, lets the AI found cities now and then.
 static func tick(g, n) -> void:
 	for pid in g.provinces_of(n.tag):
