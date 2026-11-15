@@ -1,0 +1,2 @@
+- 🎵 Hintergrundmusik: sechs eigene, prozedural erzeugte Stücke (Laute, Harfe, Blockflöte, Trommel), vier für den Frieden und zwei kriegerische, die spielen, solange du im Krieg bist. Lautstärke unter ⚙️ Einstellungen → 🎵 Musik (aus, 25–100 %).
+- 🛤 Straßen sehen jetzt aus wie auf einer alten Landkarte: sie schwingen über die gemeinsame Grenze statt quer über die Karte, Stufe 1 ist ein gestrichelter Pfad, Stufe 2 eine Straße, Stufe 3 eine doppelt gezogene Königsstraße. Keine Straßen mehr über Meerengen (Ärmelkanal).
