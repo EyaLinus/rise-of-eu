@@ -325,13 +325,37 @@ func _card(title: String, sub: String, eff: Dictionary, national: bool, action: 
 	return pc
 
 
-func _choice(title: String, sub: String, eff: Dictionary, national: bool, label: String, err: String, cb: Callable) -> Control:
+## replaced: effects that go away when this is chosen (the law option or reform in force now).
+func _choice(title: String, sub: String, eff: Dictionary, national: bool, label: String, err: String, cb: Callable, replaced = null) -> Control:
 	var card := _card(title, sub, eff, national, label, cb)
 	var b: Button = card.get_child(0).get_child(1)
 	b.disabled = err != ""
+	if replaced != null:
+		var note := estate_note(eff, replaced)
+		if note != "":
+			card.get_child(0).get_child(0).add_child(m._lbl(note, 13, Color(0.95, 0.72, 0.5)))
 	if err != "":
 		card.get_child(0).get_child(0).add_child(m._lbl(err, 14, Color(0.95, 0.6, 0.55)))
 	return card
+
+
+## For every estate this choice makes less content: where its satisfaction target would end up.
+## "⚖️ Würde setzen: Adel Ziel 55 → 45 (jetzt 52, zornig)". Empty when no estate loses.
+func estate_note(eff: Dictionary, replaced: Dictionary = {}) -> String:
+	var g = m.game
+	var gv = g.govt
+	var n = g.nations[g.player]
+	var parts := []
+	for e in gv.estates:
+		var k: String = "estate_" + e.id
+		var d: float = float(eff.get(k, 0.0)) - float(replaced.get(k, 0.0))
+		if d > -0.5:
+			continue
+		var t: float = gv.estate_target(g, n, e.id)
+		var to: float = clampf(t + d, 0.0, 100.0)
+		var angry: bool = to < float(gv.cfg.get("estate_angry", 30))
+		parts.append("%s Ziel %d → %d (jetzt %d%s)" % [e.name, roundi(t), roundi(to), roundi(n.gov.estates.get(e.id, 50.0)), ", wird zornig" if angry else ""])
+	return "" if parts.is_empty() else "⚖️ Würde setzen: " + " · ".join(parts)
 
 
 ## Heir popup: skills next to the ruler's, one education per year in the chosen field.
@@ -452,7 +476,7 @@ func _pick_advisor(kind: String = "") -> void:
 		m.modal_box.add_child(_choice(a.name, sub, a.effects, a.has("tag"), "Ernennen", gv.advisor_block(g, me, a.id), func():
 			var err: String = gv.hire(g, me, a.id)
 			m._close_modal()
-			m._act(err, "🎓 %s tritt in den Rat ein" % a.name)))
+			m._act(err, "🎓 %s tritt in den Rat ein" % a.name), {}))
 	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
 
 
@@ -473,7 +497,7 @@ func _pick_company() -> void:
 		m.modal_box.add_child(_choice(c.name, c.get("text", ""), c.effects, c.has("tag"), "Gründen", gv.company_block(g, me, c.id), func():
 			var err: String = gv.found_company(g, me, c.id)
 			m._close_modal()
-			m._act(err, "🏦 %s gegründet" % c.name)))
+			m._act(err, "🏦 %s gegründet" % c.name), {}))
 	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
 
 
@@ -496,7 +520,7 @@ func _pick_law(law_id: String) -> void:
 		var card := _choice(o.name, sub, o.effects, false, "In Kraft" if current else "Einführen", err, func():
 			var e: String = gv.set_law(g, me, law_id, o.id)
 			m._close_modal()
-			m._act(e, "📜 %s: %s" % [l.name, o.name]))
+			m._act(e, "📜 %s: %s" % [l.name, o.name]), {} if current else _option_effects(l, n.gov.laws[law_id]))
 		if current:
 			card.get_child(0).get_child(1).disabled = true
 		m.modal_box.add_child(card)
@@ -519,11 +543,18 @@ func _pick_reform(tier: String) -> void:
 		var card := _choice(o.name, o.get("text", ""), o.effects, false, "Eingeführt" if current else "Einführen", err, func():
 			var e: String = gv.enact_reform(g, me, tier, o.id)
 			m._close_modal()
-			m._act(e, "🏛️ %s: %s" % [t.name, o.name]))
+			m._act(e, "🏛️ %s: %s" % [t.name, o.name]), {} if current else _option_effects(t, n.gov.reforms.get(tier, "")))
 		if current:
 			card.get_child(0).get_child(1).disabled = true
 		m.modal_box.add_child(card)
 	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
+
+
+func _option_effects(group: Dictionary, opt_id: String) -> Dictionary:
+	for o in group.get("options", []):
+		if o.id == opt_id:
+			return o.get("effects", {})
+	return {}
 
 
 ## Investment popup: a slider picks the target level, the preview shows effects and price live.
@@ -637,6 +668,12 @@ func _budget_card(b: Dictionary) -> Control:
 		info.visible = not eff.is_empty()
 		if not eff.is_empty():
 			info.add_child(TechScreen.effects_rich(eff, 15))
+			var hurt := []
+			for e in gv.estates:
+				if float(eff.get("estate_" + e.id, 0.0)) < 0.0:
+					hurt.append("%s %d" % [e.name, roundi(gv.estate_target(g, n, e.id))])
+			if not hurt.is_empty():
+				info.add_child(m._lbl("⚖️ Zielwert jetzt: " + " · ".join(hurt), 13, Color(0.95, 0.72, 0.5)))
 	slider.value_changed.connect(upd)
 	upd.call(slider.value)
 	return pc

@@ -82,7 +82,30 @@ func _run(fail: bool) -> void:
 	m._open_panel("other", "ENG")
 	await _check(m, "other")
 	m._close_panel()
-	var ev: Array = g.events.keys() if g.get("events") is Dictionary else []
+	var gv = g.govt
+	m._open_panel("government")
+	gv_pick(m, gv)
+	await _check(m, "law_picker")
+	m._close_modal()
+	m.gov_screen._pick_reform(gv.reforms[0].id)
+	await _check(m, "reform_picker")
+	m._close_modal()
+	m.gov_screen._pick_advisor()
+	await _check(m, "advisor_picker")
+	m._close_modal()
+	# an event option that angers an estate (shows "→ X")
+	for id in g.event_by_id:
+		var hit := false
+		for o in g.event_by_id[id].get("options", []):
+			for k in o.get("effects", {}).get("estate", {}):
+				if float(o.effects.estate[k]) < 0.0:
+					hit = true
+		if hit:
+			m._show_event(id)
+			await _check(m, "event_estate")
+			m._close_modal()
+			break
+	var ev: Array = g.event_by_id.keys()
 	for i in mini(ev.size(), 6):
 		m._show_event(ev[i * 7 % ev.size()])
 		await _check(m, "event")
@@ -160,3 +183,12 @@ func _test(c: Control, where: String) -> void:
 
 func _in_topbar(c: Node) -> bool:
 	return c is Control and c.get_global_rect().position.y < 60.0 and c.get_global_rect().position.x < root.size.x * 0.6
+
+
+func gv_pick(m, gv) -> void:
+	for l in gv.laws:
+		for o in l.options:
+			if float(o.get("effects", {}).get("estate_adel", 0.0)) < 0.0 or float(o.get("effects", {}).get("estate_klerus", 0.0)) < 0.0:
+				m.gov_screen._pick_law(l.id)
+				return
+	m.gov_screen._pick_law(gv.laws[0].id)

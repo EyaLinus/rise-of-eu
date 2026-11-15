@@ -3726,7 +3726,12 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["👑 Herrscherwerte verändert", 0])
 		elif k == "estate":
 			for es in v:
-				parts.append(["⚖️ %s %+d" % [game.govt.estate_name(es), int(v[es])], sgn.call(float(v[es]))])
+				var line := "⚖️ %s %+d" % [game.govt.estate_name(es), int(v[es])]
+				var now = game.nations[game.player].gov.estates.get(es)
+				if float(v[es]) < 0.0 and now != null:  # a loss also says where the estate ends up
+					line += " (%d → %d%s)" % [roundi(now), roundi(clampf(now + float(v[es]), 0.0, 100.0)),
+							", zornig" if now + float(v[es]) < float(game.govt.cfg.get("estate_angry", 30)) else ""]
+				parts.append([line, sgn.call(float(v[es]))])
 		elif k == "alliance":
 			parts.append(["🤝 Bündnis mit " + game.nations[v].name, 1])
 		elif k == "inherit":
