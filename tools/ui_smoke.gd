@@ -67,6 +67,15 @@ func _run(tags: Array, years: int) -> void:
 		m._show_game_over()
 		m._show_hall()
 		m._close_modal()
+		if g.nations[tag].alive:  # final scoring, then play on past the end date
+			g.month = int(g.bal.total_months) - 1
+			g.tick()
+			m._show_game_over()
+			m._play_on()
+			g.tick()
+			if g.game_over or not g.endless:
+				push_error("SMOKE play on after the end failed")
+			m._set_speed(0)
 		print("SMOKE %s ok: %s, alive=%s, panels=%d" % [tag, g.date_string(), g.nations[tag].alive, opened])
 	quit()
 

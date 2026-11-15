@@ -170,6 +170,7 @@ var owned := {}
 var next_army_id: int = 1
 var next_war_id: int = 1
 var game_over: bool = false
+var endless: bool = false  # the player chose to play on after the final scoring
 var stats := {"wars": 0, "battles": 0, "peace_deals": 0, "provinces_changed": 0, "coalition_wars": 0,
 		"events": 0, "missions": 0, "eliminated": 0, "white_peace": 0, "timeouts": 0, "bankrupt_months": 0,
 		"revolts": 0, "defections": 0, "independence": 0}
@@ -656,11 +657,25 @@ func tick() -> void:
 	month += 1
 	if month % 12 == 0:
 		_yearly()
-	if month >= int(bal.total_months):
+	if month >= int(bal.total_months) and not endless:
 		game_over = true
 		log_msg("Das Zeitalter endet. Das Spiel ist vorbei.")
 	elif player != "" and not nations[player].alive:
 		game_over = true
+
+
+## After the final scoring the player may play on without an end date (score and hall place stay as they were).
+func can_play_on() -> bool:
+	return game_over and not endless and player != "" and nations[player].alive
+
+
+func play_on() -> bool:
+	if not can_play_on():
+		return false
+	endless = true
+	game_over = false
+	log_msg("▶️ Die Geschichte geht weiter: freies Spiel ohne Enddatum.", [player])
+	return true
 
 
 func _update_cached(n: Nation) -> void:
@@ -2929,7 +2944,7 @@ func complete_mission(tag: String, mission_id: String) -> String:
 func to_dict() -> Dictionary:
 	var d := {"month": month, "player": player, "difficulty": difficulty, "rng_state": str(rng.state), "rng_seed": str(rng.seed),
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
-			"pending_peace": pending_peace, "peace_offer_memo": peace_offer_memo, "log": log_lines, "stats": stats, "game_over": game_over, "emperor": emperor,
+			"pending_peace": pending_peace, "peace_offer_memo": peace_offer_memo, "log": log_lines, "stats": stats, "game_over": game_over, "endless": endless, "emperor": emperor,
 			"hre_authority": hre_authority, "hre_reforms": hre_reforms,
 			"history": history, "score_history": score_history, "prices": prices, "prev_prices": prev_prices, "shocks": shocks, "goods_leader": goods_leader, "urban_start": urban_start}
 	var ps := []
@@ -2989,6 +3004,7 @@ func from_dict(d: Dictionary) -> void:
 				"vassal": o.get("vassal", false)})
 	log_lines = d.log
 	game_over = d.get("game_over", false)
+	endless = d.get("endless", false)
 	emperor = d.get("emperor", emperor)
 	hre_authority = float(d.get("hre_authority", hre_authority))
 	hre_reforms = []
