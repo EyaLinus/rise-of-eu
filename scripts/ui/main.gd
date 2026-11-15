@@ -59,7 +59,7 @@ var mode_strip: HBoxContainer  # map mode buttons at the bottom (one per MapView
 const MODE_ICONS := ["🏰", "🤝", "📈", "😠", "⚔️", "🌾", "🪙", "🏗️", "⛪", "👑"]
 ## Panel shortcuts (PC): key -> panel. Pressing it again closes the panel.
 const PANEL_KEYS := {KEY_N: "nation", KEY_E: "economy", KEY_T: "tech", KEY_G: "government", KEY_D: "diplomacy",
-	KEY_K: "wars", KEY_M: "missions", KEY_L: "log", KEY_R: "advice", KEY_V: "mapmodes"}
+	KEY_K: "wars", KEY_F: "navy", KEY_M: "missions", KEY_L: "log", KEY_R: "advice", KEY_V: "mapmodes"}
 const WINDOW_MODES := ["window", "maximized", "borderless"]
 const WINDOW_NAMES := {"window": "Fenster", "maximized": "Maximiert", "borderless": "Randlos (Vollbild)"}
 
@@ -77,6 +77,7 @@ var modal_box: VBoxContainer
 var toast: Label
 var toast_time := 0.0
 var hud: Control
+var left_tabs: GridContainer  # the tab column on the left
 var settings := {"ui_scale": 1.0, "tips": true, "tips_seen": [], "sound": true, "difficulty": "normal"}
 var sfx_players: Array = []
 # touch layer: drag-to-scroll over buttons and long-press tooltips (see _input)
@@ -215,6 +216,7 @@ func _cycle_ui_scale() -> void:
 	var i := UI_SCALES.find(float(settings.ui_scale))
 	settings.ui_scale = UI_SCALES[(i + 1) % UI_SCALES.size()]
 	_apply_settings()
+	_fit_left_tabs()
 	_save_settings()
 	_show_settings()
 
@@ -278,7 +280,8 @@ func _build_hud() -> void:
 
 	# 8 tabs: one column on desktop, two columns with large touch targets so they fit 720 px height
 	var left := GridContainer.new()
-	left.columns = 2  # 9 tabs do not fit one column above the zoom buttons on a 720 px screen
+	left.columns = 2  # 11 tabs: two columns, three on short windows (_fit_left_tabs)
+	left_tabs = left
 	left.position = Vector2(8, 72)
 	left.add_theme_constant_override("v_separation", 8)
 	left.add_theme_constant_override("h_separation", 8)
@@ -303,6 +306,8 @@ func _build_hud() -> void:
 		left.add_child(tb)
 		if e[0] == "advice":
 			badge.position = Vector2(36, -8)  # the advisor's badge counts the open to-dos
+	get_viewport().size_changed.connect(_fit_left_tabs)
+	_fit_left_tabs.call_deferred()
 
 	var zoom := HBoxContainer.new()
 	zoom.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -977,13 +982,26 @@ func _check_long_press() -> void:
 
 
 ## Box hugs the text (max 420 px, wraps beyond), bottom left above the map mode strip, never under an open side panel.
+## Two tab columns, more when the window is too short to fit them above the zoom buttons (140 % UI, 720 px).
+func _fit_left_tabs() -> void:
+	if left_tabs == null or left_tabs.get_child_count() == 0:
+		return
+	var step: float = (left_tabs.get_child(0) as Control).custom_minimum_size.y + 8.0
+	var room: float = get_viewport_rect().size.y - left_tabs.position.y - step - 24.0  # zoom buttons below
+	var n := left_tabs.get_child_count()
+	var cols := 2
+	while cols < 4 and ceilf(float(n) / cols) * step > room:
+		cols += 1
+	left_tabs.columns = cols
+
+
 func _place_toast() -> void:
 	var f: Font = toast.get_theme_font("font")
 	var panel_w: float = -side_panel.offset_left if side_panel.visible else 0.0
 	var room: float = get_viewport_rect().size.x - panel_w - 24.0
 	var w: float = minf(minf(420.0, room), f.get_string_size(toast.text, HORIZONTAL_ALIGNMENT_LEFT, -1, toast.get_theme_font_size("font_size")).x + 24.0)
 	# right of the tab column, above the map mode strip (keeps clear of the tabs at 140 % UI size)
-	var left: float = 8.0 + 2 * 60 + 8 + 16
+	var left: float = 8.0 + (left_tabs.size.x if left_tabs != null else 128.0) + 16
 	toast.offset_left = left
 	toast.offset_right = left + minf(w, room - left)
 
@@ -1441,7 +1459,7 @@ const SHORTCUTS := [
 	["Leertaste", "Pause / weiter"], ["1 – 5", "Spieltempo"], ["+ / −", "schneller / langsamer"],
 	["Pfeile", "Karte verschieben"], ["Bild ↑ ↓", "Zoom (auch Mausrad)"], ["Tab", "nächster Kartenmodus"],
 	["V", "Kartenmodi + Legende"], ["N", "Nation"], ["E", "Wirtschaft"], ["T", "Technologie"], ["G", "Regierung"],
-	["D", "Diplomatie"], ["K", "Kriege"], ["M", "Missionen"], ["L", "Chronik"], ["R", "Ratgeber"],
+	["D", "Diplomatie"], ["K", "Kriege"], ["F", "Flotte / Marine"], ["M", "Missionen"], ["L", "Chronik"], ["R", "Ratgeber"],
 	["F5", "Schnellspeichern"], ["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F1", "diese Übersicht"],
 ]
 
