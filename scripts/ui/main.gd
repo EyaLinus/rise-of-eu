@@ -2350,9 +2350,10 @@ func _economy_far_trade() -> void:
 	]))
 	var sw: String = T.ship_block_reason(game, me)
 	side_box.add_child(_row([
-		_btn("⛵ Ostindienfahrer %d💰" % int(b.east_ship_cost), func(): _act(T.buy_ship(game, me), "⛵ Ein Ostindienfahrer läuft aus"), "Mehr Schiffe, mehr Anteil am Gewürzhandel." + (("\n❌ " + sw) if sw != "" else ""), sw != ""),
-		_btn("↩ Abziehen", func(): T.sell_ship(game, me); _refresh(), "Ein Schiff zurückholen: spart Unterhalt, kostet Anteil.", T.ships(game, me) == 0),
+		_btn("⛵ Schiff %d💰" % int(b.east_ship_cost), func(): _act(T.buy_ship(game, me), "⛵ Ein Ostindienfahrer läuft aus"), "Mehr Schiffe, mehr Anteil am Gewürzhandel." + (("\n❌ " + sw) if sw != "" else ""), sw != ""),
+		_btn("↩ Schiff abziehen", func(): T.sell_ship(game, me); _refresh(), "Ein Schiff zurückholen: spart Unterhalt, kostet Anteil.", T.ships(game, me) == 0),
 	]))
+	side_box.add_child(_lbl("🏪 Faktorei gründen: %d 💰 · fremde nur im Krieg erobern" % int(T.factory_cost(game, me)), 14, Color(0.8, 0.85, 0.9)))
 	var cells := []
 	for f in T.FACTORIES:
 		var holder: String = game.east.factories.get(f.id, "")
@@ -2363,8 +2364,8 @@ func _economy_far_trade() -> void:
 		elif holder != "":
 			label = "%s %s · %s" % [f.emoji, f.name, holder]
 		else:
-			label = "%s %s %d💰" % [f.emoji, f.name, int(T.factory_cost(game, me))]
-		var tip: String = "%s Macht +%d auf dem Seeweg." % [f.desc, int(f.power)]
+			label = "%s %s" % [f.emoji, f.name]
+		var tip: String = "%s Macht +%d auf dem Seeweg. Gründen kostet %d 💰." % [f.desc, int(f.power), int(T.factory_cost(game, me))]
 		if holder != "" and holder != me:
 			tip += " Gehört %s; im Krieg mit mehr Schiffen zu erobern." % nname(holder)
 		if why != "" and holder != me:

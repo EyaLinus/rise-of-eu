@@ -660,6 +660,7 @@ func test_cape_route() -> void:
 	check(T.is_open(g) and T.knows(g, tag) and g.east.cape == tag, "first voyage opens the route")
 	check(T.route_value(g) > 0.0, "the route has value")
 	check(T.factory_block_reason(g, tag, "goa") != "", "a factory needs Indiamen")
+	g.month = (1500 - int(g.bal.start_year)) * 12
 	for k in int(g.bal.east_factory_ships):
 		check(T.buy_ship(g, tag) == "", "buy an Indiaman")
 	check(T.take_factory(g, tag, "sofala") == "" and g.east.factories.sofala == tag, "found a factory")
