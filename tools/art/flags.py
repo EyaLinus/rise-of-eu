@@ -346,6 +346,21 @@ for y in range(FH):
 charge(f, FLEUR, 13, 4)
 FLAGS["NAP"] = (f, "Naples – Aragon pallets impaled with Anjou (simplified)")
 
+# ---------------------------------------------------------------- formable realms (data/formables.json)
+# Shown once a nation proclaims the realm (Icons.flag_alias). Kept distinct from every starting flag.
+import copy
+F = {}
+F["ITA"] = (field("L", "w", "R", vertical=True), "Italy – green, white, red (unification tricolour)")
+F["GER"] = (centred(solid("G"), recolor(EAGLE2, TO_INK), cy=2), "German Empire – black double eagle on gold")
+F["GBR"] = (cross(saltire(solid("B"), "w"), "R", 4), "Great Britain – crosses of St George and St Andrew (simplified)")
+f = [[("R" if (x < 11) == (y < 7) else "B") for x in range(FW)] for y in range(FH)]
+F["PLC"] = (centred(f, recolor(EAGLE2, TO_WHITE), cy=2), "Poland-Lithuania – white eagle over red and blue quarters")
+F["IBE"] = (border(copy.deepcopy(FLAGS["SPA"][0]), "G", 1), "Iberian crown – Castile quarters in a gold border")
+F["ROM"] = (border(centred(solid("U"), recolor(EAGLE2, TO_GOLD), cy=2), "G", 2), "Roman Empire – gold eagle on imperial purple, gold border")
+F["PER"] = (centred(solid("L"), recolor(LION_RAMPANT, {"w": "G", "a": "D"}), cy=1), "Persia – gold lion on green")
+F["MAG"] = (centred(field("L", "w", "L"), recolor(CRESCENT, TO_RED), cy=3), "Maghreb – red crescent on green and white")
+FLAGS.update(F)
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     for tag, (f, comment) in FLAGS.items():

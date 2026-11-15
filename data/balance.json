@@ -307,6 +307,8 @@
   "feast_min_cost": 50.0,
   "feast_income_months": 4.0,
   "feast_prestige": 10.0,
+  "form_cost_adm": 100.0,
+  "form_prestige": 25.0,
   "feast_we": 2.0,
   "urban_start_dev": 10,
   "urban_min_dev": 10,

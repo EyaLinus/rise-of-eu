@@ -51,8 +51,9 @@ static func install() -> void:
 ## A one-character string showing the nation's pixel flag; a white flag when the nation has none (its own
 ## animal or symbol emoji has no pixel glyph and would show as a box).
 static func nation(tag: String, _fallback: String = "") -> String:
-	if _nations.has(tag):
-		return _nations[tag]
+	var key := Icons.flag_key(tag)  # a formed realm shows its new flag (glyph added up front, see add_nations)
+	if _nations.has(key):
+		return _nations[key]
 	var s := "🏳"
 	var tex: Texture2D = Icons.flag(tag)
 	if font != null and tex != null:
@@ -62,7 +63,7 @@ static func nation(tag: String, _fallback: String = "") -> String:
 		var cp := PUA + _nations.size()
 		_add(cp, img)
 		s = char(cp)
-	_nations[tag] = s
+	_nations[key] = s
 	return s
 
 

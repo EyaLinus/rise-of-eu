@@ -34,5 +34,14 @@ static func prefix(key: String) -> String:
 	return "" if texture(key) != null else emoji(key) + " "
 
 
+## Nations that proclaimed a new realm (Formables) show its flag: tag -> formable id, set by main.gd.
+static var flag_alias := {}
+
+
+static func flag_key(tag: String) -> String:
+	return flag_alias.get(tag, tag)
+
+
 static func flag(tag: String) -> Texture2D:
-	return texture("flag_" + tag)
+	var t := texture("flag_" + flag_key(tag))
+	return t if t != null else texture("flag_" + tag)

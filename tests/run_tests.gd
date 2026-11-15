@@ -30,6 +30,7 @@ func _init() -> void:
 		"test_hall_of_fame",
 		"test_rival_missions",
 		"test_play_on",
+		"test_formables",
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
@@ -3052,3 +3053,35 @@ func test_play_on() -> void:
 	var g2 = new_game()
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
 	check(g2.endless and not g2.game_over, "endless survives save/load")
+
+
+func test_formables() -> void:
+	var g = new_game("NAP")
+	for id in g.formable_defs:
+		var f: Dictionary = g.formable_defs[id]
+		for t in f.from:
+			check(g.nations.has(t), "formable %s: unknown nation %s" % [id, t])
+		for k in f.provinces:
+			check(g.key_to_pid.has(k), "formable %s: unknown province %s" % [id, k])
+		check(int(f.need) <= f.provinces.size(), "formable %s: need too high" % id)
+		for t in g.order:
+			if t in f.from:
+				check(g.Formables.block_reason(g, t, id) != "", "%s can form %s at the start" % [t, id])
+	check("ITA" in g.Formables.options(g, "NAP"), "Naples may form Italy")
+	check(not "ITA" in g.Formables.options(g, "FRA"), "France may not form Italy")
+	for k in ["rome", "florence", "milan", "venice", "genoa"]:
+		var p = g.provinces[g.key_to_pid[k]]
+		p.owner = "NAP"
+		p.controller = "NAP"
+	g._rebuild_owned()
+	g.nations.NAP.adm = 500.0
+	check(g.Formables.block_reason(g, "NAP", "ITA") == "", "Naples holding 6 of 7 can form Italy: " + g.Formables.block_reason(g, "NAP", "ITA"))
+	var pr: float = g.nations.NAP.prestige
+	check(g.Formables.form(g, "NAP", "ITA") == "", "forming works")
+	var n = g.nations.NAP
+	check(n.formed == "ITA" and n.name == "Italien" and n.prestige > pr and n.bonus.has("formed"), "new identity and bonus")
+	check(n.claims.has(g.key_to_pid["bologna"]), "claim on the missing province")
+	check(g.Formables.options(g, "NAP").is_empty() and g.Formables.block_reason(g, "VEN", "ITA") != "", "only one formation")
+	var g2 = new_game("NAP")
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.NAP.name == "Italien" and g2.nations.NAP.bonus.has("formed"), "formed realm survives save/load")
