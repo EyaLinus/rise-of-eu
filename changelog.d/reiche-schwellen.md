@@ -1,1 +1,0 @@
-- Reiche gründen ist etwas leichter: Italien braucht 5 statt 6 Kernprovinzen, das Deutsche Reich 6 statt 8, die Iberische Krone und das Römische Reich je 6 statt 7, der Maghreb 5 statt 6. In Testpartien gründete die KI vorher fast nur Großbritannien.
