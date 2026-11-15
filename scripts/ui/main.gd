@@ -1357,6 +1357,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif k in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN] and not modal.visible:
 		var d := {KEY_LEFT: Vector2(1, 0), KEY_RIGHT: Vector2(-1, 0), KEY_UP: Vector2(0, 1), KEY_DOWN: Vector2(0, -1)}[k] as Vector2
 		map.pan_by(d * 160.0)
+	elif k == KEY_A and not modal.visible and not event.ctrl_pressed:
+		_next_army()
+	elif (k == KEY_S or (k == KEY_F and event.ctrl_pressed)) and not modal.visible:
+		_show_search()
 	elif k == KEY_F5:
 		_act("" if _save_game() else "Speichern fehlgeschlagen", "💾 Gespeichert")
 	elif (k == KEY_F1 or k == KEY_H) and not modal.visible:
@@ -1409,6 +1413,7 @@ func _show_menu() -> void:
 		_btn("💾 Speichern", _show_slots.bind(true), "Drei Speicherplätze; dazu speichert das Spiel jedes Jahr automatisch. Schnellspeichern: F5"),
 		_btn("📂 Laden", _show_slots.bind(false)),
 		_btn("⚙️ Einstellungen", _show_settings, "UI-Größe, Ton, Tipps, Fenster"),
+		_btn("🔍 Suchen", _show_search, "Provinz oder Nation finden und auf der Karte zeigen (am PC: S)"),
 	]
 	if _has_keyboard():
 		acts.append(_btn("⌨️ Tastenkürzel", _show_shortcuts, "Alle Tasten auf einen Blick (F1)"))
@@ -1419,6 +1424,110 @@ func _show_menu() -> void:
 		acts.append(Control.new())
 	modal_box.add_child(_grid(acts))
 	modal_box.add_child(_lbl("⚔️ Schwierigkeit: %s" % Game.DIFFICULTY_NAMES.get(game.difficulty, "Normal"), 15, Color(0.75, 0.75, 0.75)))
+
+
+## Find a province or nation by name and jump there. Unexplored land (terra incognita) stays hidden.
+func _show_search() -> void:
+	if game == null:
+		return
+	_set_speed(0)
+	_open_modal()
+	modal_box.add_child(_lbl("🔍 Suchen", 30))
+	var edit := LineEdit.new()
+	edit.placeholder_text = "Name einer Provinz oder Nation"
+	edit.custom_minimum_size = Vector2(0, 52)
+	edit.add_theme_font_size_override("font_size", 20)
+	edit.clear_button_enabled = true
+	modal_box.add_child(edit)
+	var results := VBoxContainer.new()
+	modal_box.add_child(results)
+	modal_box.add_child(_btn("◀ Zurück", _close_modal))
+	edit.text_changed.connect(func(t: String): _search_fill(results, t))
+	edit.text_submitted.connect(func(_t: String):
+		if results.get_child_count() > 0 and results.get_child(0) is Button:
+			results.get_child(0).pressed.emit())
+	_search_fill(results, "")
+	(func(): if is_instance_valid(edit) and edit.is_inside_tree(): edit.grab_focus()).call_deferred()
+
+
+const SEARCH_MAX := 12
+
+
+## Own armies in a fixed order, idle ones (no march, no battle, manual) first; for cycling with A.
+func army_cycle() -> Array:
+	var idle := []
+	var busy := []
+	for a in game.armies_of(game.player):
+		var is_idle: bool = a.target < 0 and a.path.is_empty() and not a.auto
+		(idle if is_idle else busy).append(a.id)
+	idle.sort()
+	busy.sort()
+	return idle + busy
+
+
+## Select the army after the current one in army_cycle(), centre the map on it.
+func _next_army() -> void:
+	if game == null:
+		return
+	var ids := army_cycle()
+	if ids.is_empty():
+		_toast("Du hast keine Armee.")
+		return
+	var cur: int = panel_arg if panel_mode == "army" and side_panel.visible and panel_arg is int else -1
+	var i := ids.find(cur)
+	var id: int = ids[(i + 1) % ids.size()]
+	var a = game.army_by_id(id)
+	map.focus(game.provinces[a.pid].center, maxf(map.zoom, 1.2))
+	_on_army_tapped(id)
+
+
+## Matches for `text`: nations first, then provinces; names that start with the text come first.
+func search_hits(text: String) -> Array:
+	var q := text.strip_edges().to_lower()
+	var out := []
+	if q.length() < 2:
+		return out
+	var later := []
+	for t in game.order:
+		var n = game.nations[t]
+		var nm: String = n.name.to_lower()
+		if n.alive and nm.contains(q):
+			(out if nm.begins_with(q) else later).append(["nation", t])
+	for p in game.provinces:
+		var pn: String = p.name.to_lower()
+		if pn.contains(q) and Colonial.knows(game, game.player, p.id):
+			(out if pn.begins_with(q) else later).append(["province", p.id])
+	out.append_array(later)
+	return out.slice(0, SEARCH_MAX)
+
+
+func _search_fill(box: VBoxContainer, text: String) -> void:
+	_clear(box)
+	var hits := search_hits(text)
+	if hits.is_empty():
+		box.add_child(_lbl("Mindestens zwei Buchstaben eingeben." if text.strip_edges().length() < 2 else "Nichts gefunden.", 15, Color(0.75, 0.75, 0.8)))
+		return
+	for h in hits:
+		if h[0] == "nation":
+			var t: String = h[1]
+			box.add_child(_btn("%s · %d Prov." % [nname(t), game.provinces_of(t).size()], _search_go.bind(h)))
+		else:
+			var p = game.provinces[h[1]]
+			var owner: String = (" · " + nname(p.owner)) if game.nations.has(p.owner) and game.nations[p.owner].alive else ""
+			box.add_child(_btn("📍 %s%s" % [p.name, owner], _search_go.bind(h)))
+
+
+func _search_go(hit: Array) -> void:
+	_close_modal()
+	var pid: int = game.nations[hit[1]].capital if hit[0] == "nation" else int(hit[1])
+	if pid >= 0:
+		map.focus(game.provinces[pid].center, maxf(map.zoom, 1.2))
+	if hit[0] == "nation":
+		_open_panel("nation" if hit[1] == game.player else "other", hit[1] if hit[1] != game.player else null)
+	else:
+		_open_panel("province", pid)
+		map.selected_pid = pid
+	map.refresh()
 
 
 func _has_keyboard() -> bool:
@@ -1462,7 +1571,7 @@ const SHORTCUTS := [
 	["Pfeile", "Karte verschieben"], ["Bild ↑ ↓", "Zoom (auch Mausrad)"], ["Tab", "nächster Kartenmodus"],
 	["V", "Kartenmodi + Legende"], ["N", "Nation"], ["E", "Wirtschaft"], ["T", "Technologie"], ["G", "Regierung"],
 	["D", "Diplomatie"], ["K", "Kriege"], ["F", "Flotte / Marine"], ["M", "Missionen"], ["L", "Chronik"], ["R", "Ratgeber"],
-	["F5", "Schnellspeichern"], ["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F1", "diese Übersicht"],
+	["S / Strg+F", "Provinz oder Nation suchen"], ["A", "nächste Armee (untätige zuerst)"], ["F5", "Schnellspeichern"], ["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F1", "diese Übersicht"],
 ]
 
 
@@ -2057,9 +2166,10 @@ func _panel_province(pid: int) -> void:
 		side_box.add_child(l)
 	if own:
 		var acts: Array = []
+		var devs: Array = []  # the three develop buttons share one row
 		var dc: int = int(game.develop_cost(pid))
 		for k in [["adm", "📜", "Verwaltung"], ["dip", "🕊️", "Diplomatie"], ["mil", "⚔️", "Militär"]]:
-			acts.append(_btn("🏘️ %d %s" % [dc, k[1]], func(): _act(game.develop(me, pid, k[0]), "🏘️ Entwicklung erhöht"),
+			devs.append(_btn("🏘️ %d %s" % [dc, k[1]], func(): _act(game.develop(me, pid, k[0]), "🏘️ Entwicklung erhöht"),
 					"Entwickeln mit %s: kostet %d. +1 Entwicklung: mehr Steuer, Güter, Handelsmacht und Mannschaften. Alle %d Stufen ein Bauplatz mehr."
 					% [k[2], dc, int(game.bal.dev_per_building_slot)]))
 		if game.unrest(pid) > 0.0 and p.suppress_months == 0:
@@ -2082,9 +2192,13 @@ func _panel_province(pid: int) -> void:
 					(("Baut die Provinz in %d Monaten zur Stadt aus: mehr Steuern, Handel und ein Bauplatz, weniger Mannschaften, etwas Unruhe. Lohnt sich bei Stadtgütern und am Markt." % int(game.bal.urban_months)) if to_city
 					else ("Macht die Stadt in %d Monaten wieder zu Land: mehr Mannschaften und Ruhe, weniger Steuern und Handel." % int(game.bal.rural_months)))
 					+ (("\n❌ " + ub) if ub != "" else ""), ub != ""))
-		if acts.size() % 2 == 1:
-			acts.append(_btn("🏗️ Bauen", func(): prov_tab = "build"; _refresh(), "Gebäude dieser Provinz"))
-		side_box.add_child(_grid(acts))
+		side_box.add_child(_grid(devs, 3))
+		# pairs side by side, an odd last button gets the full width (no clipped price)
+		var last_act = acts.pop_back() if acts.size() % 2 == 1 else null
+		if not acts.is_empty():
+			side_box.add_child(_grid(acts))
+		if last_act != null:
+			side_box.add_child(last_act)
 	else:
 		if not p.buildings.is_empty():
 			var bl := []
@@ -2215,56 +2329,90 @@ func _economy_overview() -> void:
 	var budget: float = game.govt.budget_cost(game, n)
 	var realm: float = Eco.realm_cost(game, n)
 	var army_cost: float = n.expenses - Eco.upkeep(game, me) - intr - budget - realm
-	var lines := "Einnahmen %.2f/Monat\n  💰 Steuern %.2f\n  🏭 Güter %.2f\n  🏬 Handel %.2f" % [n.income, n.tax_income, n.prod_income, n.trade_income]
+	# income and expenses side by side instead of one long list
+	var bal: float = n.income - n.expenses
+	side_box.add_child(_lbl("Bilanz %+.2f 💰/Monat · Kasse %d 💰" % [bal, int(n.gold)], 19, Color(0.6, 0.9, 0.6) if bal >= 0.0 else Color(0.95, 0.6, 0.55)))
+	var inc := ["💰 Steuern %.2f" % n.tax_income, "🏭 Güter %.2f" % n.prod_income, "🏬 Handel %.2f" % n.trade_income]
 	if trib != 0.0:
-		lines += "\n  ⛓️ Tribut %+.2f" % trib
-	lines += "\nAusgaben %.2f/Monat\n  🛡️ Armee %.2f\n  🏰 Gebäude %.2f" % [n.expenses, army_cost, Eco.upkeep(game, me)]
+		inc.append("⛓️ Tribut %+.2f" % trib)
+	var outs := ["🛡️ Armee %.2f" % army_cost, "🏰 Gebäude %.2f" % Eco.upkeep(game, me)]
 	if intr > 0.0:
-		lines += "\n  🏦 Zinsen %.2f" % intr
+		outs.append("🏦 Zinsen %.2f" % intr)
 	if absf(budget) >= 0.01:
-		lines += "\n  ⚖️ Haushalt %+.2f" % budget
+		outs.append("⚖️ Haushalt %+.2f" % budget)
 	if realm > 0.0:
-		lines += "\n  🏛️ Verwaltung des Reichs %.2f (%d%% der Einnahmen)" % [realm, int(round(Eco.realm_cost_share(game, n) * 100))]
-	side_box.add_child(_lbl(lines))
-	side_box.add_child(_btn("⚖️ Haushalt: Steuern, Hof, Heer, Forschung", func(): _open_panel("government"),
-		"Schieberegler im Regierungs-Screen: Steuerdruck, Hofhaltung, Militärbudget und Forschung."))
-	# loans
+		outs.append("🏛️ Verwaltung %.2f" % realm)
+	var cols := []
+	for e in [["Einnahmen %.2f" % n.income, inc, "good", "Alle Einnahmen pro Monat."],
+			["Ausgaben %.2f" % n.expenses, outs, "bad", "Alle Ausgaben pro Monat.%s" % (
+				("\nVerwaltung des Reichs: %d %% der Einnahmen, steigt mit der Größe des Reichs." % int(round(Eco.realm_cost_share(game, n) * 100))) if realm > 0.0 else "")]]:
+		var pc := PanelContainer.new()
+		pc.add_theme_stylebox_override("panel", UiTheme.card(e[2], 6))
+		pc.tooltip_text = e[3]
+		pc.mouse_filter = Control.MOUSE_FILTER_STOP
+		var v := VBoxContainer.new()
+		v.add_theme_constant_override("separation", 0)
+		v.add_child(_lbl(e[0], 16, Color(1.0, 0.9, 0.6)))
+		for t in e[1]:
+			var l := _lbl(t, 15)
+			l.autowrap_mode = TextServer.AUTOWRAP_OFF
+			l.clip_text = true
+			l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			v.add_child(l)
+		for c in v.get_children():
+			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pc.add_child(v)
+		cols.append(pc)
+	side_box.add_child(_grid(cols))
+	# budget and loans in one row
 	var lrow := HBoxContainer.new()
+	lrow.add_theme_constant_override("separation", 6)
+	lrow.add_child(_btn("⚖️ Haushalt", func(): _open_panel("government"),
+		"Schieberegler im Regierungs-Screen: Steuerdruck, Hofhaltung, Militärbudget und Forschung."))
 	var lsize: float = Eco.loan_size(game, n)
-	lrow.add_child(_btn("🏦 Kredit +%d💰 (%d%%)" % [int(lsize), int(round(Eco.loan_rate(game, n) * 100))], func():
+	lrow.add_child(_btn("🏦 Kredit +%d" % int(lsize), func():
 		_act(Eco.take_loan(game, me), "🏦 Kredit aufgenommen"),
-		"Sofort %d Gold. Zinsen %.1f%% pro Jahr, jeder weitere Kredit wird teurer. Höchstens %d Kredite." % [int(lsize), Eco.loan_rate(game, n) * 100, int(game.bal.max_loans)],
+		"Kredit: sofort %d Gold. Zinsen %.1f%% pro Jahr, jeder weitere Kredit wird teurer. Höchstens %d Kredite." % [int(lsize), Eco.loan_rate(game, n) * 100, int(game.bal.max_loans)],
 		n.loans.size() >= int(game.bal.max_loans)))
 	if not n.loans.is_empty():
 		var last: float = n.loans[n.loans.size() - 1]
-		lrow.add_child(_btn("↩ Tilgen %d💰" % int(last), func(): _act(Eco.repay_loan(game, me), "🏦 Kredit getilgt"),
+		lrow.add_child(_btn("↩ Tilgen %d" % int(last), func(): _act(Eco.repay_loan(game, me), "🏦 Kredit getilgt"),
 				"Zahlt den teuersten Kredit zurück.", n.gold < last))
 	for c in lrow.get_children():
 		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	side_box.add_child(lrow)
 	if not n.loans.is_empty():
-		side_box.add_child(_lbl("🏦 %d Kredite · Schulden %d💰 · Zinsen %.2f/Monat" % [n.loans.size(), int(Eco.debt(n)), intr], 16, Color(0.95, 0.75, 0.5)))
+		side_box.add_child(_lbl("🏦 %d Kredite · Schulden %d💰 · Zinsen %.2f/Monat" % [n.loans.size(), int(Eco.debt(n)), intr], 15, Color(0.95, 0.75, 0.5)))
 	var best: Array = Eco.best_building(game, n, game.is_at_war(me))
 	if not best.is_empty():
 		var bd: Dictionary = game.buildings_def[best[1]]
 		var bp = game.provinces[best[0]]
 		side_box.add_child(_btn("✨ Bauvorschlag: %s %s in %s (%d💰)" % [bd.emoji, bd.name, bp.name, int(Eco.building_cost(game, me, best[0], best[1]))],
 				func(): _act(game.construct(me, best[0], best[1]), "🏗️ Bau begonnen: " + bd.name), "Das Gebäude mit dem besten Ertrag pro Gold."))
-	side_box.add_child(_btn("🤖 Autobau: " + ("AN" if n.autobuild else "AUS"), func():
+	# autobuild and its reserve in one row
+	var arow := HBoxContainer.new()
+	arow.add_theme_constant_override("separation", 6)
+	var ab := _btn("🤖 Autobau: " + ("AN" if n.autobuild else "AUS"), func():
 		n.autobuild = not n.autobuild
 		if n.autobuild:
 			Eco.autobuild(game, n)
-		_refresh(), "Baut automatisch das lohnendste Gebäude, solange die Kasse danach nicht unter die Mindestkasse fällt."))
+		_refresh(), "Baut automatisch das lohnendste Gebäude, solange die Kasse danach nicht unter die Mindestkasse fällt.")
+	ab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	arow.add_child(ab)
 	if n.autobuild:
-		var row := HBoxContainer.new()
-		row.add_child(_lbl("Mindestkasse %d💰" % int(n.autobuild_reserve)))
-		for step in [-100, -25, 25, 100]:
+		for step in [-50, 50]:
 			var st: int = step
-			var b := _btn("%+d" % st, func():
+			arow.add_child(_btn("−" if st < 0 else "+", func():
 				n.autobuild_reserve = clampf(n.autobuild_reserve + st, 0.0, 5000.0)
-				_refresh(), "Mindestkasse ändern: Autobau gibt nur Gold darüber aus.")
-			row.add_child(b)
-		side_box.add_child(row)
+				_refresh(), "Mindestkasse um %d ändern: Autobau gibt nur Gold darüber aus." % absi(st)))
+		var rl := _lbl("Rest ≥ %d💰" % int(n.autobuild_reserve), 15)
+		rl.autowrap_mode = TextServer.AUTOWRAP_OFF
+		rl.custom_minimum_size.x = 0
+		rl.tooltip_text = "Mindestkasse: Autobau gibt nur Gold darüber aus."
+		rl.mouse_filter = Control.MOUSE_FILTER_STOP
+		arow.add_child(rl)
+		arow.move_child(rl, 1)
+	side_box.add_child(arow)
 	var building := 0
 	for pid in game.provinces_of(me):
 		if not game.provinces[pid].constructing.is_empty():
@@ -2313,6 +2461,9 @@ func _economy_trade() -> void:
 		else:
 			b = _btn(txt + "  +%.2f" % gain, func(): _act(Eco.send_merchant(game, me, m), "🛒 Händler entsandt"), tip + " Antippen: Händler schicken.")
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		# compact rows: more markets fit without scrolling
+		b.custom_minimum_size.y = 48 if _big() else 38
+		b.add_theme_font_size_override("font_size", 16)
 		side_box.add_child(b)
 	if not rest.is_empty():
 		_section("trade_more", "Weitere Märkte (%d)" % rest.size(), false)
@@ -2440,6 +2591,8 @@ func _panel_army(id: int) -> void:
 	acts.append(_btn("🔗 Vereinen", func(): game.merge_armies(a.owner, a.pid); _act(""); map.refresh(), "Alle eigenen Armeen in dieser Provinz vereinen."))
 	acts.append(_btn("🛑 Halt", func(): a.target = -1; a.path = []; _act(""), "Den Marsch abbrechen."))
 	acts.append(_btn("➖ 1 Reg.", func(): game.disband(a, 1.0); _act(""); map.refresh(), "Ein Regiment entlassen (spart Unterhalt)."))
+	if a.owner == game.player and game.armies_of(a.owner).size() > 1:
+		acts.append(_btn("👉 Nächste Armee", _next_army, "Zur nächsten eigenen Armee springen, untätige zuerst (am PC: A)."))
 	if acts.size() % 2 == 1:
 		acts.append(Control.new())
 	side_box.add_child(_grid(acts))

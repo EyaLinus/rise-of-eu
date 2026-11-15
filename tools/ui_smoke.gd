@@ -93,6 +93,16 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 	m.section_open["nat_formables"] = month % 24 < 12  # collapsed sections must render too
 	m.section_open["nat_monuments"] = month % 24 < 12
 	m.section_open["world_chronicle"] = month % 24 < 12
+	if month % 120 == 0:  # search: modal, hits, jump to a province and to a nation
+		m._show_search()
+		var hits: Array = m.search_hits(g.nations[tag].name.left(3))
+		if hits.is_empty():
+			push_error("SMOKE search finds no own nation")
+		for h in hits.slice(0, 3):
+			m._search_go(h)
+		m._close_modal()
+		for i in 3:  # cycle through own armies
+			m._next_army()
 	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "navy", "missions", "log", "ranking", "hre", "advice"]:
 		m._open_panel(mode)
 		n += 1
