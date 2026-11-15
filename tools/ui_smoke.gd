@@ -3,6 +3,7 @@ extends SceneTree
 ## Any GDScript error shows up as "SCRIPT ERROR" in the output (CI greps for it).
 ## godot --headless --path . -s res://tools/ui_smoke.gd -- [--years 40] [--tags FRA,ENG]
 
+var failures := 0  # UI checks below; a failure ends the run with exit code 1
 const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP", "TUR", "POL", "BUR"]
 
 
@@ -79,7 +80,12 @@ func _run(tags: Array, years: int) -> void:
 				push_error("SMOKE play on after the end failed")
 			m._set_speed(0)
 		print("SMOKE %s ok: %s, alive=%s, panels=%d" % [tag, g.date_string(), g.nations[tag].alive, opened])
-	quit()
+	quit(1 if failures > 0 else 0)
+
+
+func _fail(msg: String) -> void:
+	failures += 1
+	push_error("SMOKE FAIL " + msg)
 
 
 func _all_panels(m, g, tag: String, month: int) -> int:
@@ -197,6 +203,21 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 		g.Economy.send_merchant(g, tag, g.markets[month % g.markets.size()])
 		m._open_panel("economy")
 	m._show_menu()
+	m._show_settings()
+	m._show_shortcuts()
 	m._close_modal()
 	m._close_panel()
+	# keyboard shortcuts: a panel key opens its panel, a second press closes it
+	if m.mode_strip.get_child_count() != m.map.MODE_NAMES.size():
+		_fail("map mode strip has %d buttons for %d modes" % [m.mode_strip.get_child_count(), m.map.MODE_NAMES.size()])
+	for key in m.PANEL_KEYS:
+		var ev := InputEventKey.new()
+		ev.keycode = key
+		ev.pressed = true
+		m._unhandled_input(ev)
+		if not m.side_panel.visible or m.panel_mode != m.PANEL_KEYS[key]:
+			_fail("shortcut %s did not open %s" % [OS.get_keycode_string(key), m.PANEL_KEYS[key]])
+		m._unhandled_input(ev)
+		if m.side_panel.visible:
+			_fail("shortcut %s did not close its panel" % OS.get_keycode_string(key))
 	return n
