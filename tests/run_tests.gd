@@ -3104,6 +3104,7 @@ func test_formables() -> void:
 	var n = g.nations.NAP
 	check(n.formed == "ITA" and n.name == "Italien" and n.prestige > pr and n.bonus.has("formed"), "new identity and bonus")
 	check(n.claims.has(g.key_to_pid["bologna"]), "claim on the missing province")
+	check(g.pending_events.has("form_ita"), "the player gets the formation event")
 	check(g.Formables.options(g, "NAP").is_empty() and g.Formables.block_reason(g, "VEN", "ITA") != "", "only one formation")
 	var g2 = new_game("NAP")
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))

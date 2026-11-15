@@ -2546,8 +2546,14 @@ func _nation_formables(me: String) -> void:
 				("\nEs fehlen: " + ", ".join(miss)) if not miss.is_empty() else ""]
 		var br: String = Formables.block_reason(game, me, id)
 		side_box.add_child(_btn("👑 %s ausrufen (%d/%d, %d 📜)" % [f.name, pr[0], pr[1], int(Formables.cost(game))],
-				func(): _act(Formables.form(game, me, id), "👑 " + f.name + " ausgerufen!"),
+				func(): _form_realm(id),
 				tip + ("\n❌ " + br if br != "" else ""), br != ""))
+
+
+func _form_realm(id: String) -> void:
+	_act(Formables.form(game, game.player, id), "👑 %s ausgerufen!" % game.formable_defs[id].name)
+	if not game.pending_events.is_empty():
+		_show_event(game.pending_events[0])  # the formation event, without waiting for the next month
 
 
 func _start_monument(id: String) -> void:
