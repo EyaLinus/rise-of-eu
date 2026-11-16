@@ -2934,6 +2934,13 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"rivals_min":
 				if n.rivals.size() < int(v):
 					return false
+			"colonies_min":
+				# New World provinces owned (Colonial)
+				if Colonial.colonies_owned(self, tag) < int(v):
+					return false
+			"colonizing":
+				if Colonial.running_colonies(self, tag).is_empty() == bool(v):
+					return false
 			"rivaled":
 				if rivaled_by(tag).is_empty() == bool(v):
 					return false

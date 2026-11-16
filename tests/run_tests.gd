@@ -31,6 +31,7 @@ func _init() -> void:
 		"test_military_access",
 		"test_guarantee",
 		"test_rivals",
+		"test_colonial_events",
 		"test_urban",
 		"test_colonial",
 		"test_west_africa",
@@ -3517,3 +3518,33 @@ func test_chronicle() -> void:
 	var g2 = new_game("FRA")
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
 	check(g2.chronicle.size() == g.chronicle.size() and g2.chronicle[0][1] == g.chronicle[0][1], "chronicle survives save/load")
+
+
+func test_colonial_events() -> void:
+	var g = new_game("POR")
+	for id in ["col_new_world", "col_first_colony"]:
+		check(g.event_by_id.has(id) and g.event_by_id[id].get("manual", false), "%s exists and is manual" % id)
+	var n = g.nations.POR
+	check(not g.check_conditions("POR", {"colonizing": true}) and g.check_conditions("POR", {"colonizing": false}), "colonizing: no colony at start")
+	check(not g.check_conditions("POR", {"colonies_min": 1}), "colonies_min: no New World land at start")
+	# a first colony that grows fires col_first_colony once
+	var pid := -1
+	for i in range(g.nw_first, g.provinces.size()):
+		if g.provinces[i].owner == g.Colonial.NATIVE:
+			pid = i
+			break
+	check(pid >= 0, "native land exists")
+	if pid < 0:
+		return
+	var p = g.provinces[pid]
+	p.colonist = "POR"
+	p.colony_months = g.Colonial.colony_months(g, p)
+	p.natives = 0.0
+	check(g.check_conditions("POR", {"colonizing": true}), "colonizing: a colony is growing")
+	g.Colonial._colony_tick(g, p)
+	check(p.owner == "POR" and g.pending_events.has("col_first_colony"), "first grown colony fires col_first_colony")
+	check(g.check_conditions("POR", {"colonies_min": 1}), "colonies_min counts the new colony")
+	g.pending_events.clear()
+	g.fire_event("POR", "col_first_colony")
+	check(not g.pending_events.has("col_first_colony"), "col_first_colony fires only once")
+

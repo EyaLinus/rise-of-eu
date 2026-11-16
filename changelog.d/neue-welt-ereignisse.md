@@ -1,0 +1,1 @@
+- **Ereignisse der Neuen Welt:** Acht neue Ereignisse rund um Entdeckungen und Kolonien: die erste erfolgreiche Expedition, die erste gewachsene Kolonie, drängende Siedler, Tauschhandel mit Ureinwohnern, Silberflotten, Schmuggler, Kaperfahrer und neue Feldfrüchte aus Amerika.
