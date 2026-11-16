@@ -120,6 +120,7 @@ class Nation:
 	var ships: float = 0.0  # fleet size (Naval)
 	var fleet_sea: String = ""  # player's fleet station: "" = spread over all own coastal seas
 	var fleet_mission: String = "patrol"  # Naval.MISSIONS
+	var admiral: int = 0  # 0 = none, 1..3 = skill of the fleet's admiral (Naval)
 	var army_stance: String = ""  # player's default for new armies: "" manual, "attack" or "defend"
 
 
@@ -1516,6 +1517,9 @@ func make_peace(w: War, winner_att: bool, pids: Array, vassalize: bool = false) 
 			ae *= float(bal.capital_peace_mult)
 		if w.coalition:
 			ae *= 0.3
+		# Christendom cares less when the Ottomans take Orthodox land, and the other way round (as in EU4)
+		if nations[p.owner].religion != n.religion:
+			ae *= float(bal.ae_other_faith_mult)
 		n.ae += ae * ae_mult(to)
 		n.adm -= p.dev * float(bal.core_cost_per_dev)
 		n.prestige += p.dev * float(bal.prestige_per_dev_taken)
@@ -3092,7 +3096,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "embargoes": n.embargoes, "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "fleet_mission": n.fleet_mission, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "embargoes": n.embargoes, "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "fleet_mission": n.fleet_mission, "admiral": n.admiral, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
 				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n), "colonial": Colonial.nation_save(n)}
 	d.nations = ns
 	var ar := []
@@ -3291,6 +3295,7 @@ func from_dict(d: Dictionary) -> void:
 		n.ships = float(e.get("ships", -1.0))
 		n.fleet_sea = str(e.get("fleet_sea", ""))
 		n.fleet_mission = str(e.get("fleet_mission", "patrol"))
+		n.admiral = int(e.get("admiral", 0))
 		tree.load_save(n, e.get("techs", {}))
 		n.tech_queue = Array(e.get("tech_queue", [])).filter(func(q): return tree.by_id.has(q))
 		govt.load_save(n, e.get("gov", {}))

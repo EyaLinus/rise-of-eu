@@ -183,10 +183,49 @@ static func presence(g, tag: String) -> Dictionary:
 
 static func power_mult(g, tag: String) -> float:
 	var n = g.nations[tag]
-	var m := maxf(0.2, 1.0 + g.mod(n, "naval") + n.tech.dip * float(g.bal.naval_per_dip_tech))
+	var m := maxf(0.2, 1.0 + g.mod(n, "naval") + n.tech.dip * float(g.bal.naval_per_dip_tech) + float(g.bal.admiral_bonus) * n.admiral)
 	if mission(g, tag) != "patrol":
 		m *= float(g.bal.fleet_mission_power)
 	return m
+
+
+## An admiral (skill 1..3) commands the whole fleet: more fighting power in every sea. Costs military power.
+static func admiral_block_reason(g, tag: String) -> String:
+	var n = g.nations[tag]
+	if limit(g, tag) <= 0.0:
+		return "Du hast keine Küste."
+	if n.admiral > 0:
+		return "Die Flotte hat schon einen Admiral."
+	if n.mil < float(g.bal.admiral_cost):
+		return "Zu wenig Militär (%d)." % int(g.bal.admiral_cost)
+	return ""
+
+
+static func hire_admiral(g, tag: String) -> String:
+	var why := admiral_block_reason(g, tag)
+	if why != "":
+		return why
+	var n = g.nations[tag]
+	n.mil -= float(g.bal.admiral_cost)
+	var roll: int = g.rng.randi_range(1, 3) + (1 if g.rng.randf() < 0.05 * n.tech.dip else 0)
+	n.admiral = mini(3, roll)
+	return ""
+
+
+## Sea control wears a coastal enemy down: each sea a side rules where the other side owns coast adds
+## a little war score every month (+ for the attackers). Fleets alone can thus win a war slowly.
+static func control_ws(g, w) -> float:
+	var s := 0.0
+	for sea in g.seas:
+		var c := control(g, w, sea.id)
+		if c == "":
+			continue
+		var losers: Array = w.defenders if c == "att" else w.attackers
+		for pid in sea.provinces:
+			if losers.has(g.provinces[pid].owner):
+				s += float(g.bal.sea_control_ws) * (1.0 if c == "att" else -1.0)
+				break
+	return s
 
 
 ## Naval strength of a war side in a sea.
@@ -300,7 +339,11 @@ static func is_blockaded(g, pid: int) -> bool:
 
 static func monthly(g) -> void:
 	refresh(g)
+	var cap := float(g.bal.battle_ws_cap)
 	for w in g.wars.duplicate():
+		var cws := control_ws(g, w)
+		if cws != 0.0:
+			w.battle_score = clampf(w.battle_score + cws, -cap, cap)
 		for s in g.seas:
 			var pa := side_power(g, w.attackers, s.id)
 			var pd := side_power(g, w.defenders, s.id)
@@ -331,9 +374,21 @@ static func _fleet_battle(g, w, s: Dictionary, pa: float, pd: float) -> void:
 	var cap := float(g.bal.battle_ws_cap)
 	w.battle_score = clampf(w.battle_score + (ws if att_wins else -ws), -cap, cap)
 	g.stats.naval_battles = g.stats.get("naval_battles", 0) + 1
+	# prize money: captured hulls and cargo go to the winning leader; the loser's crews are a war-weary loss,
+	# and a beaten admiral may go down with his flagship
+	var loot: float = lost * float(g.bal.naval_loot_per_ship)
+	g.nations[win_tags[0]].gold += loot
+	var ln = g.nations[lose_tags[0]]
+	ln.we = minf(float(g.bal.we_max), ln.we + lost * float(g.bal.we_per_ship_lost))
+	var admiral_fell := false
+	if ln.admiral > 0 and g.rng.randf() < float(g.bal.admiral_death_chance):
+		ln.admiral = 0
+		admiral_fell = true
 	var involved := win_tags + lose_tags
 	if involved.has(g.player):
-		g.log_msg("⚓ Seeschlacht %s: %s siegt (%.1f Schiffe des Verlierers versenkt)." % [s.name, g.nations[win_tags[0]].name, lost], [g.player])
+		g.log_msg("⚓ Seeschlacht %s: %s siegt (%.1f Schiffe des Verlierers versenkt, %d💰 Prisengeld)." % [s.name, g.nations[win_tags[0]].name, lost, int(loot)], [g.player])
+		if admiral_fell and ln.tag == g.player:
+			g.log_msg("⚓ Dein Admiral ist in der Seeschlacht gefallen.", [g.player])
 	g._fleet = {}
 	for tag in g.order:
 		if g.nations[tag].alive:
@@ -367,6 +422,9 @@ static func ai_build(g, n) -> void:
 	count = mini(count, int(floor(surplus / maxf(0.01, 2.0 * float(g.bal.ship_upkeep)))))
 	if count > 0:
 		build_ships(g, n.tag, count)
+	# a sizeable fleet at war gets an admiral when military power is plentiful
+	if n.admiral == 0 and n.ships >= 5.0 and g.is_at_war(n.tag) and n.mil >= float(g.bal.admiral_cost) * 3.0:
+		hire_admiral(g, n.tag)
 
 
 # ---------------------------------------------------------------- troop transport

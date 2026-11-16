@@ -3300,7 +3300,9 @@ func _panel_navy() -> void:
 	side_box.add_child(_grid([
 		_chip("⚓ %d / %d" % [int(round(n.ships)), int(lim)], "Schiffe / Flottenlimit. Das Limit wächst mit der Entwicklung deiner Küstenprovinzen und mit Häfen."),
 		_chip("💰 %.1f / Mon." % Naval.upkeep(game, n), "Unterhalt der Flotte (im Frieden weniger)."),
-		_chip("⚔️ Kampfwert ×%.2f" % Naval.power_mult(game, me), "Kampfkraft je Schiff: Technologie, Boni und Auftrag."),
+		_chip("⚔️ Kampfwert ×%.2f" % Naval.power_mult(game, me), "Kampfkraft je Schiff: Technologie, Admiral, Boni und Auftrag."),
+		_chip(("⚓ Admiral %d/3" % n.admiral) if n.admiral > 0 else "⚓ Kein Admiral", "Ein Admiral führt die ganze Flotte: +%d %% Kampfwert je Stufe. Er kann in einer verlorenen Seeschlacht fallen." % int(float(game.bal.admiral_bonus) * 100.0), "good" if n.admiral > 0 else ""),
+		_chip("🏆 +%.1f / Mon." % Naval.control_ws(game, game.wars_of(me)[0]) if not game.wars_of(me).is_empty() else "🏆 Seeherrschaft", "Jedes Meer, das deine Seite beherrscht und an dem der Feind Küste hat, bringt jeden Monat +%.1f Kriegspunkte. Versenkte Schiffe bringen %d💰 Prisengeld je Schiff und machen den Gegner kriegsmüde." % [float(game.bal.sea_control_ws), int(game.bal.naval_loot_per_ship)]),
 		_chip("📍 " + ("überall" if n.fleet_sea == "" else Naval.sea_name(game, n.fleet_sea)), "Wo die Flotte kreuzt: " + (", ".join(where) if not where.is_empty() else "nirgends")),
 	]))
 	var c := int(Naval.ship_cost(game, me))
@@ -3311,6 +3313,10 @@ func _panel_navy() -> void:
 		_btn("⚓ +1 · %d💰 %d⚔️" % [c, mil], func(): _act(Naval.build_ships(game, me, 1), "⚓ Ein Schiff läuft vom Stapel"), r1 if r1 != "" else "Ein Schiff bauen.", r1 != ""),
 		_btn("⚓ +5 · %d💰 %d⚔️" % [c * 5, mil * 5], func(): _act(Naval.build_ships(game, me, 5), "⚓ Fünf Schiffe laufen vom Stapel"), r5 if r5 != "" else "Fünf Schiffe bauen.", r5 != ""),
 	]
+	var ra: String = Naval.admiral_block_reason(game, me)
+	if n.admiral == 0:
+		acts.append(_btn("⚓ Admiral · %d⚔️" % int(game.bal.admiral_cost), func(): _act(Naval.hire_admiral(game, me), "⚓ Ein Admiral übernimmt die Flotte"),
+				ra if ra != "" else "Einen Admiral ernennen (Stufe 1–3, Diplomatie-Technologie bringt bessere Offiziere): +%d %% Kampfwert je Stufe." % int(float(game.bal.admiral_bonus) * 100.0), ra != ""))
 	if n.ships >= 1.0:
 		acts.append(_btn("➖ 1 Schiff", func(): Naval.scrap_ships(game, me, 1); _act(""), "Ein Schiff abwracken (spart Unterhalt)."))
 	if acts.size() % 2 == 1:

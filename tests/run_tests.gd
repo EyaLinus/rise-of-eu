@@ -23,6 +23,7 @@ func _init() -> void:
 		"test_difficulty",
 		"test_march_time_and_terrain", "test_interception", "test_battle_rounds",
 		"test_naval",
+		"test_admiral_and_sea_control",
 		"test_ai_peace_spending",
 		"test_capitulation",
 		"test_coalition_softer_vs_player",
@@ -1015,6 +1016,63 @@ func test_naval() -> void:
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
 	check(absf(g2.nations.FRA.ships - g.nations.FRA.ships) < 0.001 and g2.nations.ENG.fleet_sea == "channel", "fleets are saved")
 	check(not g2.can_cross("FRA", cal, lon), "sea control is restored after loading")
+
+
+func test_admiral_and_sea_control() -> void:
+	var g = new_game("ENG", 5)
+	var N = g.Naval
+	for t in g.order:
+		g.nations[t].allies.clear()
+		g.nations[t].truces.clear()
+	var n = g.nations.ENG
+	check(N.hire_admiral(g, "BOH") != "", "landlocked realms have no admiral")
+	n.mil = 200.0
+	var pm: float = N.power_mult(g, "ENG")
+	check(N.hire_admiral(g, "ENG") == "", "England hires an admiral")
+	check(n.admiral >= 1 and n.admiral <= 3, "admiral skill 1..3")
+	check(N.power_mult(g, "ENG") > pm, "the admiral strengthens the fleet")
+	check(N.hire_admiral(g, "ENG") != "", "only one admiral")
+	var why: String = g.declare_war("ENG", "FRA")
+	check(why == "", "war declared (%s)" % why)
+	var w = g.war_between("ENG", "FRA")
+	n.ships = 30.0
+	n.fleet_sea = "channel"
+	n.fleet_mission = "patrol"
+	for t in w.defenders:
+		g.nations[t].ships = 0.0
+	N.refresh(g)
+	check(N.control(g, w, "channel") == "att", "England rules the Channel")
+	check(N.control_ws(g, w) > 0.0, "ruling a sea with enemy coast earns war score (%.2f)" % N.control_ws(g, w))
+	var gold0: float = n.gold
+	var we0: float = g.nations.FRA.we
+	g.nations.FRA.ships = 10.0
+	g.nations.FRA.fleet_sea = "channel"
+	N.refresh(g)
+	N._fleet_battle(g, w, g.sea_by_id["channel"], 30.0, 10.0)
+	check(n.gold > gold0, "the winner takes prize money")
+	check(g.nations.FRA.we > we0, "lost ships make the loser war-weary")
+	var g2 = new_game("ENG", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.ENG.admiral == n.admiral, "admiral is saved")
+	# AE: land of another faith costs half
+	var g3 = new_game("")
+	for t in g3.order:
+		g3.nations[t].allies.clear()
+		g3.nations[t].truces.clear()
+	g3.declare_war("TUR", "BYZ")
+	var w3 = g3.war_between("TUR", "BYZ")
+	var pid: int = -1
+	for c in g3.provinces_of("BYZ"):
+		if not g3._is_capital(c):
+			pid = c
+	check(pid >= 0, "Byzantium has a non-capital province")
+	if pid < 0:
+		return
+	g3.provinces[pid].controller = "TUR"
+	var before: float = g3.nations.TUR.ae
+	g3.make_peace(w3, true, [pid])
+	var full: float = g3.provinces[pid].dev * float(g3.bal.ae_per_dev) * g3.ae_mult("TUR")
+	check(g3.nations.TUR.ae - before < full * 0.75, "Orthodox land costs the Sunni Ottomans less AE (%.1f of %.1f)" % [g3.nations.TUR.ae - before, full])
 
 
 func test_power_actions() -> void:
