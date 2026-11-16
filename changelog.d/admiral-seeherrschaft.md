@@ -1,0 +1,4 @@
+- **Admiral:** Im Marine-Fenster lässt sich für 40 ⚔️ ein Admiral (Stufe 1–3) ernennen, der der ganzen Flotte +10 % Kampfwert je Stufe gibt. Verliert seine Flotte eine Seeschlacht, kann er fallen. Die KI ernennt im Krieg selbst Admirale.
+- **Seeherrschaft zählt:** Jedes Meer, das deine Seite beherrscht und an dem der Feind Küste hat, bringt jeden Monat +0,4 Kriegspunkte. Eine überlegene Flotte kann einen Küstengegner so langsam zermürben.
+- **Prisengeld:** Der Sieger einer Seeschlacht erhält 6 💰 je versenktem Schiff, der Verlierer wird kriegsmüder.
+- Eroberungen von Land eines anderen Glaubens erzeugen nur die halbe aggressive Expansion (z. B. Osmanen in Byzanz), damit nach einem gewonnenen Krieg nicht halb Europa eine Koalition bildet.
