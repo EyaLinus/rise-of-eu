@@ -223,6 +223,7 @@ static func _expedition_tick(g, n) -> void:
 		return
 	var first: bool = not g.found.has("s:" + sea)
 	var c := reveal_sea(g, n.tag, sea)
+	g.fire_event(n.tag, "col_new_world")  # once per realm: its first successful expedition
 	if first:
 		n.prestige += float(g.bal.explore_prestige)
 		g.stats.discoveries = int(g.stats.get("discoveries", 0)) + 1
@@ -441,6 +442,7 @@ static func _finish(g, p) -> void:
 	for a in p.adj:
 		reveal(g, tag, a)
 	g.stats.colonies = int(g.stats.get("colonies", 0)) + 1
+	g.fire_event(tag, "col_first_colony")  # once per realm
 	g.log_msg("🏕 %s: Die Kolonie %s ist gewachsen und gehört nun fest zum Reich." % [n.name, p.name], [tag])
 
 
