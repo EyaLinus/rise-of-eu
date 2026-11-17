@@ -2145,7 +2145,19 @@ func test_companies() -> void:
 	var n = g.nations.ENG
 	n.gold = 5000.0
 	var cost: float = g.govt.company_cost(g, n, "lombarden")
-	check(cost >= float(data.government.company_min_gold), "company has a minimum price")
+	check(cost >= float(data.government.company_base_gold), "company costs at least the base price")
+	# slow linear growth with the years plus a small share of the yearly income
+	var inc0: float = n.income
+	n.income = 0.0
+	var c0: float = g.govt.company_cost(g, n, "lombarden")
+	g.month = 100 * 12
+	var c100: float = g.govt.company_cost(g, n, "lombarden")
+	check(absf(c100 - c0 * (1.0 + 100.0 * float(data.government.company_year_scale))) < 1.0, "price grows linearly with the years (%d -> %d)" % [c0, c100])
+	n.income = 300.0
+	check(absf(g.govt.company_cost(g, n, "lombarden") - c100 - 12.0 * 300.0 * float(data.government.company_income_share)) < 1.0, "plus a small share of the yearly income")
+	g.month = 0
+	n.income = inc0
+	cost = g.govt.company_cost(g, n, "lombarden")
 	check(g.govt.found_company(g, "ENG", "eng_muscovy") != "", "Muscovy Company only from 1555")
 	check(g.govt.found_company(g, "ENG", "fra_lyon") != "", "foreign company blocked")
 	check(g.govt.found_company(g, "ENG", "lombarden") == "", "found company")

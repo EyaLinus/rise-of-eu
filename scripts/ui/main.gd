@@ -25,7 +25,8 @@ const SAVE_META_PATH := "user://saves.json"  # nation, date and score per slot, 
 const SAVE_SLOTS := ["auto", "1", "2", "3"]
 const SETTINGS_PATH := "user://settings.json"
 const UI_SCALES := [0.85, 1.0, 1.2, 1.4]
-const SPEEDS := [0.0, 1.2, 0.6]  # pause, normal, fast (faster speeds were dropped: smooth months first)
+const SPEEDS := [0.0, 2.4, 1.2, 0.6]  # pause, half, normal, fast (faster speeds were dropped: smooth months first)
+const NORMAL_SPEED := 2
 const HUD_TIPS := {
 	"nation": "Deine Nation (antippen für Details)", "gold": "Gold (Monatsbilanz inkl. Tribut)",
 	"adm": "Verwaltung: Technologie, Entwickeln, Reformen", "dip": "Diplomatie: Bündnisse, Ansprüche, Integration, Entwickeln",
@@ -58,7 +59,7 @@ var peace_selection := {}
 var last_log_count := 0
 var known_wars := {}
 var known_coalition := 0
-var last_speed := 2
+var last_speed := NORMAL_SPEED
 var tab_badges := {}
 var mode_strip: HBoxContainer  # map mode buttons at the bottom (one per MapView.MODE_NAMES entry)
 ## Short icon per map mode for the bottom strip; modes without one show their first letters.
@@ -296,7 +297,7 @@ func _build_hud() -> void:
 	hb.add_child(_btn("➖", func(): _set_speed(maxi(1, speed - 1)), "Langsamer"))
 	speed_label = Label.new()
 	hb.add_child(speed_label)
-	hb.add_child(_btn("➕", func(): _set_speed(mini(SPEEDS.size() - 1, speed + 1)), "Schneller"))
+	hb.add_child(_btn("➕", func(): _set_speed(_faster()), "Schneller"))
 	hb.add_child(_btn("☰", func(): _show_menu(), "Menü"))
 	# the top bar has a fixed height: keep its buttons compact even with large touch targets
 	for c in hb.get_children():
@@ -889,8 +890,8 @@ func _after_game_loaded() -> void:
 	map.reset_dev_seen()
 	map.check_dev_changes()
 	hud.visible = true
-	speed = 0  # every game (new or loaded) starts paused; Space and ➕ resume at speed 1
-	last_speed = 1
+	speed = 0  # every game (new or loaded) starts paused; Space and ➕ resume at normal speed
+	last_speed = NORMAL_SPEED
 	selected_army = -1
 	map.selected_army = -1
 	map.selected_pid = -1
@@ -909,7 +910,7 @@ func _show_intro() -> void:
 	_open_modal()
 	modal_box.add_child(_lbl("%s, %s" % [nname(game.player), game.date_string()], 30))
 	modal_box.add_child(_lbl(n.idea, 18, Color(0.8, 0.85, 0.7)))
-	modal_box.add_child(_lbl("So spielst du:\n• Zeit läuft mit ▶/➕ oben rechts, ⏸ pausiert.\n• Tippe auf eine Provinz für Infos und Aktionen (Entwickeln, Rekrutieren, Krieg).\n• Tippe auf eine Armee (Kreis mit Zahl) und dann auf ein Ziel, um sie zu bewegen. 🤖 lässt sie automatisch kämpfen.\n• 📜 Admin, 🕊️ Diplomatie und ⚔️ Militär sammeln sich monatlich: für Technologie, Entwicklung, Bündnisse und Kriegsgründe.\n• 😠 Aggressive Expansion steigt bei Eroberungen. Ab %d bilden Nachbarn Koalitionen gegen dich.\n• ✊ Frisch eroberte Provinzen sind unruhig, Kriegsmüdigkeit verstärkt das. Garnisonen und Unterdrückung helfen.\n• Am PC: Leertaste = Pause, 1–5 = Tempo, Esc = Panel schließen." % int(game.coalition_threshold(game.player)), 17))
+	modal_box.add_child(_lbl("So spielst du:\n• Zeit läuft mit ▶/➕ oben rechts, ⏸ pausiert.\n• Tippe auf eine Provinz für Infos und Aktionen (Entwickeln, Rekrutieren, Krieg).\n• Tippe auf eine Armee (Kreis mit Zahl) und dann auf ein Ziel, um sie zu bewegen. 🤖 lässt sie automatisch kämpfen.\n• 📜 Admin, 🕊️ Diplomatie und ⚔️ Militär sammeln sich monatlich: für Technologie, Entwicklung, Bündnisse und Kriegsgründe.\n• 😠 Aggressive Expansion steigt bei Eroberungen. Ab %d bilden Nachbarn Koalitionen gegen dich.\n• ✊ Frisch eroberte Provinzen sind unruhig, Kriegsmüdigkeit verstärkt das. Garnisonen und Unterdrückung helfen.\n• Am PC: Leertaste = Pause, 1–3 = Tempo (½, normal, schnell), Esc = Panel schließen." % int(game.coalition_threshold(game.player)), 17))
 	modal_box.add_child(_btn("Los geht's ▶", func(): _close_modal()))
 
 
@@ -1132,11 +1133,11 @@ var _month_us := 0  # simulation time of the running month so far
 var _month_frames := 0  # frames it has run over
 
 
-## Seconds per month at the current speed (slow battles: never faster than speed 1).
+## Seconds per month at the current speed (slow battles: never faster than normal speed).
 func _month_secs() -> float:
 	var spm: float = SPEEDS[maxi(speed, 1)]
 	if _battle_slowdown():
-		spm = maxf(spm, SPEEDS[1])
+		spm = maxf(spm, SPEEDS[NORMAL_SPEED])
 	return spm
 
 
@@ -1356,6 +1357,11 @@ func _check_tips() -> bool:
 	return true
 
 
+## ➕ / Plus key: from pause straight to normal speed, otherwise one step faster.
+func _faster() -> int:
+	return NORMAL_SPEED if speed == 0 else mini(SPEEDS.size() - 1, speed + 1)
+
+
 func _set_speed(s: int) -> void:
 	speed = s
 	acc = 0.0
@@ -1394,7 +1400,7 @@ func _update_top() -> void:
 	top_labels.manpower.tooltip_text = "Mannschaften %.0f / %.0f\nFüllen sich jeden Monat auf; Gutshöfe und Kasernen erhöhen das Maximum." % [n.manpower, n.max_manpower]
 	top_labels.army.tooltip_text = "Regimenter / Truppenlimit\nMehr Regimenter als das Limit kannst du nicht ausheben. Kasernen, Technik und Ränge erhöhen es."
 	top_labels.ae.tooltip_text = "Aggressive Expansion %d (Koalitionsgrenze %d)\nSinkt langsam; hohe Werte machen Nachbarn feindlich." % [n.ae, int(game.coalition_threshold(game.player))]
-	speed_label.text = "⏸" if speed == 0 else ("⚔️▶" if speed > 1 and _battle_slowdown() else "▶".repeat(speed))
+	speed_label.text = "⏸" if speed == 0 else ("½▶" if speed == 1 else ("⚔️▶" if speed > NORMAL_SPEED and _battle_slowdown() else "▶".repeat(speed - 1)))
 	_fit_top()
 	_update_badges()
 
@@ -1476,7 +1482,7 @@ func _update_badges() -> void:
 	tab_badges.economy.get_parent().tooltip_text = "Wirtschaft" + (("\n● " + why) if why != "" else "")
 
 
-## Desktop shortcuts: Space pauses/resumes, 1-5 set the speed, Esc closes panels.
+## Desktop shortcuts: Space pauses/resumes, 1-3 set the speed (half, normal, fast), Esc closes panels.
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey) or not event.pressed or event.echo:
 		return
@@ -1496,7 +1502,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif k >= KEY_1 and k <= KEY_0 + SPEEDS.size() - 1 and not modal.visible:
 		_set_speed(k - KEY_0)
 	elif (k == KEY_EQUAL or k == KEY_PLUS or k == KEY_KP_ADD) and not modal.visible:
-		_set_speed(mini(SPEEDS.size() - 1, speed + 1))
+		_set_speed(_faster())
 	elif (k == KEY_MINUS or k == KEY_KP_SUBTRACT) and not modal.visible:
 		_set_speed(maxi(1, speed - 1))
 	elif k == KEY_TAB and not modal.visible:
@@ -1742,7 +1748,7 @@ func _show_settings() -> void:
 	opts.append(_btn("⚔️ Schlachten langsam: %s" % ("an" if settings.get("slow_battles", true) else "aus"), func():
 		settings.slow_battles = not settings.get("slow_battles", true)
 		_save_settings()
-		_show_settings(), "Solange eine eigene Schlacht läuft, läuft das Spiel höchstens im langsamsten Tempo, damit du jede Runde verfolgen kannst."))
+		_show_settings(), "Solange eine eigene Schlacht läuft, läuft das Spiel höchstens im normalen Tempo, damit du jede Runde verfolgen kannst."))
 	if opts.size() % 2 == 1:
 		opts.append(Control.new())
 	modal_box.add_child(_grid(opts))
@@ -1750,7 +1756,7 @@ func _show_settings() -> void:
 
 
 const SHORTCUTS := [
-	["Leertaste", "Pause / weiter"], ["1 – 5", "Spieltempo"], ["+ / −", "schneller / langsamer"],
+	["Leertaste", "Pause / weiter"], ["1 – 3", "Tempo ½ / normal / schnell"], ["+ / −", "schneller / langsamer"],
 	["Pfeile", "Karte verschieben"], ["Bild ↑ ↓", "Zoom (auch Mausrad)"], ["Tab", "nächster Kartenmodus"],
 	["V", "Kartenmodi + Legende"], ["N", "Nation"], ["E", "Wirtschaft"], ["T", "Technologie"], ["G", "Regierung"],
 	["D", "Diplomatie"], ["K", "Kriege"], ["F", "Flotte / Marine"], ["M", "Missionen"], ["L", "Chronik"], ["R", "Ratgeber"],
@@ -1885,7 +1891,7 @@ func _show_game_over() -> void:
 func _play_on() -> void:
 	if game.play_on():
 		_close_modal()
-		_set_speed(1)
+		_set_speed(NORMAL_SPEED)
 
 
 ## The world history of this game (Game.chronicle), oldest first, one heading per year.
