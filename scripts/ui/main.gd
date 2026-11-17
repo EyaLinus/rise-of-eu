@@ -20,12 +20,14 @@ const GovScreen = preload("res://scripts/ui/gov_screen.gd")
 const DebugScreen = preload("res://scripts/ui/debug_screen.gd")
 const Ledger = preload("res://scripts/core/ledger.gd")
 const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
+const AlertBar = preload("res://scripts/ui/alert_bar.gd")
 const SAVE_PATH := "user://save.json"  # the autosave, also what "Weiterspielen" loads
 const SAVE_META_PATH := "user://saves.json"  # nation, date and score per slot, so the slot list needs no full parse
 const SAVE_SLOTS := ["auto", "1", "2", "3"]
 const SETTINGS_PATH := "user://settings.json"
 const UI_SCALES := [0.85, 1.0, 1.2, 1.4]
-const SPEEDS := [0.0, 1.2, 0.6]  # pause, normal, fast (faster speeds were dropped: smooth months first)
+const SPEEDS := [0.0, 2.4, 1.2, 0.6]  # pause, half, normal, fast (faster speeds were dropped: smooth months first)
+const NORMAL_SPEED := 2
 const HUD_TIPS := {
 	"nation": "Deine Nation (antippen für Details)", "gold": "Gold (Monatsbilanz inkl. Tribut)",
 	"adm": "Verwaltung: Technologie, Entwickeln, Reformen", "dip": "Diplomatie: Bündnisse, Ansprüche, Integration, Entwickeln",
@@ -58,7 +60,7 @@ var peace_selection := {}
 var last_log_count := 0
 var known_wars := {}
 var known_coalition := 0
-var last_speed := 2
+var last_speed := NORMAL_SPEED
 var tab_badges := {}
 var mode_strip: HBoxContainer  # map mode buttons at the bottom (one per MapView.MODE_NAMES entry)
 ## Short icon per map mode for the bottom strip; modes without one show their first letters.
@@ -108,6 +110,7 @@ var last_battles := 0
 var tech_screen := TechScreen.new(self)
 var gov_screen := GovScreen.new(self)
 var debug_screen := DebugScreen.new(self)  # debug mode, performance overlay, crash watch
+var alert_bar := AlertBar.new(self)  # pinned alert icons under the top bar (scripts/ui/alert_bar.gd)
 
 
 func _ready() -> void:
@@ -296,7 +299,7 @@ func _build_hud() -> void:
 	hb.add_child(_btn("➖", func(): _set_speed(maxi(1, speed - 1)), "Langsamer"))
 	speed_label = Label.new()
 	hb.add_child(speed_label)
-	hb.add_child(_btn("➕", func(): _set_speed(mini(SPEEDS.size() - 1, speed + 1)), "Schneller"))
+	hb.add_child(_btn("➕", func(): _set_speed(_faster()), "Schneller"))
 	hb.add_child(_btn("☰", func(): _show_menu(), "Menü"))
 	# the top bar has a fixed height: keep its buttons compact even with large touch targets
 	for c in hb.get_children():
@@ -422,6 +425,7 @@ func _build_hud() -> void:
 	toast.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	toast.visible = false
 	hud.add_child(toast)
+	alert_bar.build(hud)
 
 
 func _build_modal() -> void:
@@ -889,8 +893,8 @@ func _after_game_loaded() -> void:
 	map.reset_dev_seen()
 	map.check_dev_changes()
 	hud.visible = true
-	speed = 0  # every game (new or loaded) starts paused; Space and ➕ resume at speed 1
-	last_speed = 1
+	speed = 0  # every game (new or loaded) starts paused; Space and ➕ resume at normal speed
+	last_speed = NORMAL_SPEED
 	selected_army = -1
 	map.selected_army = -1
 	map.selected_pid = -1
@@ -909,7 +913,7 @@ func _show_intro() -> void:
 	_open_modal()
 	modal_box.add_child(_lbl("%s, %s" % [nname(game.player), game.date_string()], 30))
 	modal_box.add_child(_lbl(n.idea, 18, Color(0.8, 0.85, 0.7)))
-	modal_box.add_child(_lbl("So spielst du:\n• Zeit läuft mit ▶/➕ oben rechts, ⏸ pausiert.\n• Tippe auf eine Provinz für Infos und Aktionen (Entwickeln, Rekrutieren, Krieg).\n• Tippe auf eine Armee (Kreis mit Zahl) und dann auf ein Ziel, um sie zu bewegen. 🤖 lässt sie automatisch kämpfen.\n• 📜 Admin, 🕊️ Diplomatie und ⚔️ Militär sammeln sich monatlich: für Technologie, Entwicklung, Bündnisse und Kriegsgründe.\n• 😠 Aggressive Expansion steigt bei Eroberungen. Ab %d bilden Nachbarn Koalitionen gegen dich.\n• ✊ Frisch eroberte Provinzen sind unruhig, Kriegsmüdigkeit verstärkt das. Garnisonen und Unterdrückung helfen.\n• Am PC: Leertaste = Pause, 1–5 = Tempo, Esc = Panel schließen." % int(game.coalition_threshold(game.player)), 17))
+	modal_box.add_child(_lbl("So spielst du:\n• Zeit läuft mit ▶/➕ oben rechts, ⏸ pausiert.\n• Tippe auf eine Provinz für Infos und Aktionen (Entwickeln, Rekrutieren, Krieg).\n• Tippe auf eine Armee (Kreis mit Zahl) und dann auf ein Ziel, um sie zu bewegen. 🤖 lässt sie automatisch kämpfen.\n• 📜 Admin, 🕊️ Diplomatie und ⚔️ Militär sammeln sich monatlich: für Technologie, Entwicklung, Bündnisse und Kriegsgründe.\n• 😠 Aggressive Expansion steigt bei Eroberungen. Ab %d bilden Nachbarn Koalitionen gegen dich.\n• ✊ Frisch eroberte Provinzen sind unruhig, Kriegsmüdigkeit verstärkt das. Garnisonen und Unterdrückung helfen.\n• Am PC: Leertaste = Pause, 1–3 = Tempo (½, normal, schnell), Esc = Panel schließen." % int(game.coalition_threshold(game.player)), 17))
 	modal_box.add_child(_btn("Los geht's ▶", func(): _close_modal()))
 
 
@@ -1132,11 +1136,11 @@ var _month_us := 0  # simulation time of the running month so far
 var _month_frames := 0  # frames it has run over
 
 
-## Seconds per month at the current speed (slow battles: never faster than speed 1).
+## Seconds per month at the current speed (slow battles: never faster than normal speed).
 func _month_secs() -> float:
 	var spm: float = SPEEDS[maxi(speed, 1)]
 	if _battle_slowdown():
-		spm = maxf(spm, SPEEDS[1])
+		spm = maxf(spm, SPEEDS[NORMAL_SPEED])
 	return spm
 
 
@@ -1356,6 +1360,11 @@ func _check_tips() -> bool:
 	return true
 
 
+## ➕ / Plus key: from pause straight to normal speed, otherwise one step faster.
+func _faster() -> int:
+	return NORMAL_SPEED if speed == 0 else mini(SPEEDS.size() - 1, speed + 1)
+
+
 func _set_speed(s: int) -> void:
 	speed = s
 	acc = 0.0
@@ -1394,7 +1403,7 @@ func _update_top() -> void:
 	top_labels.manpower.tooltip_text = "Mannschaften %.0f / %.0f\nFüllen sich jeden Monat auf; Gutshöfe und Kasernen erhöhen das Maximum." % [n.manpower, n.max_manpower]
 	top_labels.army.tooltip_text = "Regimenter / Truppenlimit\nMehr Regimenter als das Limit kannst du nicht ausheben. Kasernen, Technik und Ränge erhöhen es."
 	top_labels.ae.tooltip_text = "Aggressive Expansion %d (Koalitionsgrenze %d)\nSinkt langsam; hohe Werte machen Nachbarn feindlich." % [n.ae, int(game.coalition_threshold(game.player))]
-	speed_label.text = "⏸" if speed == 0 else ("⚔️▶" if speed > 1 and _battle_slowdown() else "▶".repeat(speed))
+	speed_label.text = "⏸" if speed == 0 else ("½▶" if speed == 1 else ("⚔️▶" if speed > NORMAL_SPEED and _battle_slowdown() else "▶".repeat(speed - 1)))
 	_fit_top()
 	_update_badges()
 
@@ -1470,13 +1479,15 @@ func _update_badges() -> void:
 		if not best.is_empty() and n.gold >= Eco.building_cost(game, me, best[0], best[1]) + 50.0:
 			why = "Genug Gold für ein neues Gebäude (oder Autobau einschalten)."
 	tab_badges.economy.visible = why != ""
-	var c: int = _advice().size() + FirstSteps.claimable(game, me)
+	var adv: Array = _advice()
+	alert_bar.update(adv)
+	var c: int = adv.size() + FirstSteps.claimable(game, me)
 	tab_badges.advice.text = str(c)
 	tab_badges.advice.visible = c > 0
 	tab_badges.economy.get_parent().tooltip_text = "Wirtschaft" + (("\n● " + why) if why != "" else "")
 
 
-## Desktop shortcuts: Space pauses/resumes, 1-5 set the speed, Esc closes panels.
+## Desktop shortcuts: Space pauses/resumes, 1-3 set the speed (half, normal, fast), Esc closes panels.
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey) or not event.pressed or event.echo:
 		return
@@ -1496,7 +1507,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif k >= KEY_1 and k <= KEY_0 + SPEEDS.size() - 1 and not modal.visible:
 		_set_speed(k - KEY_0)
 	elif (k == KEY_EQUAL or k == KEY_PLUS or k == KEY_KP_ADD) and not modal.visible:
-		_set_speed(mini(SPEEDS.size() - 1, speed + 1))
+		_set_speed(_faster())
 	elif (k == KEY_MINUS or k == KEY_KP_SUBTRACT) and not modal.visible:
 		_set_speed(maxi(1, speed - 1))
 	elif k == KEY_TAB and not modal.visible:
@@ -1725,6 +1736,12 @@ func _show_settings() -> void:
 				settings.tips_seen = []
 			_save_settings()
 			_show_settings(), "Einmalige Hinweise, wenn etwas Neues passiert. Einschalten zeigt alle wieder."),
+		_btn("📋 Hinweisleiste: %s" % ("an" if settings.get("alerts", true) else "aus"), func():
+			settings.alerts = not settings.get("alerts", true)
+			_save_settings()
+			alert_bar.dismissed.clear()
+			_update_top()
+			_show_settings(), "Kleine Symbole unter der oberen Leiste: was gerade zu tun ist und warum. Antippen öffnet das passende Fenster, Rechtsklick blendet einen Hinweis aus."),
 	]
 	if OS.has_feature("pc") and OS.get_name() != "Web":
 		opts.append(_btn("🖥 Fenster: %s" % WINDOW_NAMES.get(str(settings.get("window", "window")), "Fenster"), func():
@@ -1742,7 +1759,7 @@ func _show_settings() -> void:
 	opts.append(_btn("⚔️ Schlachten langsam: %s" % ("an" if settings.get("slow_battles", true) else "aus"), func():
 		settings.slow_battles = not settings.get("slow_battles", true)
 		_save_settings()
-		_show_settings(), "Solange eine eigene Schlacht läuft, läuft das Spiel höchstens im langsamsten Tempo, damit du jede Runde verfolgen kannst."))
+		_show_settings(), "Solange eine eigene Schlacht läuft, läuft das Spiel höchstens im normalen Tempo, damit du jede Runde verfolgen kannst."))
 	if opts.size() % 2 == 1:
 		opts.append(Control.new())
 	modal_box.add_child(_grid(opts))
@@ -1750,7 +1767,7 @@ func _show_settings() -> void:
 
 
 const SHORTCUTS := [
-	["Leertaste", "Pause / weiter"], ["1 – 5", "Spieltempo"], ["+ / −", "schneller / langsamer"],
+	["Leertaste", "Pause / weiter"], ["1 – 3", "Tempo ½ / normal / schnell"], ["+ / −", "schneller / langsamer"],
 	["Pfeile", "Karte verschieben"], ["Bild ↑ ↓", "Zoom (auch Mausrad)"], ["Tab", "nächster Kartenmodus"],
 	["V", "Kartenmodi + Legende"], ["N", "Nation"], ["E", "Wirtschaft"], ["T", "Technologie"], ["G", "Regierung"],
 	["D", "Diplomatie"], ["K", "Kriege"], ["F", "Flotte / Marine"], ["M", "Missionen"], ["L", "Chronik"], ["R", "Ratgeber"],
@@ -1885,7 +1902,7 @@ func _show_game_over() -> void:
 func _play_on() -> void:
 	if game.play_on():
 		_close_modal()
-		_set_speed(1)
+		_set_speed(NORMAL_SPEED)
 
 
 ## The world history of this game (Game.chronicle), oldest first, one heading per year.
@@ -4042,17 +4059,27 @@ func _panel_ranking() -> void:
 
 ## The advisor: everything that wants the player's attention right now, most urgent first, each with a jump
 ## to the place where it is handled. Kind "bad" = trouble, "good" = a reward or chance waiting, "" = a hint.
+## Every entry has a stable "id" (the alert bar remembers dismissed ones by it), "why" (what is going on)
+## and "todo" (what to do about it); "tip" joins both for the advisor list. "tab" = province sub-tab to open.
 func _advice() -> Array:
 	var me: String = game.player
 	var n = game.nations[me]
 	var out := []
-	var add := func(text: String, tip: String, kind: String, mode: String, arg = null) -> void:
-		out.append({"text": text, "tip": tip, "kind": kind, "mode": mode, "arg": arg})
+	var add := func(id: String, text: String, why: String, todo: String, kind: String, mode: String, arg = null, tab: String = "") -> void:
+		out.append({"id": id, "text": text, "why": why, "todo": todo, "tip": why + "\nWas tun: " + todo, "kind": kind, "mode": mode, "arg": arg, "tab": tab})
 	# trouble
+	var net: float = n.income - n.expenses + game.tribute_income(me)
 	if n.gold < 0.0:
-		add.call("💸 Kasse im Minus", "Unter −20 Gold desertieren Truppen. Kredit aufnehmen, Regimenter entlassen oder Frieden schließen.", "bad", "economy")
-	elif n.income - n.expenses < 0.0:
-		add.call("📉 Monatsbilanz negativ (%+.1f)" % (n.income - n.expenses), "Du gibst mehr aus, als du einnimmst. Haushalt unter ⚖️ Regierung prüfen oder Armee verkleinern.", "bad", "economy")
+		add.call("debt", "💸 Kasse im Minus", "Unter −20 Gold ist das Reich bankrott: jeden Monat desertiert ein Regiment.",
+				"Kredit aufnehmen (💰 Wirtschaft), Regimenter entlassen oder Frieden schließen.", "bad", "economy")
+	elif net < 0.0:
+		var left: int = int((n.gold + 20.0) / -net)
+		if left <= 24:
+			add.call("bankrupt", "💀 Bankrott in ca. %d Monaten" % left, "Die Bilanz ist %+.1f pro Monat. Bei −20 Gold beginnen die Truppen zu desertieren." % net,
+					"Haushalt unter ⚖️ Regierung kürzen, Armee verkleinern, Kredit aufnehmen oder Handel ausbauen.", "bad", "economy")
+		else:
+			add.call("deficit", "📉 Monatsbilanz negativ (%+.1f)" % net, "Du gibst mehr aus, als du einnimmst. Noch reicht die Kasse für gut %d Monate." % left,
+					"Haushalt unter ⚖️ Regierung prüfen oder die Armee verkleinern.", "bad", "economy")
 	var worst := -1
 	var worst_u := 0.0
 	var restless := 0
@@ -4064,8 +4091,9 @@ func _advice() -> Array:
 				worst_u = u
 				worst = pid
 	if worst >= 0:
-		add.call("✊ Aufstand droht: %s%s" % [game.provinces[worst].name, (" (+%d weitere)" % (restless - 1)) if restless > 1 else ""],
-				"Unruhe %.1f. Unterdrücken (⚔️), eine Armee hinschicken oder die Ursachen beseitigen (Tooltip der Unruhe-Kachel)." % worst_u, "bad", "province", worst)
+		add.call("revolt", "✊ Aufstand droht: %s%s" % [game.provinces[worst].name, (" (+%d weitere)" % (restless - 1)) if restless > 1 else ""],
+				"Unruhe %.1f: Rebellen können sich erheben und Provinzen besetzen." % worst_u,
+				"Unterdrücken (⚔️), eine Armee hinschicken oder die Ursachen beseitigen (Tooltip der Unruhe-Kachel).", "bad", "province", worst)
 	# own provinces under siege (the one closest to falling first) and provinces held by the enemy
 	var sieged := -1
 	var sieged_n := 0
@@ -4079,11 +4107,11 @@ func _advice() -> Array:
 			if sieged < 0 or sp.siege > game.provinces[sieged].siege:
 				sieged = pid
 	if sieged >= 0:
-		add.call("🏰 Belagert: %s (%d %%)%s" % [game.provinces[sieged].name, int(game.provinces[sieged].siege), (" (+%d weitere)" % (sieged_n - 1)) if sieged_n > 1 else ""],
-				"Feindliche Truppen belagern deine Provinz. Bei 100 % fällt sie. Eine Armee hinschicken bricht die Belagerung ab.", "bad", "province", sieged)
+		add.call("siege", "🏰 Belagert: %s (%d %%)%s" % [game.provinces[sieged].name, int(game.provinces[sieged].siege), (" (+%d weitere)" % (sieged_n - 1)) if sieged_n > 1 else ""],
+				"Feindliche Truppen belagern deine Provinz. Bei 100 % fällt sie.", "Eine Armee hinschicken bricht die Belagerung ab.", "bad", "province", sieged)
 	if not occupied.is_empty():
-		add.call("🏳️ Vom Feind besetzt: %s%s" % [game.provinces[occupied[0]].name, (" (+%d weitere)" % (occupied.size() - 1)) if occupied.size() > 1 else ""],
-				"Besetzte Provinzen zahlen dir nichts und zählen für den Gegner beim Kriegsziel. Zurückerobern, indem du sie selbst belagerst.", "bad", "province", occupied[0])
+		add.call("occupied", "🏳️ Vom Feind besetzt: %s%s" % [game.provinces[occupied[0]].name, (" (+%d weitere)" % (occupied.size() - 1)) if occupied.size() > 1 else ""],
+				"Besetzte Provinzen zahlen dir nichts und zählen für den Gegner beim Kriegsziel.", "Zurückerobern, indem du sie selbst belagerst.", "bad", "province", occupied[0])
 	# armies over the supply limit lose regiments every month at war (Warfare.attrition)
 	var starving := []
 	for a in game.armies_of(me):
@@ -4091,11 +4119,76 @@ func _advice() -> Array:
 			starving.append(a.pid)
 	if not starving.is_empty():
 		var sp: int = starving[0]
-		add.call("🌾 Hunger im Feldlager: %s%s" % [game.provinces[sp].name, (" (+%d weitere)" % (starving.size() - 1)) if starving.size() > 1 else ""],
-				"Hier stehen mehr Regimenter, als das Land ernähren kann: %d / %d. Im Krieg schmilzt der Überschuss jeden Monat, und es gibt keinen Nachschub. Armee teilen oder weiterziehen." % [int(round(Warfare.supply_load(game, sp, me))), int(Warfare.supply_limit(game, sp, me))], "bad", "province", sp)
+		add.call("supply", "🌾 Hunger im Feldlager: %s%s" % [game.provinces[sp].name, (" (+%d weitere)" % (starving.size() - 1)) if starving.size() > 1 else ""],
+				"Hier stehen mehr Regimenter, als das Land ernähren kann: %d / %d. Im Krieg schmilzt der Überschuss jeden Monat, und es gibt keinen Nachschub." % [int(round(Warfare.supply_load(game, sp, me))), int(Warfare.supply_limit(game, sp, me))],
+				"Armee teilen oder weiterziehen.", "bad", "province", sp)
+	if not n.coalition.is_empty():
+		add.call("coalition", "⚠️ Koalition gegen dich (%d)" % n.coalition.size(), "Mehrere Reiche haben sich wegen deiner aggressiven Expansion verbündet und können gemeinsam angreifen.",
+				"Aggressive Expansion senken: abwarten, 😠 Ruf verbessern im Nationsfenster, Diplomatie-Technologie.", "bad", "nation")
+	if game.is_at_war(me) and n.manpower < 1.0:
+		add.call("manpower", "👥 Keine Mannschaften", "Ohne Mannschaften füllen sich deine Regimenter nicht mehr auf.",
+				"Söldner im Provinzfenster kosten Gold statt Mannschaften. 👥 Rekrutierung im Nationsfenster füllt sofort auf.", "bad", "nation")
+	if game.diplo_over(me) > 0:
+		add.call("diplo_cap", "🕊️ Zu viele Bündnisse", "Du hast %d Bündnisse und Vasallen bei %d Plätzen. Jeder Platz zu viel kostet Diplomatie und Prestige." % [game.diplo_used(me), game.diplo_cap(me)],
+				"Ein Bündnis lösen oder mit Diplomatie-Technologie mehr Plätze schaffen.", "bad", "diplomacy")
+	# rewards waiting
+	for m in game.available_missions(me):
+		if game.mission_ready(me, m):
+			add.call("mission", "🎯 Mission erfüllt", "Die Bedingungen einer Mission sind erfüllt.", "Hole dir die Belohnung ab.", "good", "missions")
+			break
+	for id in Formables.options(game, me):
+		if Formables.block_reason(game, me, id) == "":
+			add.call("formable", "👑 %s kann ausgerufen werden" % game.formable_defs[id].name, "Du erfüllst alle Bedingungen für ein neues Reich: neuer Name, Flagge, Prestige und ein dauerhafter Bonus.",
+					"Im Reichsfenster unter „Reich gründen“ ausrufen.", "good", "nation")
+			break
+	for w in game.wars_of(me):
+		var att: bool = game.is_attacker(w, me)
+		if game.side_tags(w, att)[0] == me and game.warscore(w) * (1.0 if att else -1.0) >= 25.0:
+			add.call("peace_" + str(w.id), "🕊️ Frieden lohnt sich: %s" % w.name, "Du hast genug Kriegspunkte, um Provinzen zu fordern. Jeder weitere Kriegsmonat erhöht die Müdigkeit.",
+					"Frieden anbieten und Provinzen fordern.", "good", "peace", w.id)
+	for v in game.vassals_of(me):
+		if game.annex_months_left(v) == 0:
+			add.call("annex_" + v, "🤝 %s kann annektiert werden" % game.nations[v].name, "Der Vasall ist lange genug treu, um eingegliedert zu werden.",
+					"Im Fenster des Vasallen: Annektieren.", "good", "other", v)
+	if tech_screen.can_research(game, me):
+		add.call("tech", "🔬 Technologie bereit", "Du hast genug Macht für eine neue Technologie. Wer hinterherhinkt, verliert Schlachten und Einnahmen.",
+				"Im 🔬 Technologiefenster erforschen.", "good", "tech")
+	var gv = game.govt
+	var free_adv := false
+	if n.gov.advisors.size() < gv.advisor_slots(game, n):
+		for a in gv.advisor_pool(game, me):
+			if gv.advisor_block(game, me, a.id) == "":
+				free_adv = true
+				break
+	if free_adv:
+		add.call("advisor", "🎓 Beraterplatz frei", "Ein leerer Beraterplatz verschenkt jeden Monat Macht oder Boni.",
+				"Unter ⚖️ Regierung → 🎓 Hof einen Berater einstellen.", "good", "government", null, "hof")
+	elif gov_screen.can_act(game, me):
+		add.call("government", "⚖️ Regierung: etwas zu tun", "Eine Reform oder eine Handelskompanie ist jetzt bezahlbar.",
+				"Unter ⚖️ Regierung umsetzen.", "good", "government")
+	# hints: idle resources
+	var room: int = int(floor(game.force_limit(me) - game.army_regs(me) + 0.001))
+	var rc: float = game.regiment_cost(me)
+	if room >= 2 and n.manpower >= 2.0 and n.gold >= rc * 2.0 + 20.0 and not game.provinces_of(me).is_empty() \
+			and (game.is_at_war(me) or game.army_regs(me) < game.force_limit(me) * 0.5):
+		add.call("recruit", "⚔️ Truppen ausheben (%d frei)" % room,
+				("Du führst Krieg und hast %d freie Plätze im Truppenlimit." if game.is_at_war(me) else "Deine Armee nutzt weniger als die Hälfte des Truppenlimits (%d Plätze frei); Nachbarn greifen schwache Reiche eher an.") % room,
+				"Im Provinzfenster unter ⚔️ Armee Regimenter ausheben (%d 💰 pro Regiment)." % int(rc), "", "province", n.capital, "army")
+	var Eco = game.Economy
+	if not n.merchant_auto and n.merchants.size() < Eco.merchant_count(game, n):
+		add.call("merchant", "🏬 Händler frei", "Ein Händler ohne Markt bringt nichts ein.", "Unter 💰 Wirtschaft → Handel in einen reichen Markt schicken.", "", "economy")
+	if game.Trade.voyage_block_reason(game, me) == "":
+		add.call("voyage", "🧭 Seeweg nach Indien", "Du kannst den Gewürzhandel mit Asien öffnen.", "Kap-Expedition starten: 💰 Wirtschaft → Handel → Fernhandel.", "", "economy")
+	elif game.Trade.knows(game, me) and game.Trade.ship_block_reason(game, me) == "" and game.Trade.ships(game, me) < int(game.bal.east_factory_ships):
+		add.call("east_ships", "⛵ Ostindienfahrer", "Mehr Schiffe im Fernhandel bringen mehr Gewürzgewinn.", "Schiffe ausrüsten und Faktoreien gründen: 💰 Wirtschaft → Handel → Fernhandel.", "", "economy")
+	for k in ["adm", "dip", "mil"]:
+		if float(n.get(k)) >= float(game.bal.power_cap) * 0.8:
+			add.call("power_" + k, "%s Macht staut sich (%d)" % [{"adm": "📜", "dip": "🕊️", "mil": "⚔️"}[k], int(n.get(k))],
+					"Ab %d fließt der Überschuss automatisch in die billigste Entwicklung, statt gezielt zu wirken." % int(game.bal.power_cap),
+					"Selbst entwickeln, forschen, Berater oder die Aktionen im Nationsfenster nutzen.", "", "nation")
 	if game.atlantic_tags.has(me) and Colonial.can_explore_tech(game, n):
 		if n.expedition.is_empty() and not Colonial.explore_targets(game, me).is_empty() and n.gold >= Colonial.explore_cost(game, n):
-			add.call("⛵ Entdeckungsfahrt möglich", "Unbekannte Meere im Westen: Nationsfenster → 🧭 Neue Welt.", "", "nation")
+			add.call("explore", "⛵ Entdeckungsfahrt möglich", "Im Westen liegen unbekannte Meere und Länder.", "Nationsfenster → 🧭 Neue Welt: Expedition ausschicken.", "", "nation")
 		if Colonial.running_colonies(game, me).size() < Colonial.colonists(game, n):
 			var col := -1
 			var col_v := -1e9
@@ -4108,7 +4201,8 @@ func _advice() -> Array:
 					col_v = v
 					col = kp
 			if col >= 0:
-				add.call("🏕 Siedler frei: %s" % game.provinces[col].name, "Ein Siedler wartet auf Arbeit. Eine Kolonie kostet %d Gold." % int(Colonial.colony_cost(game, me, col)), "", "province", col)
+				add.call("settler", "🏕 Siedler frei: %s" % game.provinces[col].name, "Ein Siedler wartet auf Arbeit.",
+						"Im Provinzfenster eine Kolonie gründen (%d Gold)." % int(Colonial.colony_cost(game, me, col)), "", "province", col)
 	var city_cand := -1
 	var city_v := 0.0
 	for pid in game.provinces_of(me):
@@ -4120,64 +4214,30 @@ func _advice() -> Array:
 			city_v = v
 			city_cand = pid
 	if city_cand >= 0 and n.gold >= game.Urban.change_cost(game, game.provinces[city_cand], true) * 2.0:
-		add.call("🏙️ %s könnte eine Stadt werden" % game.provinces[city_cand].name,
-				"Entwickelte Provinzen mit Stadtgütern (Tuch, Wein, Salz, Metalle) bringen als Stadt mehr Steuern, Handel und einen Bauplatz. Im Provinzfenster: Stadt gründen.", "", "province", city_cand)
-	if not n.coalition.is_empty():
-		add.call("⚠️ Koalition gegen dich (%d)" % n.coalition.size(), "Senke die aggressive Expansion: Zeit, 😠 Ruf verbessern im Nationsfenster, Diplomatie-Technologie.", "bad", "nation")
-	if game.is_at_war(me) and n.manpower < 1.0:
-		add.call("👥 Keine Mannschaften", "Söldner im Provinzfenster kosten Gold statt Mannschaften. 👥 Rekrutierung im Nationsfenster füllt sofort auf.", "bad", "nation")
-	# rewards waiting
-	for m in game.available_missions(me):
-		if game.mission_ready(me, m):
-			add.call("🎯 Mission erfüllt", "Hole dir die Belohnung ab.", "good", "missions")
-			break
-	for id in Formables.options(game, me):
-		if Formables.block_reason(game, me, id) == "":
-			add.call("👑 %s kann ausgerufen werden" % game.formable_defs[id].name, "Im Reichsfenster unter „Reich gründen“: neuer Name, Flagge, Prestige und ein dauerhafter Bonus.", "good", "nation")
-			break
-	for w in game.wars_of(me):
-		var att: bool = game.is_attacker(w, me)
-		if game.side_tags(w, att)[0] == me and game.warscore(w) * (1.0 if att else -1.0) >= 25.0:
-			add.call("🕊️ Frieden lohnt sich: %s" % w.name, "Du hast genug Kriegspunkte, um Provinzen zu fordern.", "good", "peace", w.id)
-	for v in game.vassals_of(me):
-		if game.annex_months_left(v) == 0:
-			add.call("🤝 %s kann annektiert werden" % game.nations[v].name, "Der Vasall ist bereit für die Eingliederung.", "good", "other", v)
-	if tech_screen.can_research(game, me):
-		add.call("🔬 Technologie bereit", "Du hast genug Macht für eine neue Technologie.", "good", "tech")
-	if gov_screen.can_act(game, me):
-		add.call("⚖️ Regierung: etwas zu tun", "Ein Berater, eine Reform, ein Gesetz oder ein Stand wartet auf dich.", "good", "government")
-	# hints: idle resources
-	var Eco = game.Economy
-	if not n.merchant_auto and n.merchants.size() < Eco.merchant_count(game, n):
-		add.call("🏬 Händler frei", "Schick ihn unter 💰 Wirtschaft → Handel in einen reichen Markt.", "", "economy")
-	if game.Trade.voyage_block_reason(game, me) == "":
-		add.call("🧭 Seeweg nach Indien", "Eine Kap-Expedition öffnet den Gewürzhandel: 💰 Wirtschaft → Handel → Fernhandel.", "", "economy")
-	elif game.Trade.knows(game, me) and game.Trade.ship_block_reason(game, me) == "" and game.Trade.ships(game, me) < int(game.bal.east_factory_ships):
-		add.call("⛵ Ostindienfahrer", "Rüste Schiffe für den Gewürzhandel aus und gründe Faktoreien: 💰 Wirtschaft → Handel → Fernhandel.", "", "economy")
-	if game.diplo_over(me) > 0:
-		add.call("🕊️ Zu viele Bündnisse", "Du hast %d Bündnisse und Vasallen bei %d Plätzen. Jeder Platz zu viel kostet Diplomatie und Prestige." % [game.diplo_used(me), game.diplo_cap(me)], "bad", "diplomacy")
+		add.call("city", "🏙️ %s könnte eine Stadt werden" % game.provinces[city_cand].name,
+				"Entwickelte Provinzen mit Stadtgütern (Tuch, Wein, Salz, Metalle) bringen als Stadt mehr Steuern, Handel und einen Bauplatz.",
+				"Im Provinzfenster: Stadt gründen.", "", "province", city_cand)
 	if n.rivals.is_empty() and n.overlord == "" and game.year() >= int(game.bal.start_year) + 2:
 		var cand := ""
 		for t in game.nations_in_range(me, int(game.bal.rival_range)):
 			if game.rival_block_reason(me, t) == "" and (cand == "" or game.nations[t].dev_total > game.nations[cand].dev_total):
 				cand = t
 		if cand != "":
-			add.call("🎯 Kein Rivale gewählt", "Erkläre einen ähnlich starken Nachbarn zum Rivalen (etwa %s): Kriege gegen ihn brauchen keinen Anspruch, Siege bringen Machtprojektion." % game.nations[cand].name, "", "other", cand)
+			add.call("rival", "🎯 Kein Rivale gewählt", "Kriege gegen Rivalen brauchen keinen Anspruch, Siege über sie bringen Machtprojektion.",
+					"Einen ähnlich starken Nachbarn zum Rivalen erklären (etwa %s)." % game.nations[cand].name, "", "other", cand)
 	if not n.autobuild and not game.is_at_war(me):
 		var best: Array = Eco.best_building(game, n, false)
 		if not best.is_empty() and n.gold >= Eco.building_cost(game, me, best[0], best[1]) + 50.0:
-			add.call("🏗️ Gold für ein Gebäude", "Bestes Angebot: %s. Oder den Autobau unter 💰 Wirtschaft einschalten." % game.provinces[best[0]].name, "", "province", best[0])
-	for k in ["adm", "dip", "mil"]:
-		if float(n.get(k)) >= float(game.bal.power_cap) * 0.8:
-			add.call("%s Macht staut sich (%d)" % [{"adm": "📜", "dip": "🕊️", "mil": "⚔️"}[k], int(n.get(k))],
-					"Ab %d fließt der Überschuss automatisch in die billigste Entwicklung. Gezielter: selbst entwickeln, forschen, Berater oder die Aktionen im Nationsfenster." % int(game.bal.power_cap), "", "nation")
+			add.call("build", "🏗️ Gold für ein Gebäude", "Gold in der Kasse arbeitet nicht; Gebäude zahlen sich über Jahre aus.",
+					"Bestes Angebot: %s. Oder den Autobau unter 💰 Wirtschaft einschalten." % game.provinces[best[0]].name, "", "province", best[0], "build")
 	if Faith.missionaries(game, me) < int(game.bal.max_missionaries) and n.gold >= 80.0:
 		for pid in game.provinces_of(me):
 			if Faith.convert_block_reason(game, me, pid) == "":
-				add.call("⛪ Missionar frei: %s" % game.provinces[pid].name, "Andersgläubige Provinzen sind unruhig. Ein Missionar bekehrt sie.", "", "province", pid)
+				add.call("missionary", "⛪ Missionar frei: %s" % game.provinces[pid].name, "Andersgläubige Provinzen sind unruhig und zahlen weniger.",
+						"Im Provinzfenster einen Missionar schicken.", "", "province", pid)
 				break
 	if n.we >= 4.0 and game.feast_ready_in(me) == 0 and n.gold >= game.feast_cost(me):
-		add.call("👑 Hoffest möglich", "Senkt die Kriegsmüdigkeit und bringt Prestige (Nationsfenster → Großprojekte).", "", "nation")
+		add.call("feast", "👑 Hoffest möglich", "Die Kriegsmüdigkeit ist hoch (%.1f)." % n.we, "Ein Hoffest senkt sie und bringt Prestige (Nationsfenster → Großprojekte).", "", "nation")
 	return out
 
 
@@ -4220,6 +4280,16 @@ func _first_step_go(id: String, mode: String) -> void:
 		_open_panel(mode)
 
 
+## Open the place where an advisor entry is handled (also used by the alert bar).
+func advice_go(it: Dictionary) -> void:
+	if it.get("tab", "") != "":
+		if it.mode == "province":
+			prov_tab = it.tab
+		elif it.mode == "government":
+			gov_screen.tab = it.tab
+	_open_panel(it.mode, it.arg)
+
+
 func _panel_advice() -> void:
 	side_title.text = "💡 Ratgeber"
 	_first_steps_box()
@@ -4229,7 +4299,7 @@ func _panel_advice() -> void:
 		return
 	side_box.add_child(_lbl("Antippen führt dorthin, wo du es erledigst.", 14, Color(0.75, 0.75, 0.75)))
 	for it in items:
-		var b := _btn(it.text, _open_panel.bind(it.mode, it.arg), it.tip)
+		var b := _btn(it.text, advice_go.bind(it), it.tip)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		if it.kind == "bad":
 			b.add_theme_color_override("font_color", Color(1.0, 0.6, 0.5))
