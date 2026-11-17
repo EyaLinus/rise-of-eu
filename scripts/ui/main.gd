@@ -4001,6 +4001,15 @@ func _advice() -> Array:
 	if worst >= 0:
 		add.call("✊ Aufstand droht: %s%s" % [game.provinces[worst].name, (" (+%d weitere)" % (restless - 1)) if restless > 1 else ""],
 				"Unruhe %.1f. Unterdrücken (⚔️), eine Armee hinschicken oder die Ursachen beseitigen (Tooltip der Unruhe-Kachel)." % worst_u, "bad", "province", worst)
+	# armies over the supply limit lose regiments every month at war (Warfare.attrition)
+	var starving := []
+	for a in game.armies_of(me):
+		if Warfare.over_supply(game, a) and not starving.has(a.pid):
+			starving.append(a.pid)
+	if not starving.is_empty():
+		var sp: int = starving[0]
+		add.call("🌾 Hunger im Feldlager: %s%s" % [game.provinces[sp].name, (" (+%d weitere)" % (starving.size() - 1)) if starving.size() > 1 else ""],
+				"Hier stehen mehr Regimenter, als das Land ernähren kann: %d / %d. Im Krieg schmilzt der Überschuss jeden Monat, und es gibt keinen Nachschub. Armee teilen oder weiterziehen." % [int(round(Warfare.supply_load(game, sp, me))), int(Warfare.supply_limit(game, sp, me))], "bad", "province", sp)
 	if game.atlantic_tags.has(me) and Colonial.can_explore_tech(game, n):
 		if n.expedition.is_empty() and not Colonial.explore_targets(game, me).is_empty() and n.gold >= Colonial.explore_cost(game, n):
 			add.call("⛵ Entdeckungsfahrt möglich", "Unbekannte Meere im Westen: Nationsfenster → 🧭 Neue Welt.", "", "nation")
