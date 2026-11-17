@@ -26,6 +26,19 @@ var _event_edit: LineEdit
 var _last_beat := 0
 var _started_ms := 0
 var _overlay_ms := 0
+var _frame_t := 0  # ticks_usec of the last process() call
+var frame_max_us := 0  # longest frame (simulation + UI + layout) in the current overlay window
+var frame_max_shown := 0.0  # ms, last finished window, shown in overlay and report
+var frame_worst_ms := 0.0  # longest frame of this session (a frozen UI shows up here, not in the month time)
+
+
+## Memory text. Godot counts its static memory only in debug builds; release builds (APK/EXE) report 0,
+## so they show the video memory instead (that one works everywhere).
+static func mem_text() -> String:
+	var ram: float = Performance.get_monitor(Performance.MEMORY_STATIC)
+	if ram > 0.0:
+		return "RAM %.0f MB (Spitze %.0f)" % [ram / 1048576.0, Performance.get_monitor(Performance.MEMORY_STATIC_MAX) / 1048576.0]
+	return "VRAM %.0f MB" % (Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0)
 
 
 func _init(main) -> void:
@@ -58,6 +71,8 @@ func beat(force: bool = false) -> void:
 		"minutes": int((now - _started_ms) / 60000),
 		"mem_mb": snappedf(Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0, 0.1),
 		"mem_peak_mb": snappedf(Performance.get_monitor(Performance.MEMORY_STATIC_MAX) / 1048576.0, 0.1),
+		"vram_mb": snappedf(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0, 0.1),
+		"frame_worst_ms": snappedf(frame_worst_ms, 1.0),
 		"nodes": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),
 		"objects": int(Performance.get_monitor(Performance.OBJECT_COUNT)),
 		"fps": int(Performance.get_monitor(Performance.TIME_FPS)),
@@ -121,8 +136,8 @@ func build_overlay(hud: Control) -> void:
 	overlay = Label.new()
 	overlay.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	overlay.offset_top = 68
-	overlay.offset_left = -260
-	overlay.offset_right = 260
+	overlay.offset_left = -340
+	overlay.offset_right = 340
 	overlay.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	overlay.add_theme_font_size_override("font_size", 14)
 	overlay.add_theme_color_override("font_color", Color(0.6, 1.0, 0.6))
@@ -135,6 +150,11 @@ func build_overlay(hud: Control) -> void:
 
 ## Called every frame; refreshes the overlay twice a second and writes the heartbeat.
 func process() -> void:
+	var t := Time.get_ticks_usec()
+	if _frame_t > 0:
+		frame_max_us = maxi(frame_max_us, t - _frame_t)
+		frame_worst_ms = maxf(frame_worst_ms, (t - _frame_t) / 1000.0)
+	_frame_t = t
 	beat()
 	if overlay == null:
 		return
@@ -145,9 +165,11 @@ func process() -> void:
 	if now - _overlay_ms < 500:
 		return
 	_overlay_ms = now
-	overlay.text = "FPS %d · Monat %.1f ms (max %.1f) · RAM %.0f MB · Armeen %d" % [
-		int(Performance.get_monitor(Performance.TIME_FPS)), tick_avg_ms(), tick_max_ms(),
-		Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0, m.game.armies.size()]
+	frame_max_shown = maxf(frame_max_us / 1000.0, 0.0)
+	frame_max_us = 0
+	overlay.text = "FPS %d · Frame max %.0f ms · Monat %.1f ms (max %.1f) · %s · Armeen %d" % [
+		int(Performance.get_monitor(Performance.TIME_FPS)), frame_max_shown, tick_avg_ms(), tick_max_ms(),
+		mem_text(), m.game.armies.size()]
 
 
 # ---------------------------------------------------------------- panel
@@ -168,8 +190,8 @@ func build() -> void:
 			["FPS", "%d" % int(Performance.get_monitor(Performance.TIME_FPS))],
 			["Bild", "%.1f ms" % (Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0)],
 			["Monat Ø/max", "%.1f / %.1f ms (%d Frames)" % [tick_avg_ms(), tick_max_ms(), tick_frames]],
-			["RAM jetzt/Spitze", "%.0f / %.0f MB" % [Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0,
-				Performance.get_monitor(Performance.MEMORY_STATIC_MAX) / 1048576.0]],
+			["Speicher", mem_text()],
+			["Längster Frame jetzt/Sitzung", "%.0f / %.0f ms" % [frame_max_shown, frame_worst_ms]],
 			["Objekte/Nodes", "%d / %d" % [int(Performance.get_monitor(Performance.OBJECT_COUNT)), int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))]],
 			["Verwaiste Nodes", "%d" % int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT))],
 			["Draw Calls", "%d" % int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))],
@@ -330,8 +352,8 @@ func log_tail(previous: bool, lines: int) -> String:
 
 func report() -> String:
 	var lines := ["Rise of EU %s · %s · Godot %s" % [ProjectSettings.get_setting("application/config/version", "?"), OS.get_name(), Engine.get_version_info().string],
-		"FPS %d, Monat %.1f ms (max %.1f), RAM %.0f MB (Spitze %.0f)" % [int(Performance.get_monitor(Performance.TIME_FPS)), tick_avg_ms(), tick_max_ms(),
-			Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0, Performance.get_monitor(Performance.MEMORY_STATIC_MAX) / 1048576.0]]
+		"FPS %d, längster Frame %.0f ms, Monat %.1f ms (max %.1f), %s" % [int(Performance.get_monitor(Performance.TIME_FPS)), frame_worst_ms,
+			tick_avg_ms(), tick_max_ms(), mem_text()]]
 	if m.game != null:
 		lines.append("Spiel: " + JSON.stringify(DebugTools.snapshot(m.game)))
 	if not last_crash.is_empty():
