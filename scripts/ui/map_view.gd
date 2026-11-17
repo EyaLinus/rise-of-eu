@@ -4,6 +4,7 @@ extends Control
 signal province_tapped(pid: int)
 signal army_tapped(army_id: int)
 signal province_long_pressed(pid: int)
+signal province_context(pid: int, at: Vector2)  # right click (PC): quick actions
 
 const SEA := Color("1d3a5c")
 const WASTE := Color("55574d")
@@ -1756,6 +1757,10 @@ func _gui_input(event: InputEvent) -> void:
 			zoom_by(1.12, event.position)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
 			zoom_by(1.0 / 1.12, event.position)
+		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			var rp := province_at(event.position)
+			if rp >= 0 and known(rp):
+				province_context.emit(rp, event.position)
 		elif event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
 				_mouse_down = true

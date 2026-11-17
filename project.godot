@@ -9,6 +9,7 @@ run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://icon.svg"
 config/version="1.0.1"
+run/flush_stdout_on_print=true
 
 [debug]
 
@@ -32,3 +33,7 @@ pointing/emulate_mouse_from_touch=true
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
+
+[gui]
+
+timers/tooltip_delay_sec=100000.0

@@ -130,37 +130,80 @@ def build(variant, out):
         h.set(20, y, tb)
     h.save(os.path.join(out, "header.png"), pal)
 
-    # top bar: frame only along the bottom edge (flush with the screen top), slice 6 at the bottom
-    t = Canvas(16, 16)
-    for y in range(16):
-        for x in range(16):
+    # top bar (32x32 tile, tiled horizontally; UiTheme.topbar): dark planks with seams that stretch cleanly
+    # in height, a carved bottom beam (16 rows, not stretched): light edge, gold rope, wood beam with a
+    # gold rivet per tile, and a fringe of small pennants that hangs below the bar (expand margin, 6 rows)
+    T = 32
+    t = Canvas(T, 24)
+    for y in range(19):  # below the beam stays transparent: only the pennants hang over the map
+        for x in range(T):
             t.set(x, y, bb)
-    for x in range(16):
-        t.set(x, 10, bl)
-        t.set(x, 11, "ink")
-        t.set(x, 12, fl)
-        t.set(x, 13, fb)
-        t.set(x, 14, fd)
-        t.set(x, 15, "ink")
+    for y in range(0, 10):  # plank seams every 16 px: dark gap, lit edge right of it
+        for sx in (0, 16):
+            t.set(sx, y, bd)
+            t.set(sx + 1, y, bl)
+    rope = [tl, tl, tb, td]
+    beam = 10
+    for x in range(T):
+        t.set(x, beam, bl)                    # lit lip of the planks
+        t.set(x, beam + 1, "ink")
+        for r in range(3):                    # twisted gold rope: diagonal bands, period 4
+            t.set(x, beam + 2 + r, rope[(x + r) % 4])
+        t.set(x, beam + 5, "ink")
+        t.set(x, beam + 6, fl if x % 16 else fd)  # carved beam: light top, dark bottom, joints
+        t.set(x, beam + 7, fd)
+        t.set(x, beam + 8, "ink")
+    for cx in (8, 24):                        # gold rivets on the rope
+        stud(t, cx, beam + 3, (td, tb, tl), r=2)
+    for x in range(T):                        # pennants, 8 px wide, red and blue in turn, gold hem
+        k = x % 8
+        cloth = ("red_light", "red", "red_dark") if (x // 8) % 2 == 0 else ("blue_light", "blue", "blue_dark")
+        half = [4, 4, 3, 2, 1]                # half width per row: a swallow-less banner tip
+        for d, hw in enumerate(half):
+            lo, hi = 4 - hw, 3 + hw
+            if not (lo <= k <= hi):
+                continue
+            y = beam + 9 + d
+            if k == lo or k == hi or d == len(half) - 1:
+                col = "ink"
+            elif d == 0:
+                col = tb                      # gold hem under the beam
+            else:
+                col = cloth[0] if k < 3 else cloth[1] if k < 5 else cloth[2]
+            t.set(x, y, col)
     t.save(os.path.join(out, "topbar.png"), pal, A)
 
-    # buttons 16x16, slice 5: ink | bevel | base; bottom gets a 2-px shadow (depth)
-    def button(name, outline, lit, shade, base, sink=False):
+    # resource plaque in the top bar (12x12, slice 4): a recessed slot; hover = gold rim
+    def plaque(name, rim_lit, rim_shade):
+        c = frame(12, 12, [("ink", "ink"), (rim_lit, rim_shade), (bd, bl)], bd)
+        c.save(os.path.join(out, name + ".png"), pal)
+    plaque("plaque", fd, fl)
+    plaque("plaque_hover", tl, td)
+
+    # buttons 16x16, slice 5: ink | bevel | base, a highlight line under the top bevel, a 2-px shadow
+    # (depth) and four gold nails in the corners; hover lights the bevel gold
+    def button(name, outline, lit, shade, base, sink=False, nail=None):
         b = frame(16, 16, [(outline, outline), (lit, shade)], base)
         if not sink:
+            for x in range(3, 13):
+                b.set(x, 2, lit)
             for x in range(2, 14):
                 b.set(x, 13, shade)
+                b.set(x, 12, shade if x in (2, 13) else base)
         else:
             for x in range(2, 14):
                 b.set(x, 2, shade)
+        if nail:
+            for (x, y) in [(3, 3), (12, 3), (3, 11), (12, 11)]:
+                b.set(x, y, nail)
         b.save(os.path.join(out, name + ".png"), pal)
 
-    button("button", "ink", kl, kd, kb)
-    button("button_hover", "ink", tl, td, kl)
-    button("button_pressed", "ink", kd, kl, kd, sink=True)
+    button("button", "ink", kl, kd, kb, nail=td)
+    button("button_hover", "ink", tl, td, kl, nail=tl)
+    button("button_pressed", "ink", kd, kl, kd, sink=True, nail=td)
     button("button_disabled", "ink", bb, bb, bd)
     # accent button: important actions (Bestätigen, Erforschen)
-    button("button_accent", "ink", tb, "wood_dark", td)
+    button("button_accent", "ink", tl, "wood_dark", td, nail=tl)
 
     # card: a framed box inside panels, 12x12 slice 4
     frame(12, 12, [(fd, fd), (bl, bd)], bl if variant != "krone" else "night").save(os.path.join(out, "card.png"), pal)

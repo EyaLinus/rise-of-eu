@@ -9,7 +9,7 @@ const DIR := "res://assets/art/ui/"
 const SLICES := {
 	"panel": 20, "header": 10, "topbar": 0, "button": 10, "button_hover": 10, "button_pressed": 10,
 	"button_disabled": 10, "button_accent": 10, "card": 8, "card_gold": 8, "card_good": 8, "card_bad": 8,
-	"tooltip": 10, "inset": 6, "bar_fill": 6, "grabber": 4, "scroll_track": 4,
+	"tooltip": 10, "plaque": 8, "plaque_hover": 8, "inset": 6, "bar_fill": 6, "grabber": 4, "scroll_track": 4,
 }
 
 ## text colours for buffs and nerfs, shared by every modifier list
@@ -54,13 +54,28 @@ static func box(name: String, content: float = -1.0) -> StyleBox:
 static func topbar() -> StyleBox:
 	var s := box("topbar", 6)
 	if s is StyleBoxTexture:
-		s.texture_margin_bottom = 12
+		# ui_kit.py: 24 rows at x2 = planks (rows 0-9, stretch in height), carved beam with gold rope
+		# (rows 10-18) and a pennant fringe (rows 19-23) that hangs below the bar over the map
 		s.texture_margin_top = 0
 		s.texture_margin_left = 0
 		s.texture_margin_right = 0
-		s.content_margin_bottom = 12
+		s.texture_margin_bottom = 28
+		s.expand_margin_bottom = 10
+		s.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_TILE
+		s.content_margin_top = 4
+		s.content_margin_bottom = 18
 		s.content_margin_left = 10
 		s.content_margin_right = 10
+	return s
+
+
+## Recessed plaque of one resource in the top bar; gold rim while hovered (shows the tooltip area).
+static func plaque(hover: bool = false, pad: float = 8.0) -> StyleBox:
+	var s := box("plaque_hover" if hover else "plaque", 4)
+	s.content_margin_left = pad
+	s.content_margin_right = pad
+	s.content_margin_top = 2
+	s.content_margin_bottom = 2
 	return s
 
 

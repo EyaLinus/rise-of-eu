@@ -90,6 +90,9 @@ func _run(fail: bool) -> void:
 	m.gov_screen._pick_reform(gv.reforms[0].id)
 	await _check(m, "reform_picker")
 	m._close_modal()
+	m._confirm_war("ENG")
+	await _check(m, "war_popup")
+	m._close_modal()
 	m.gov_screen._pick_advisor()
 	await _check(m, "advisor_picker")
 	m._close_modal()
@@ -138,6 +141,16 @@ func _check(m, where: String) -> void:
 		var r: Rect2 = pc.get_global_rect()
 		if r.position.y < -1.0 or r.end.y > vs.y + 1.0 or r.end.x > vs.x + 1.0:
 			found["%s|popup" % where] = "off screen: %s in %s" % [r, vs]
+		# squeezed / unsorted popup (seen on a player's PC): content as wide as the popup, rows below each other
+		var box: Control = m.modal_box
+		if box.size.x < pc.size.x - 60.0:
+			found["%s|popup" % where] = "content squeezed: %.0f px in a %.0f px popup" % [box.size.x, pc.size.x]
+		var y := -1.0
+		for c in box.get_children():
+			if c is Control and c.visible:
+				if c.position.y < y - 0.5:
+					found["%s|popup" % where] = "rows overlap at %s" % c.get_class()
+				y = c.position.y + c.size.y
 	# the side panel must stay on screen and keep its width (content wider than it pushes it over the map)
 	var sp: Control = m.side_panel
 	if sp.visible:

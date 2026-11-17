@@ -49,6 +49,10 @@ jobs:
           godot --headless --path . -s res://tools/month_steps_smoke.gd 2>&1 | tee steps.txt
           grep -q "MONTH STEPS OK" steps.txt
           ! grep -q "SCRIPT ERROR" steps.txt
+      - name: Rich tooltips (hover delay, lock, nested terms, touch long press)
+        run: |
+          godot --headless --path . -s res://tools/tip_test.gd 2>&1 | tee tips.txt
+          grep -q "TIP TEST OK" tips.txt
       - name: No cut-off UI text (140 % UI at 1280 and 1560 px, big touch UI)
         shell: bash  # pipefail needs bash, the container's default sh is dash
         run: |
@@ -56,6 +60,12 @@ jobs:
           godot --headless --path . -s res://tools/clip_audit.gd -- --scale 1.4 --width 1280 --fail 2>&1 | grep CLIP
           godot --headless --path . -s res://tools/clip_audit.gd -- --scale 1.4 --width 1560 --fail 2>&1 | grep CLIP
           godot --headless --path . -s res://tools/clip_audit.gd -- --scale 1.2 --width 1280 --big --fail 2>&1 | grep CLIP
+      - name: Every event popup settles (no layout loop; v1.0.1 froze 10-18 s on one popup)
+        shell: bash
+        run: |
+          set -o pipefail
+          godot --headless --path . -s res://tools/popup_audit.gd -- --scale 0.85 --height 900 --fail 2>&1 | grep -a "POPUP\|popup_audit"
+          godot --headless --path . -s res://tools/popup_audit.gd -- --scale 1.4 --height 720 --chain --fail 2>&1 | grep -a "POPUP\|popup_audit"
       - name: Headless balance smoke run (3 games x 50 years)
         run: godot --headless --path . -s res://tools/sim.gd -- --runs 3 --years 50 --seed 500 | tee sim.txt
       - uses: actions/upload-artifact@v4
