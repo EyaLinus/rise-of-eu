@@ -543,6 +543,51 @@ assets:
     source: assets/src/pixel/flags/flag_MOL.txt
     status: done
     updated: '2026-10-24'
+  flag_INC:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_INC – Inca (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_INC.png
+    source: assets/src/pixel/flags/flag_INC.txt
+    status: done
+    updated: '2026-11-17'
+  flag_CHM:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_CHM – Chimor (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_CHM.png
+    source: assets/src/pixel/flags/flag_CHM.txt
+    status: done
+    updated: '2026-11-17'
+  flag_MUI:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_MUI – Muisca (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_MUI.png
+    source: assets/src/pixel/flags/flag_MUI.txt
+    status: done
+    updated: '2026-11-17'
+  flag_QTO:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_QTO – Quito (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_QTO.png
+    source: assets/src/pixel/flags/flag_QTO.txt
+    status: done
+    updated: '2026-11-17'
+  flag_CLL:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_CLL – Colla (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_CLL.png
+    source: assets/src/pixel/flags/flag_CLL.txt
+    status: done
+    updated: '2026-11-17'
   flag_MUT:
     created: '2026-11-17'
     kind: flag

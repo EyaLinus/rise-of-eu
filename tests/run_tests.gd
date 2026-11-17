@@ -37,6 +37,7 @@ func _init() -> void:
 		"test_alert_bar",
 		"test_west_africa",
 		"test_south_africa",
+		"test_south_america",
 		"test_troop_transport",
 		"test_embargo",
 		"test_hall_of_fame",
@@ -1751,7 +1752,7 @@ func test_south_africa() -> void:
 	const Col = preload("res://scripts/core/colonial.gd")
 	var g = new_game("POR", 5)
 	check(g.af_first > g.nw_end and g.af_first < g.provinces.size(), "Africa south of the Sahara follows the east block (%d)" % g.af_first)
-	for pid in range(g.af_first, g.provinces.size()):
+	for pid in range(g.af_first, g.sa_first):
 		check(Col.is_new_world(g, pid) and Col.region(g, pid) == "africa" and g.overseas.has(pid) and g.africa.has(pid), "%s is overseas Africa" % g.provinces[pid].key)
 	check(g.overseas.size() == (g.nw_end - g.nw_first) + (g.provinces.size() - g.af_first), "overseas list covers both blocks")
 	for tag in ["KAN", "BOR", "DAR", "AJU", "MLD", "MBA", "KIL", "KIT", "KON", "NDO", "MUT"]:
@@ -1779,6 +1780,40 @@ func test_south_africa() -> void:
 	for i in 6:
 		g.tick()
 	check(g.nations.KON.alive and g.nations.KIL.alive, "the game runs with the new region")
+
+
+## South America and the finer North American east coast: an overseas block after Africa, region "america",
+## Andean realms, seas that Europe reaches over the Atlantic, the Pacific only round Cape Horn.
+func test_south_america() -> void:
+	const Col = preload("res://scripts/core/colonial.gd")
+	var g = new_game("POR", 5)
+	check(g.sa_first > g.af_first and g.sa_first < g.provinces.size(), "South America follows Africa (%d)" % g.sa_first)
+	for pid in range(g.sa_first, g.provinces.size()):
+		check(Col.is_new_world(g, pid) and Col.region(g, pid) == "america" and g.overseas.has(pid) and not g.africa.has(pid),
+				"%s is overseas America" % g.provinces[pid].key)
+	check(g.overseas.size() == (g.nw_end - g.nw_first) + (g.provinces.size() - g.af_first), "overseas list covers all blocks")
+	for tag in ["INC", "CHM", "MUI", "QTO", "CLL"]:
+		check(g.nations[tag].alive and Col.is_native_realm(g, tag), "%s is a living Andean realm" % tag)
+		check(Col.region(g, g.nations[tag].capital) == "america", "%s sits in America" % tag)
+	var cusco: int = g.key_to_pid["cusco"]
+	var bahia: int = g.key_to_pid["bahia"]
+	check(g.provinces[cusco].owner == "INC" and g.provinces[bahia].owner == Col.NATIVE, "the Inca rule Cusco, Bahia is native land")
+	check(not Col.knows(g, "POR", bahia) and not Col.knows_sea(g, "POR", "brazil"), "Brazil is unknown in Europe")
+	check(Col.knows(g, "INC", bahia) == Col.knows(g, "INC", g.key_to_pid["havana"]), "the native realms know their continent")
+	# the Darién links both Americas by land, the Pacific is reached only round Cape Horn
+	check(g.provinces[g.key_to_pid["darien"]].adj.has(g.key_to_pid["zenu"]), "the Darién gap is a land link")
+	var hum: Dictionary = g.sea_by_id["humboldt"]
+	check(not hum.adj.has("caribbean") and hum.adj.has("horn"), "no Panama canal: the Humboldt Sea reaches the Atlantic round Cape Horn")
+	check(hum.provinces.has(g.key_to_pid["chan_chan"]) and g.sea_by_id["brazil"].provinces.has(g.key_to_pid["pernambuco"]), "the coasts have their seas")
+	g.nations.POR.known_seas["west_africa"] = true
+	var t: Array = Col.explore_targets(g, "POR")
+	check(t.has("amazon") and not t.has("humboldt") and not t.has("brazil"), "Portugal can sail west to the Amazon, not straight into the Pacific (%s)" % [t])
+	# the finer east coast keeps the old keys and adds the colonial landing places
+	for k in ["munsee", "wampanoag", "guale", "powhatan", "lenape", "massachusett", "stadacona"]:
+		check(g.key_to_pid.has(k), "east coast province " + k)
+	for i in 6:
+		g.tick()
+	check(g.nations.INC.alive, "the game runs with the new region")
 
 
 ## The New World: terra incognita, expeditions, colonies, natives, save/load and old saves.

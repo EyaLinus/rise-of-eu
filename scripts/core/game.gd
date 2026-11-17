@@ -283,6 +283,7 @@ var nw_first: int = 0  # first overseas province id: the Americas, then West Afr
 var wa_first: int = 0  # first West African province id (Colonial.region)
 var nw_end: int = 0  # end of the overseas block: the Middle East and the Horn of Africa follow, Old World again
 var af_first: int = 0  # first province of Africa south of the Sahara (overseas again, up to the end of the map)
+var sa_first: int = 0  # first province of South America and the finer North American east coast (after Africa, region "america")
 var overseas: Array = []  # every overseas province id (the Americas, West Africa, Africa south of the Sahara)
 var africa: Array = []  # the overseas African province ids (Colonial.region "africa")
 var sea_reach_cache := {}  # tag -> [key, {sea: true}] (Colonial.sea_reach)
