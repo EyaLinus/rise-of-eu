@@ -19,11 +19,15 @@ const NEW_SEAS := ["guinea", "ocean", "labrador", "st_lawrence", "east_coast", "
 static func setup(g, data: Dictionary) -> void:
 	g.nw_first = g.provinces.size()
 	g.wa_first = g.provinces.size()
+	g.nw_end = g.provinces.size()
 	for i in data.map.provinces.size():
-		if data.map.provinces[i].get("nw", false) and g.nw_first == g.provinces.size():
+		var pd: Dictionary = data.map.provinces[i]
+		if pd.get("nw", false) and g.nw_first == g.provinces.size():
 			g.nw_first = i
-		if data.map.provinces[i].get("wa", false):
+		if pd.get("wa", false) and g.wa_first == g.provinces.size():
 			g.wa_first = i
+		if g.nw_first < g.provinces.size() and not pd.get("nw", false) and i > g.nw_first:
+			g.nw_end = i  # the Middle East and the Horn ("east") follow the overseas block: Old World again
 			break
 	g.found = {}
 	if g.nations.has(NATIVE):
@@ -59,7 +63,7 @@ static func reset_knowledge(g, n) -> void:
 				if region(g, pid) == home:
 					n.known_seas[s.id] = true
 					break
-		for pid in range(g.nw_first, g.provinces.size()):
+		for pid in range(g.nw_first, g.nw_end):
 			if region(g, pid) == home:
 				n.known_nw[pid] = true
 		return
@@ -67,22 +71,22 @@ static func reset_knowledge(g, n) -> void:
 		if not NEW_SEAS.has(s.id):
 			n.known_seas[s.id] = true
 			for pid in s.provinces:
-				if pid >= g.nw_first:
+				if is_new_world(g, pid):
 					n.known_nw[pid] = true
 	# the Sahel and Mali are known from the gold caravans; the forest belt and the Guinea coast are not
-	for pid in range(g.wa_first, g.provinces.size()):
+	for pid in range(g.wa_first, g.nw_end):
 		if g.provinces[pid].center.y < float(g.bal.wa_known_y):
 			n.known_nw[pid] = true
 	# caravan routes: the land next to our own (Morocco knows the way to Taghaza)
 	for pid in g.provinces_of(n.tag):
 		for a in g.provinces[pid].adj:
-			if a >= g.nw_first:
+			if is_new_world(g, a):
 				n.known_nw[a] = true
 
 
 ## "old" (Europe, North Africa, the Near East), "america" or "africa" (West Africa).
 static func region(g, pid: int) -> String:
-	if pid < g.nw_first:
+	if not is_new_world(g, pid):
 		return "old"
 	return "africa" if pid >= g.wa_first else "america"
 
@@ -92,7 +96,7 @@ static func is_native_realm(g, tag: String) -> bool:
 
 
 static func is_new_world(g, pid: int) -> bool:
-	return pid >= g.nw_first
+	return pid >= g.nw_first and pid < g.nw_end
 
 
 static func is_native_land(g, pid: int) -> bool:
@@ -101,7 +105,7 @@ static func is_native_land(g, pid: int) -> bool:
 
 ## The player (or anyone) has seen this province: always true in the Old World.
 static func knows(g, tag: String, pid: int) -> bool:
-	if pid < g.nw_first or tag == "":
+	if not is_new_world(g, pid) or tag == "":
 		return true
 	return g.nations[tag].known_nw.has(pid)
 
@@ -122,7 +126,7 @@ static func _old_atlantic_coast(g, tag: String) -> bool:
 ## Learn a province (and remember when the world first heard of it).
 static func reveal(g, tag: String, pid: int) -> bool:
 	var n = g.nations[tag]
-	if pid < g.nw_first or n.known_nw.has(pid):
+	if not is_new_world(g, pid) or n.known_nw.has(pid):
 		return false
 	n.known_nw[pid] = true
 	var k := str(pid)
@@ -280,7 +284,7 @@ static func recruit_colonist(g, tag: String) -> String:
 
 static func running_colonies(g, tag: String) -> Array:
 	var r := []
-	for pid in range(g.nw_first, g.provinces.size()):
+	for pid in range(g.nw_first, g.nw_end):
 		if g.provinces[pid].colonist == tag:
 			r.append(pid)
 	return r
@@ -447,7 +451,7 @@ static func _finish(g, p) -> void:
 static func colonies_owned(g, tag: String) -> int:
 	var c := 0
 	for pid in g.provinces_of(tag):
-		if pid >= g.nw_first:
+		if is_new_world(g, pid):
 			c += 1
 	return c
 
@@ -455,9 +459,9 @@ static func colonies_owned(g, tag: String) -> int:
 # ---------------------------------------------------------------- ticks
 
 static func monthly(g) -> void:
-	if g.nw_first >= g.provinces.size():
+	if g.nw_first >= g.nw_end:
 		return
-	for pid in range(g.nw_first, g.provinces.size()):
+	for pid in range(g.nw_first, g.nw_end):
 		var p = g.provinces[pid]
 		if p.colonist != "":
 			_colony_tick(g, p)
@@ -473,14 +477,14 @@ static func monthly(g) -> void:
 
 ## Yearly: settlers push inland, and old discoveries become common knowledge.
 static func yearly(g) -> void:
-	if g.nw_first >= g.provinces.size():
+	if g.nw_first >= g.nw_end:
 		return
 	for tag in g.order:
 		var n = g.nations[tag]
 		if not n.alive or is_native_realm(g, tag):
 			continue
 		for pid in g.provinces_of(tag):
-			if pid >= g.nw_first:
+			if is_new_world(g, pid):
 				for a in g.provinces[pid].adj:
 					reveal(g, tag, a)
 	var spread: int = int(g.bal.map_spread_years) * 12

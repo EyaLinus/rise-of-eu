@@ -218,6 +218,7 @@ var goods_leader := {}
 var shocks := {}  # good -> {"mult": price factor, "years": left}: harvest failures, gluts
 var nw_first: int = 0  # first overseas province id: the Americas, then West Africa (Colonial)
 var wa_first: int = 0  # first West African province id (Colonial.region)
+var nw_end: int = 0  # end of the overseas block: the Middle East and the Horn of Africa follow, Old World again
 var found := {}  # first discovery month: "s:<sea>" or "<pid>" -> month (knowledge spreads later)
 var atlantic_tags: Array = []  # realms that may explore and colonize
 var nation_data_native := {}  # tags of the native realms (nations.json "native")

@@ -164,6 +164,15 @@ assets:
     source: assets/src/pixel/icons/event.txt
     status: done
     updated: '2026-10-24'
+  flag_ADA:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_ADA (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_ADA.png
+    source: assets/src/pixel/flags/flag_ADA.txt
+    status: done
+    updated: '2026-11-17'
   flag_ALB:
     created: '2026-10-24'
     kind: flag
@@ -173,6 +182,15 @@ assets:
     source: assets/src/pixel/flags/flag_ALB.txt
     status: done
     updated: '2026-10-24'
+  flag_ALO:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_ALO (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_ALO.png
+    source: assets/src/pixel/flags/flag_ALO.txt
+    status: done
+    updated: '2026-11-17'
   flag_ARA:
     created: '2026-10-24'
     kind: flag
@@ -272,6 +290,15 @@ assets:
     source: assets/src/pixel/flags/flag_ENG.txt
     status: done
     updated: '2026-10-24'
+  flag_ETH:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_ETH (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_ETH.png
+    source: assets/src/pixel/flags/flag_ETH.txt
+    status: done
+    updated: '2026-11-17'
   flag_FRA:
     created: '2026-10-24'
     kind: flag
@@ -318,6 +345,24 @@ assets:
     source: assets/src/pixel/flags/flag_HES.txt
     status: done
     updated: '2026-10-24'
+  flag_HJZ:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_HJZ (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_HJZ.png
+    source: assets/src/pixel/flags/flag_HJZ.txt
+    status: done
+    updated: '2026-11-17'
+  flag_HOR:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_HOR (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_HOR.png
+    source: assets/src/pixel/flags/flag_HOR.txt
+    status: done
+    updated: '2026-11-17'
   flag_HSA:
     created: '2026-10-24'
     kind: flag
@@ -390,6 +435,15 @@ assets:
     source: assets/src/pixel/flags/flag_LUN.txt
     status: done
     updated: '2026-10-24'
+  flag_MAZ:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_MAZ (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_MAZ.png
+    source: assets/src/pixel/flags/flag_MAZ.txt
+    status: done
+    updated: '2026-11-17'
   flag_MLO:
     created: '2026-10-24'
     kind: flag
@@ -516,6 +570,15 @@ assets:
     source: assets/src/pixel/flags/flag_RYA.txt
     status: done
     updated: '2026-10-24'
+  flag_SAF:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_SAF (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_SAF.png
+    source: assets/src/pixel/flags/flag_SAF.txt
+    status: done
+    updated: '2026-11-17'
   flag_SAV:
     created: '2026-10-24'
     kind: flag
@@ -579,6 +642,15 @@ assets:
     source: assets/src/pixel/flags/flag_TEU.txt
     status: done
     updated: '2026-10-24'
+  flag_TIM:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_TIM (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_TIM.png
+    source: assets/src/pixel/flags/flag_TIM.txt
+    status: done
+    updated: '2026-11-17'
   flag_TUR:
     created: '2026-10-24'
     kind: flag
@@ -624,6 +696,15 @@ assets:
     source: assets/src/pixel/flags/flag_WUR.txt
     status: done
     updated: '2026-10-24'
+  flag_YEM:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_YEM (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_YEM.png
+    source: assets/src/pixel/flags/flag_YEM.txt
+    status: done
+    updated: '2026-11-17'
   fort:
     created: '2026-10-24'
     kind: icon
@@ -754,6 +835,51 @@ assets:
     source: assets/src/pixel/icons/tab_wars.txt
     status: done
     updated: '2026-10-24'
+  terr_dunes:
+    created: '2026-11-17'
+    kind: icon
+    note: terr_dunes – terrain sprite on the world map (tools/art/terrain_glyphs.py)
+    outputs:
+    - assets/art/icons/terr_dunes.png
+    source: assets/src/pixel/icons/terr_dunes.txt
+    status: done
+    updated: '2026-11-17'
+  terr_forest:
+    created: '2026-11-17'
+    kind: icon
+    note: terr_forest – terrain sprite on the world map (tools/art/terrain_glyphs.py)
+    outputs:
+    - assets/art/icons/terr_forest.png
+    source: assets/src/pixel/icons/terr_forest.txt
+    status: done
+    updated: '2026-11-17'
+  terr_hills:
+    created: '2026-11-17'
+    kind: icon
+    note: terr_hills – terrain sprite on the world map (tools/art/terrain_glyphs.py)
+    outputs:
+    - assets/art/icons/terr_hills.png
+    source: assets/src/pixel/icons/terr_hills.txt
+    status: done
+    updated: '2026-11-17'
+  terr_marsh:
+    created: '2026-11-17'
+    kind: icon
+    note: terr_marsh – terrain sprite on the world map (tools/art/terrain_glyphs.py)
+    outputs:
+    - assets/art/icons/terr_marsh.png
+    source: assets/src/pixel/icons/terr_marsh.txt
+    status: done
+    updated: '2026-11-17'
+  terr_oasis:
+    created: '2026-11-17'
+    kind: icon
+    note: terr_oasis – terrain sprite on the world map (tools/art/terrain_glyphs.py)
+    outputs:
+    - assets/art/icons/terr_oasis.png
+    source: assets/src/pixel/icons/terr_oasis.txt
+    status: done
+    updated: '2026-11-17'
   ui_kit:
     created: '2026-10-26'
     kind: ui

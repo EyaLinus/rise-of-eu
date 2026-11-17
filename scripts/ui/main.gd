@@ -1162,7 +1162,7 @@ const MODE_KEYS := {
 	2: [["1e3a2a", "Land, wenig entwickelt"], ["d8d35e", "Land, hoch entwickelt"], ["4a1e1e", "Stadt, klein"], ["f08a4a", "Stadt, groß"]],
 	4: [["3a9d4a", "du"], ["4a7fd0", "Mitkämpfer"], ["c0392b", "Feinde"], ["5a5a52", "unbeteiligt"]],
 	9: [["f0c040", "Kaiser"], ["c87a2a", "Kurfürsten"], ["7a5a9a", "Reichsmitglieder"], ["3b3a40", "außerhalb des Reichs"]],
-	8: [["e8d27a", "katholisch"], ["9a5ac8", "protestantisch"], ["6a9ae0", "orthodox"], ["3fa860", "sunnitisch"]],
+	8: [["e8d27a", "katholisch"], ["9a5ac8", "protestantisch"], ["6a9ae0", "orthodox"], ["3fa860", "sunnitisch"], ["2f7f6a", "schiitisch"], ["c46a9a", "koptisch"]],
 }
 
 

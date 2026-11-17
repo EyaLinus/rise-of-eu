@@ -353,6 +353,17 @@ M["MAL"] = (centred(solid("G"), recolor(CASTLE, {"Y": "O", "G": "O", "D": "H", "
 M["SON"] = (centred(per_pale("O", "E"), SWORD), "Songhai – sword on brown and dark red (stylised)")
 M["JOL"] = (centred(solid("L"), CRESCENT), "Jolof – gold crescent on jade (stylised)")
 M["BEN"] = (centred(border(solid("E"), "G", 2), recolor(PLUME, TO_GOLD)), "Benin – gold plume in a gold border on dark red (stylised)")
+# the Middle East and the Horn of Africa (stylised)
+RINGS = [".GG.....GG.", "G..G...G..G", "G..G...G..G", ".GG.....GG.", "...........", "....GG.....", "...G..G....", "...G..G....", "....GG....."]
+M["TIM"] = (centred(solid("N"), RINGS), "Timurids – three gold rings of Tamerlane on dark blue (stylised)")
+M["SAF"] = (centred(solid("R"), SUN), "Safavid order – gold sun on Qizilbash red (stylised)")
+M["MAZ"] = (field("L", "O", vertical=True), "Mazandaran – green and brown (stylised)")
+M["HOR"] = (centred(per_pale("w", "R"), recolor(CRESCENT, TO_GOLD), cy=3), "Hormuz – gold crescent on white and red (stylised)")
+M["HJZ"] = (centred(solid("R"), recolor(CRESCENT, TO_GOLD), cy=3), "Sharifate of Mecca – gold crescent on red (stylised)")
+M["YEM"] = (stripes(["R", "w", "k"], 3), "Yemen – red, white, black bands (stylised)")
+M["ALO"] = (cross(solid("B"), "G", 2), "Alodia – gold cross on blue (stylised)")
+M["ETH"] = (centred(stripes(["L", "G", "R"], 3), recolor(LION_SMALL, {"U": "k"})), "Ethiopia – lion of Judah on green, gold, red (stylised)")
+M["ADA"] = (centred(solid("B"), recolor(CRESCENT, TO_WHITE), cy=3), "Adal – white crescent on blue (stylised)")
 FLAGS.update(M)
 
 # Naples: Aragon pallets impaled with Anjou (blue with gold fleur), to differ from Aragón

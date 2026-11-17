@@ -49,6 +49,10 @@ func _run(m) -> void:
 	await _shot("map_europe")
 	m.map.focus(Vector2(3100, 1000), 1.2)
 	await _shot("map_mediterranean")
+	m.map.focus(g.provinces[g.key_to_pid["baghdad"]].center, 0.9)
+	await _shot("map_middle_east")
+	m.map.focus(g.provinces[g.key_to_pid["amhara"]].center, 1.2)
+	await _shot("map_horn")
 	# selection, hover tooltip, war map mode
 	m.map.focus(paris, 1.4)
 	m.map.selected_pid = g.key_to_pid["paris"]
