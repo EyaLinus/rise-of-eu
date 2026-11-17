@@ -477,9 +477,12 @@ func company_slots(g, n) -> int:
 	return int(cfg.get("company_slots", 2)) + int(g.mod(n, "company_slots"))
 
 
-## Price in gold: some months of current income, so it scales with the realm.
-func company_cost(_g, n, _id: String) -> float:
-	return roundf(maxf(float(cfg.get("company_min_gold", 60)), float(cfg.get("company_months", 18)) * maxf(n.income, 0.0)))
+## Price in gold: a base price that grows slowly and linearly with the years (+company_year_scale per
+## year since the start) plus a small share of the yearly income, so big realms pay a little more.
+func company_cost(g, n, _id: String) -> float:
+	var years: float = maxf(0.0, float(g.year() - int(g.bal.start_year)))
+	var base: float = float(cfg.get("company_base_gold", 175)) * (1.0 + float(cfg.get("company_year_scale", 0.01)) * years)
+	return roundf(base + float(cfg.get("company_income_share", 0.03)) * 12.0 * maxf(n.income, 0.0))
 
 
 func company_pool(g, tag: String) -> Array:
