@@ -67,6 +67,71 @@ static func terrain_name(g, pid: int) -> String:
 	return TERRAIN_NAMES.get(g.provinces[pid].terrain, g.provinces[pid].terrain)
 
 
+# ---------------------------------------------------------------- supply
+
+## Regiments a province can feed: more in developed land and along roads, more again for whoever
+## holds it (or is allied to the holder). Everything above it withers away month by month.
+static func supply_limit(g, pid: int, tag: String) -> float:
+	var p = g.provinces[pid]
+	var lim: float = float(g.bal.supply_base) + float(g.bal.supply_per_dev) * p.dev
+	lim *= 1.0 + Economy.local(g, p, "supply") * float(g.bal.supply_road)
+	if supplied_at(g, pid, tag):
+		lim *= float(g.bal.supply_home_mult)
+	return lim
+
+
+static func supplied_at(g, pid: int, tag: String) -> bool:
+	var c: String = g.provinces[pid].controller
+	return c == tag or g.is_allied(tag, c)
+
+
+## Regiments standing in the province on the same side of the supply line as `tag`
+## (the holder and its allies share one limit, everybody else the other).
+## True while the army's camp is over the limit (as of this month's attrition pass).
+static func over_supply(g, a) -> bool:
+	return g.over_supply.has(a.pid * 2 + (1 if supplied_at(g, a.pid, a.owner) else 0))
+
+
+static func supply_load(g, pid: int, tag: String) -> float:
+	var home: bool = supplied_at(g, pid, tag)
+	var r := 0.0
+	for a in g.armies:
+		if a.pid == pid and supplied_at(g, pid, a.owner) == home:
+			r += a.regs
+	return r
+
+
+## Monthly: camps over the supply limit lose a share of the surplus (never the last regiment).
+## A realm at peace feeds its troops in its own land whatever their number.
+static func attrition(g) -> void:
+	var camps := {}  # pid * 2 + (1 if supplied) -> armies
+	for a in g.armies:
+		var key: int = a.pid * 2 + (1 if supplied_at(g, a.pid, a.owner) else 0)
+		if not camps.has(key):
+			camps[key] = []
+		camps[key].append(a)
+	var rate := float(g.bal.supply_attrition)
+	g.over_supply = {}
+	for key in camps:
+		var arms: Array = camps[key]
+		var total := 0.0
+		for a in arms:
+			total += a.regs
+		var lim: float = supply_limit(g, key / 2, arms[0].owner)
+		if total <= lim:
+			continue
+		g.over_supply[key] = true
+		var frac: float = (total - lim) / total * rate
+		for a in arms:
+			if key % 2 == 1 and not g.is_at_war(a.owner):
+				continue
+			var loss: float = minf(a.regs * frac, maxf(0.0, a.regs - 1.0))
+			if loss <= 0.0:
+				continue
+			a.regs -= loss
+			g.stats["attrition"] = float(g.stats.get("attrition", 0.0)) + loss
+
+
 # ---------------------------------------------------------------- marching
 
 ## Months of march (at speed 1) from one province into its neighbour.

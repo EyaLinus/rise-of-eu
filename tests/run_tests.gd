@@ -59,6 +59,7 @@ func _init() -> void:
 		"test_regency",
 		"test_form_change",
 		"test_start_resources",
+		"test_age_decisions",
 		"test_diplo_capacity",
 		"test_cape_route",
 		"test_overseas_markets",
@@ -66,6 +67,7 @@ func _init() -> void:
 		"test_debug_tools",
 		"test_ledger",
 		"test_more_goods_and_softer_costs",
+		"test_supply_and_ai_stacks",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		if not only.is_empty() and not only.has(t):
@@ -1578,6 +1580,7 @@ func test_buildings() -> void:
 	var p = g.provinces[pid]
 	var n = g.nations.FRA
 	n.gold = 10000.0
+	g.bal.city_growth_chance = 0.0  # random yearly city growth (Urban) would add development too
 	check(g.construct("FRA", g.key_to_pid["london"], "workshop") != "", "cannot build in foreign province")
 	check(g.construct("FRA", pid, "manufactory") != "", "manufactory needs a workshop")
 	var cost: float = Eco.building_cost(g, "FRA", pid, "workshop")
@@ -1589,7 +1592,7 @@ func test_buildings() -> void:
 	for i in 12:
 		g.tick()
 	check(Eco.level(p, "workshop") == 1 and p.constructing.is_empty(), "workshop finished after 12 months")
-	check(p.dev == dev0 + 1, "a finished building level adds development")
+	check(p.dev == dev0 + 1, "a finished building level adds development (%d -> %d)" % [dev0, p.dev])
 	check(Eco.production_value(g, p) > prod0, "workshop raises production")
 	check(Eco.building_cost(g, "FRA", pid, "workshop") > cost, "next level costs more")
 	# slots
@@ -3640,6 +3643,95 @@ func test_units_and_templates() -> void:
 	# a battle is slow: one round a month
 	check(int(g.bal.battle_rounds_per_month) == 1, "one battle round per month")
 	var _w = W
+
+
+func test_age_decisions() -> void:
+	var Ages = load("res://scripts/core/ages.gd")
+	var Tech = load("res://scripts/core/tech.gd")
+	var cfg: Dictionary = data.ages
+	check(cfg.ages.size() == 4 and cfg.questions.size() == 12, "four ages with twelve questions")
+	var per_age := {}
+	var ev_by_id := {}
+	for e in data.events:
+		ev_by_id[e.id] = e
+	for q in cfg.questions:
+		per_age[q.age] = per_age.get(q.age, 0) + 1
+		check(q.options.size() == 3, "%s has three options" % q.id)
+		check(ev_by_id.has("age_q_" + q.id) and ev_by_id["age_q_" + q.id].get("manual", false), "%s has its manual event" % q.id)
+		var harsh := false
+		var humane := false
+		for o in q.options:
+			harsh = harsh or o.tone == "hart"
+			humane = humane or o.tone == "human"
+			check(o.power in ["adm", "dip", "mil"], "%s: power" % o.id)
+			for part in [o.effects, o.up, o.get("synergy", {}).get("effects", {})]:
+				for k in part:
+					check(Tech.LABELS.has(k), "%s: unknown modifier %s" % [o.id, k])
+		check(not harsh or humane, "%s: a harsh option always has a humane alternative" % q.id)
+		# the humane path must be worth it in the long run: fully deepened it beats the harsh one
+		if harsh:
+			var best_h := -999.0
+			var best_x := -999.0
+			for o in q.options:
+				var v: float = Tech.effect_value(Ages.option_effects(o, 3, o.has("synergy")))
+				if o.tone == "human":
+					best_h = maxf(best_h, v)
+				elif o.tone == "hart":
+					best_x = maxf(best_x, v)
+			check(best_h >= best_x, "%s: humane option is at least as strong when deepened (%.1f vs %.1f)" % [q.id, best_h, best_x])
+	for a in cfg.ages:
+		check(per_age.get(a.id, 0) == 3, "%s has three questions" % a.id)
+	# the question pops up for the player in its year
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	Ages.yearly(g, n)
+	check(g.pending_events.is_empty() and n.age_picks.is_empty(), "no question before its year")
+	g.month = (1452 - 1444) * 12
+	Ages.yearly(g, n)
+	check(g.pending_events.has("age_q_buchdruck"), "the printing question is put in 1452")
+	var tc: float = g.mod(n, "tech_cost")
+	g.choose_event_option("FRA", "age_q_buchdruck", 0)
+	check(n.age_picks.get("buchdruck", ["", 0])[0] == "druck_frei" and Ages.level(n, "buchdruck") == 1, "choice stored at level 1")
+	check(is_equal_approx(g.mod(n, "tech_cost"), tc - 0.06), "choice gives its modifier")
+	check(g.check_conditions("FRA", {"age_pick": "druck_frei"}) and not g.check_conditions("FRA", {"age_pick": "druck_hof"}), "condition age_pick")
+	Ages.yearly(g, n)
+	check(g.pending_events.is_empty(), "a question is put only once")
+	# deepening costs power and adds the "up" effects
+	n.adm = 50.0
+	check(Ages.upgrade(g, "FRA", "buchdruck") != "", "deepening needs power")
+	n.adm = 300.0
+	check(Ages.upgrade(g, "FRA", "buchdruck") == "" and is_equal_approx(n.adm, 200.0), "level 2 costs 100")
+	check(Ages.upgrade(g, "FRA", "buchdruck") == "" and is_equal_approx(n.adm, 40.0), "level 3 costs 160")
+	check(is_equal_approx(g.mod(n, "tech_cost"), tc - 0.12), "two levels add twice the up effect")
+	n.adm = 900.0
+	check(Ages.upgrade(g, "FRA", "buchdruck") != "", "level 3 is the top")
+	# one-time payment only for the first answer; an event can change the answer and keeps the level
+	var gold: float = n.gold
+	g.apply_effects("FRA", {"age_pick": ["vertriebene", "vertreibung"]})
+	check(is_equal_approx(n.gold, gold + 250.0), "harsh choice pays at once")
+	n.adm = 300.0
+	Ages.upgrade(g, "FRA", "vertriebene")
+	g.apply_effects("FRA", {"age_pick": ["vertriebene", "aufnahme"]})
+	check(n.age_picks.vertriebene[0] == "aufnahme" and Ages.level(n, "vertriebene") == 2, "an event changes the choice, the level stays")
+	check(is_equal_approx(n.gold, gold + 250.0), "no second payment")
+	# synergy with an earlier choice
+	var prod: float = g.mod(n, "production")
+	g.apply_effects("FRA", {"age_pick": ["menschenhandel", "freie_arbeit"]})
+	check(is_equal_approx(g.mod(n, "production"), prod + 0.05 + 0.03), "free labour is stronger after giving refuge")
+	check(Ages.pick(g, "FRA", "menschenhandel", "druck_hof") != "", "option of another question is refused")
+	# save and load
+	var g2 = Game.new()
+	g2.setup(data, 7, "FRA")
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	var n2 = g2.nations.FRA
+	check(n2.age_picks.size() == 3 and Ages.level(n2, "buchdruck") == 3, "choices survive saving")
+	check(is_equal_approx(g2.mod(n2, "tech_cost"), g.mod(n, "tech_cost")) and is_equal_approx(g2.mod(n2, "production"), g.mod(n, "production")), "bonus rebuilt after loading")
+	# the AI answers too, without a popup
+	var a = g.nations.ENG
+	Ages.yearly(g, a)
+	check(a.age_picks.has("buchdruck") and g.pending_events.is_empty(), "AI realms decide for themselves")
+
+
 ## v1.0 goods update: 13 more goods with leader bonuses, and costs that rise less with development / military tech.
 func test_more_goods_and_softer_costs() -> void:
 	var g = new_game("VEN", 3)
@@ -3675,3 +3767,46 @@ func test_ledger() -> void:
 		check(rows.size() > 20 and float(rows[0][1]) >= float(rows[-1][1]), "ledger %s sorted, best first" % k)
 	check(L.rows(g, "provinces")[0][1] == float(g.provinces_of(L.rows(g, "provinces")[0][0]).size()), "province count")
 	check(L.fmt("income", 3.14159) == "3.1" and L.fmt("dev", 12.6) == "13", "ledger number format")
+
+
+func test_supply_and_ai_stacks() -> void:
+	var g = new_game("FRA", 5)
+	var W = g.Warfare
+	var cap: int = g.nations.ENG.capital
+	for a in g.armies.duplicate():
+		if a.owner == "ENG":
+			g.armies.erase(a)
+	# AI stacks in one province join into one army
+	for i in 6:
+		g.spawn_army("ENG", cap, 1.0)
+	g._armies_tick()
+	var eng: Array = g.armies_of("ENG")
+	check(eng.size() == 1 and absf(eng[0].regs - 6.0) < 0.01, "AI single-regiment stacks merge into one army")
+	# the player's stacks stay as they are
+	var fcap: int = g.nations.FRA.capital
+	var before: int = g.armies_of("FRA").size()
+	g.spawn_army("FRA", fcap, 1.0)
+	g._armies_tick()
+	check(g.armies_of("FRA").size() == before + 1, "player armies are never merged for him")
+	# supply: home land feeds more than foreign land
+	check(W.supply_limit(g, cap, "ENG") > W.supply_limit(g, cap, "FRA"), "the holder gets a higher supply limit")
+	# at peace in the own land: no attrition however big the army
+	eng[0].regs = 500.0
+	eng[0].full = 500.0
+	g._armies_tick()
+	check(absf(eng[0].regs - 500.0) < 0.01, "no attrition at peace at home")
+	# abroad and over the limit: the surplus withers, and there are no reinforcements
+	var f = g.spawn_army("FRA", cap, 200.0)
+	f.full = 300.0
+	g.nations.FRA.manpower = 1000.0
+	g.nations.FRA.gold = 100000.0
+	W.attrition(g)
+	check(f.regs < 200.0 and f.regs > 150.0, "over the supply limit regiments are lost (%.1f)" % f.regs)
+	check(W.over_supply(g, f), "camp is flagged as over supply")
+	var r0: float = f.regs
+	g._reinforce(f)
+	check(f.regs == r0 or not g.is_at_war("FRA"), "no reinforcements over the limit in war")
+	var small = g.spawn_army("FRA", g.nations.FRA.capital, 3.0)
+	W.attrition(g)
+	check(absf(small.regs - 3.0) < 0.01, "an army within the limit loses nothing")
+

@@ -10,6 +10,7 @@ const Government = preload("res://scripts/core/government.gd")
 const Religion = preload("res://scripts/core/religion.gd")
 const Monuments = preload("res://scripts/core/monuments.gd")
 const Formables = preload("res://scripts/core/formables.gd")
+const Ages = preload("res://scripts/core/ages.gd")
 const Warfare = preload("res://scripts/core/warfare.gd")
 const Naval = preload("res://scripts/core/naval.gd")
 const Units = preload("res://scripts/core/units.gd")
@@ -117,6 +118,7 @@ class Nation:
 	var religion: String = "catholic"  # state religion
 	var monuments := {}  # finished great works (Monuments)
 	var formed: String = ""  # id of the realm this nation proclaimed (Formables), "" = none
+	var age_picks := {}  # age decisions: question id -> [option id, level] (Ages)
 	var monument_build := {}  # {"id", "months"} while one is being built
 	var autobuild: bool = false  # player: build the best building whenever the treasury stays above the reserve
 	var autobuild_reserve: float = 100.0
@@ -164,6 +166,7 @@ var armies: Array = []
 var voyages: Array = []  # armies at sea (Naval.transport): {"army", "from", "to", "left", "total"}
 var wars: Array = []
 var battles: Array = []  # running Warfare.Battle
+var over_supply := {}  # Warfare.attrition: camps over their supply limit this month (pid * 2 + side)
 var straits := {}  # sea crossings, Warfare.strait_key -> true
 var seas: Array = []  # Naval: {"id", "name", "center", "provinces"}
 var sea_by_id := {}
@@ -180,6 +183,9 @@ var player: String = ""
 var event_defs: Array = []
 var monument_defs := {}
 var formable_defs := {}
+var age_cfg := {}  # data/ages.json (Ages)
+var age_q := {}  # question id -> question
+var age_opt := {}  # option id -> [question, option]
 var event_by_id := {}
 var mission_defs := {}
 var log_lines: Array = []
@@ -311,6 +317,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	Religion.setup(self, data)
 	monument_defs = data.get("monuments", {})
 	Formables.setup(self, data)
+	Ages.setup(self, data)
 	Trade.setup(self)
 	Economy.setup(self, data)
 	Urban.setup(self)
@@ -956,6 +963,7 @@ func _yearly() -> void:
 			if tag == emperor:
 				hre_election()
 		govt.yearly(self, n)
+		Ages.yearly(self, n)
 		_check_events(n)
 		if tag != player:
 			for m in available_missions(tag):
@@ -1141,11 +1149,32 @@ func _armies_tick() -> void:
 	Warfare.battles_tick(self)
 	for p in provinces:
 		_siege(p)
+	_merge_ai_stacks()
+	Warfare.attrition(self)
 	for a in armies:
 		if Warfare.in_battle(self, a):
 			continue
 		_reinforce(a)
 		_recover_power(a)
+
+
+## AI realms never keep several stacks in one province: they join into one army (as long as the land
+## can feed it), so the map shows one counter instead of a pile of single regiments.
+func _merge_ai_stacks() -> void:
+	var seen := {}  # "tag:pid" -> first army there
+	var again := {}
+	for a in armies:
+		if a.owner == player or Warfare.in_battle(self, a):
+			continue
+		var key := "%s:%d" % [a.owner, a.pid]
+		if seen.has(key):
+			again[key] = a
+		else:
+			seen[key] = a
+	for key in again:
+		var a: Army = again[key]
+		if not is_at_war(a.owner) or Warfare.supply_load(self, a.pid, a.owner) <= Warfare.supply_limit(self, a.pid, a.owner):
+			merge_armies(a.owner, a.pid)
 
 
 func _side_power(arms: Array, pid: int) -> float:
@@ -1264,6 +1293,8 @@ func _reinforce(a: Army) -> void:
 	if p.controller != a.owner and not is_allied(a.owner, p.controller):
 		return
 	var n: Nation = nations[a.owner]
+	if is_at_war(a.owner) and Warfare.over_supply(self, a):
+		return  # the land cannot feed more men
 	var amt: float = minf(a.full - a.regs, minf(a.full * float(bal.reinforce_rate), n.manpower))
 	if amt <= 0.0 or n.gold < 0.0:
 		return
@@ -2687,6 +2718,8 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 					n.monument_build.months = maxi(1, int(n.monument_build.months) - int(v))
 			"feast_ready":
 				n.flags.erase("feast_month")
+			"age_pick":
+				Ages.pick(self, tag, str(v[0]), str(v[1]))
 			"ships":
 				# never above the fleet limit (or the current fleet, if that is already larger)
 				n.ships = clampf(n.ships + float(v), 0.0, maxf(Naval.limit(self, tag), n.ships))
@@ -2946,6 +2979,9 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"feast_recent":
 				if month - int(n.flags.get("feast_month", -9999)) > int(v):
 					return false
+			"age_pick":
+				if not Ages.has_pick(self, n, str(v)):
+					return false
 			"is_player":
 				# flavor that would only dilute the AI's event pool (and cost it gold, see court_events.py)
 				if (tag == player) != bool(v):
@@ -3111,8 +3147,8 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "embargoes": n.embargoes, "templates": n.templates, "recruit_tmpl": n.recruit_tmpl, "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "fleet_mission": n.fleet_mission, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
-				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n), "colonial": Colonial.nation_save(n)}
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "embargoes": n.embargoes, "templates": n.templates, "recruit_tmpl": n.recruit_tmpl, "religion": n.religion, "ships": snappedf(n.ships, 0.0001), "fleet_sea": n.fleet_sea, "fleet_mission": n.fleet_mission, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
+				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n), "colonial": Colonial.nation_save(n), "age_picks": Ages.to_save(n)}
 	d.nations = ns
 	var ar := []
 	for a in armies:
@@ -3318,6 +3354,7 @@ func from_dict(d: Dictionary) -> void:
 		n.tech_queue = Array(e.get("tech_queue", [])).filter(func(q): return tree.by_id.has(q))
 		govt.load_save(n, e.get("gov", {}))
 		Colonial.nation_load(self, n, e.get("colonial", {}))
+		Ages.load_save(self, n, e.get("age_picks", {}))
 	armies.clear()
 	for e in d.armies:
 		armies.append(_army_load(e))

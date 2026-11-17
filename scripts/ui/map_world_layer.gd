@@ -1,11 +1,14 @@
 extends Node2D
-## World-space part of the map (province fills, borders, roads, sea routes). It sits behind
-## MapView's own drawing and follows pan and zoom through its transform, so panning only moves
-## it instead of re-recording thousands of polygons every frame. MapView redraws it when the
-## game state, the map mode or the zoom changes (see MapView.refresh()).
+## One piece of the world-space map (a province's fill, the borders, the roads, the cities or the sea
+## routes). The pieces sit behind MapView's own drawing inside one container that follows pan and
+## zoom through its transform, so panning only moves them. MapView redraws a piece only when what
+## it shows has changed (see MapView.refresh() and refresh_after_tick()).
 
 var map
+var kind := ""  # "bg", "prov", "borders", "roads", "cities", "sea"
+var pid := -1
+var sig = null  # what the piece showed when it was last drawn
 
 
 func _draw() -> void:
-	map._draw_world(self)
+	map._draw_layer(self)
