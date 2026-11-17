@@ -354,9 +354,19 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		n.aggression = float(nd.get("aggression", 0.6))
 		n.ruler_names = nd.get("rulers", [])
 		n.capital = key_to_pid[nd.capital]
+		# stronger start lands than the shared map gives (data/nations.json "dev_bonus": {province key: +dev})
+		var db: Dictionary = nd.get("dev_bonus", {})
+		for key in db:
+			if key_to_pid.has(key) and provinces[key_to_pid[key]].owner == tag:
+				provinces[key_to_pid[key]].dev += int(db[key])
 		var bonus: Dictionary = nd.get("bonus", {})
 		for k in bonus:
 			n.mods[k] = float(bonus[k])
+		if tag == player_tag:
+			# a few nations are tuned to be strong in the player's hands (data/nations.json "player_bonus")
+			var pb: Dictionary = nd.get("player_bonus", {})
+			for k in pb:
+				n.mods[k] = n.mods.get(k, 0.0) + float(pb[k])
 		n.gold = float(bal.start_gold)
 		n.adm = float(bal.start_power)
 		n.dip = float(bal.start_power)
@@ -411,6 +421,8 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	mission_defs = data.get("missions", {})
 	_apply_start_diplomacy(data.get("diplomacy", {}))
 	_apply_difficulty()
+	if player_tag != "" and data.nations.has(player_tag):
+		apply_effects(player_tag, data.nations[player_tag].get("player_start", {}))
 	# mission targets act as permanent claims (historical expansion goals)
 	for tag in mission_defs:
 		if not nations.has(tag):
@@ -2919,6 +2931,10 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 					provinces[pid].core_months = int(bal.core_months)
 					_rebuild_owned()
 					_check_alive(old)
+			"colony_grant":
+				Colonial.grant(self, tag, v if v is Array else [v])
+			"discover":
+				Colonial.discover(self, tag, v if v is Array else [v])
 			"isolate":
 				# the target stands alone: its allies and guarantors abandon it (comes before "war")
 				if nations.has(v) and nations[v].alive:
@@ -3055,6 +3071,11 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"not_flag":
 				if n.flags.has(v):
 					return false
+			"nation_flag":
+				# another realm carries a flag: {"HUN": "hun_habsburg_king"}
+				for t in v:
+					if not nations.has(t) or not nations[t].flags.has(v[t]):
+						return false
 			"min_dev":
 				if n.dev_total < int(v):
 					return false
@@ -3131,6 +3152,10 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 					return false
 			"cities_max":
 				if Urban.count_of(self, tag) > int(v):
+					return false
+			"colony_free":
+				# one of these provinces (map keys) is still free native land
+				if Colonial.free_target(self, v if v is Array else [v]) < 0:
 					return false
 			"coastal":
 				var any_coast := false

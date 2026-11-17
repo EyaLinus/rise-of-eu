@@ -32,4 +32,7 @@ def replace_block(prefix, events):
     data = json.loads(out)
     assert len({e["id"] for e in data}) == len(data)
     open(PATH, "w", encoding="utf-8").write(out)
-    return data
+    # balance fixes on top of every generator (manpower scale, dominant options): see event_balance.py
+    import event_balance
+    event_balance.apply()
+    return json.load(open(PATH, encoding="utf-8"))
