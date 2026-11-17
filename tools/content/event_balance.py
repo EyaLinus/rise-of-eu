@@ -132,6 +132,8 @@ PATCHES = {
     # Hungary is only inherited by Habsburg when its own nobles chose Ferdinand (hu_mohacs_crown)
     "hab_mohacs": {"trigger": {"year_min": 1520, "alive": "HUN", "at_peace": True,
                                "nation_flag": {"HUN": "hun_habsburg_king"}},
+                   # repeatable: a draw while either side is at war used to waste the only chance
+                   "once": False,
                    0: ({"inherit": "HUN", "ae": 10}, 90)},
 }
 
@@ -152,8 +154,8 @@ def apply_events(events):
         if e is None:
             continue
         for k, v in patch.items():
-            if k == "trigger":
-                e["trigger"] = v
+            if isinstance(k, str):
+                e[k] = v
                 continue
             if isinstance(v, tuple):
                 e["options"][k]["effects"] = dict(v[0])
