@@ -4,6 +4,24 @@ Stand 2026-11-17, Code-Stand `main` f1491bc (v1.0.0 + Afrika). Alle Zahlen sind 
 eines Cloud-Xeon @ 2.1 GHz** gemessen (Referenz-CPU = 1,0×). Wie schnell das auf Linus' Handy und PC ist,
 ist **nicht gemessen** (siehe „Offene Fragen“).
 
+## 0. Entscheidungen (Linus, 2026-11-17) und Stand
+
+- **Zielgröße: ~1000 Provinzen.**
+- **Geschwindigkeit:** Stufe 1 (1,2 s je Monat) muss flüssig laufen, Stufe 2 (0,6 s) ist Bonus,
+  **Stufen 3–5 werden entfernt.** Damit ist das Budget nicht „möglichst viele Monate pro Sekunde“,
+  sondern: **ein Monat muss in 600 ms fertig sein (Stufe 2) und darf nie einen Frame einfrieren.**
+  Bei 1000 Provinzen und einem Handy, das 3× langsamer ist als die Referenz-CPU, heißt das:
+  Ø-Tick auf der Referenz-CPU ≤ ~150 ms (Stufe 2) bzw. ≤ ~300 ms (Stufe 1), **und** die Simulation
+  muss aus dem Hauptthread raus. Folge: **Phase 2 (Thread) vor Phase 4 (KI)**.
+- Gerätewerte vom Handy/PC folgen später.
+
+**Phase 1 erledigt** (gleicher PR): Modifikator-Cache je Nation (`Nation.modv`, `set_bonus`/`clear_bonus`),
+Vasallen-/Embargo-Index (`Nation.links_ver`), Marine nur bei Bedarf, Event-Index je Tag mit Jahresgrenzen.
+Ergebnis 40 Jahre Seed 7: **93,7 → 65,8 ms/Tick (−30 %)**, schlimmster Tick 322 → 273 ms.
+Spielverlauf **bitgenau identisch** zu `main` (`tools/state_hash.gd`, 40 Jahre, Seeds 7 und 11).
+Die Jahres-Staffelung (Option C, Teil 2) ändert den Spielverlauf und wandert deshalb nach Phase 4,
+mit Balance-Läufen; mit dem Thread aus Phase 2 ist der Jahres-Spike ohnehin unsichtbar.
+
 Werkzeuge (alle neu bzw. überarbeitet in diesem PR):
 
 | Werkzeug | Was es misst |
@@ -11,6 +29,7 @@ Werkzeuge (alle neu bzw. überarbeitet in diesem PR):
 | `tools/perf.gd -- --years 60 --every 20` | echte `Game.tick()` mit eingebautem Profiler (`g.prof`), Zeit je Phase, schlimmster Tick, Speicher, Savegröße, Save/Load-Zeit, optional `--json` |
 | `tools/render_perf.gd` (xvfb + opengl3) | Draw Calls / Primitive je Zoomstufe, Kosten von `map.refresh()`, Kosten pro Monat im UI (`_after_tick` aufgeteilt), Kosten je Panel, Textur-/Videospeicher |
 | `Game._pmark(key)` | Profiler-Marke im Kern; ohne `g.prof` ein No-op (Kosten < 0,1 %) |
+| `tools/state_hash.gd -- --years 40 [--seed N] [--dump f.json]` | Hash des kompletten Spielstands je Jahr: reine Performance-Änderungen müssen **identische** Hashes wie `main` liefern |
 
 ---
 
@@ -161,8 +180,8 @@ Gewinne sind **Schätzungen ±50 %**; jede Phase misst vorher/nachher mit `tools
 | Phase | Inhalt | Aufwand | Ziel |
 |---|---|---|---|
 | **0** (dieser PR) | Profiler-Marken im Kern, `perf.gd` neu, `render_perf.gd`, dieses Dokument | erledigt | Baseline |
-| **1 Quick Wins** | A, B, C, D | ~1 Tag | Ø Tick −30–40 %, Jahres-Spike weg |
-| **2 Async-Sim** | E, F | 1–2 Tage | Frame-Zeit unabhängig vom Tick, keine Ruckler |
+| **1 Quick Wins** ✓ | A, B, C (Index), D | erledigt | −30 %, bitgenau gleich |
+| **2 Async-Sim** | E, F, Stufen 3–5 entfernen | 1–2 Tage | Frame-Zeit unabhängig vom Tick, keine Ruckler |
 | **3 Welt-Karte** | G, H (+ Projektion neu, die heutige „Atlantik-Verschiebung“ passt nicht zur ganzen Welt) | 2–4 Tage | Rendering skaliert nicht mehr mit Provinzzahl, Textur passt aufs Handy |
 | **4 KI & UI** | I, J (Hot Paths), P | 2–3 Tage | Ø Tick nochmal −25–35 %, UI pro Monat < 10 ms |
 | **5 nur falls nötig** | K, dann evtl. L | 3–6 Tage | wenn Welt-Budget nach Phase 4 nicht erreicht |

@@ -276,7 +276,7 @@ static func refresh_building_bonus(g, n) -> void:
 			var nat: Dictionary = g.buildings_def[bid].get("nation", {})
 			for k in nat:
 				b[k] = b.get(k, 0.0) + float(nat[k]) * int(p.buildings[bid])
-	n.bonus["buildings"] = b
+	n.set_bonus("buildings", b)
 
 
 # ---------------------------------------------------------------- production and tax
@@ -425,7 +425,7 @@ static func apply_goods_leaders(g) -> void:
 				var gb: Dictionary = g.goods_def[k].get("bonus", {})
 				for m in gb:
 					b[m] = b.get(m, 0.0) + float(gb[m])
-		g.nations[tag].bonus["goods"] = b
+		g.nations[tag].set_bonus("goods", b)
 
 
 # ---------------------------------------------------------------- trade
@@ -587,7 +587,7 @@ static func cancel_pact(g, tag: String, other: String) -> void:
 
 
 static func refresh_pact_bonus(g, n) -> void:
-	n.bonus["pacts"] = {"trade": float(g.bal.trade_pact_bonus) * n.trade_pacts.size()}
+	n.set_bonus("pacts", {"trade": float(g.bal.trade_pact_bonus) * n.trade_pacts.size()})
 
 
 ## Monthly: war or death ends agreements.

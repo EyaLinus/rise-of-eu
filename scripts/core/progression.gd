@@ -48,7 +48,7 @@ static func refresh(g) -> void:
 	for tag in g.order:
 		var n = g.nations[tag]
 		var r := rank(g, tag)
-		n.bonus["rank"] = RANKS[r].bonus
+		n.set_bonus("rank", RANKS[r].bonus)
 		if not n.flags.has("rank"):
 			n.flags["rank"] = r
 
@@ -61,7 +61,7 @@ static func yearly(g) -> void:
 			continue
 		var r := rank(g, tag)
 		var old: int = int(n.flags.get("rank", 0))
-		n.bonus["rank"] = RANKS[r].bonus
+		n.set_bonus("rank", RANKS[r].bonus)
 		if r > old:
 			n.flags["rank"] = r
 			if tag == g.player:
