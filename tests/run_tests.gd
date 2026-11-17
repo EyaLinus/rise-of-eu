@@ -2001,7 +2001,7 @@ func test_colonial() -> void:
 	# raids can wipe out a young colony
 	var bor: int = g.key_to_pid["boriken"]
 	check(Col.start_colony(g, "POR", bor) == "", "the next colony starts")
-	g.provinces[bor].natives = 50.0
+	g.provinces[bor].natives = 1.0 / float(g.bal.native_raid_chance)  # a raid every month (50 natives left it to chance: 7 % of seeds kept the colony)
 	g.bal.native_raid_destroy = 1.0
 	for i in 12:
 		g.tick()
