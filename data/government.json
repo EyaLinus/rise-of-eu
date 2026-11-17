@@ -927,7 +927,15 @@
   "DUL": "Beylik",
   "AKK": "Stammesföderation",
   "QAR": "Stammesföderation",
-  "CIR": "Stammesföderation"
+  "CIR": "Stammesföderation",
+  "ETH": "Kaiserreich",
+  "SAF": "Theokratie",
+  "HJZ": "Theokratie",
+  "TIM": "Sultanat",
+  "HOR": "Sultanat",
+  "YEM": "Sultanat",
+  "ADA": "Sultanat",
+  "MAZ": "Sultanat"
  },
  "form_effects": {
   "Feudalmonarchie": {
@@ -1321,6 +1329,234 @@
     "ae_gen": 0.1
    },
    "text": "Sieht überall Feinde und will sie alle schlagen."
+  },
+  {
+   "id": "por_henrique",
+   "tag": "POR",
+   "name": "Heinrich der Seefahrer",
+   "type": "dip",
+   "from": 1444,
+   "to": 1460,
+   "effects": {
+    "naval": 0.1,
+    "trade": 0.05
+   },
+   "text": "Der Infant schickt Jahr für Jahr Karavellen weiter nach Süden."
+  },
+  {
+   "id": "por_gama",
+   "tag": "POR",
+   "name": "Vasco da Gama",
+   "type": "mil",
+   "from": 1497,
+   "to": 1524,
+   "effects": {
+    "naval": 0.15,
+    "prestige": 0.5
+   },
+   "text": "Hat den Seeweg nach Indien gefunden und kennt jede Küste."
+  },
+  {
+   "id": "por_albuquerque",
+   "tag": "POR",
+   "name": "Afonso de Albuquerque",
+   "type": "mil",
+   "from": 1503,
+   "to": 1515,
+   "effects": {
+    "combat": 0.05,
+    "trade": 0.05
+   },
+   "text": "Eroberer von Goa, Malakka und Hormus."
+  },
+  {
+   "id": "ven_foscari",
+   "tag": "VEN",
+   "name": "Francesco Foscari",
+   "type": "dip",
+   "from": 1444,
+   "to": 1457,
+   "effects": {
+    "dip": 1,
+    "prestige": 0.5
+   },
+   "text": "Der Doge, der Venedig zur Macht auf dem Festland machte."
+  },
+  {
+   "id": "ven_colleoni",
+   "tag": "VEN",
+   "name": "Bartolomeo Colleoni",
+   "type": "mil",
+   "from": 1448,
+   "to": 1475,
+   "effects": {
+    "combat": 0.05
+   },
+   "text": "Condottiere im Dienst der Republik, später in Bronze gegossen."
+  },
+  {
+   "id": "ven_aldus",
+   "tag": "VEN",
+   "name": "Aldus Manutius",
+   "type": "adm",
+   "from": 1494,
+   "to": 1515,
+   "effects": {
+    "tech_cost": -0.05
+   },
+   "text": "Drucker der schönsten Bücher Europas."
+  },
+  {
+   "id": "hun_hunyadi",
+   "tag": "HUN",
+   "name": "Johann Hunyadi",
+   "type": "mil",
+   "from": 1444,
+   "to": 1456,
+   "effects": {
+    "combat": 0.06,
+    "manpower": 0.05
+   },
+   "text": "Der Türkenschreck, Sieger von Belgrad."
+  },
+  {
+   "id": "hun_vitez",
+   "tag": "HUN",
+   "name": "Johann Vitéz",
+   "type": "adm",
+   "from": 1458,
+   "to": 1472,
+   "effects": {
+    "adm": 1
+   },
+   "text": "Humanist, Erzbischof und Erzieher des jungen Königs."
+  },
+  {
+   "id": "hun_kinizsi",
+   "tag": "HUN",
+   "name": "Paul Kinizsi",
+   "type": "mil",
+   "from": 1479,
+   "to": 1494,
+   "effects": {
+    "combat": 0.04,
+    "siege": 0.1
+   },
+   "text": "Ein Müllerssohn, der mit zwei Türken unter den Armen tanzte."
+  },
+  {
+   "id": "mam_qaitbay",
+   "tag": "MAM",
+   "name": "Emir Qaitbay",
+   "type": "mil",
+   "from": 1444,
+   "to": 1468,
+   "effects": {
+    "combat": 0.04,
+    "build_cost": -0.1
+   },
+   "text": "Baut Festungen an der Küste und Moscheen in Kairo."
+  },
+  {
+   "id": "mam_suyuti",
+   "tag": "MAM",
+   "name": "Dschalal ad-Din as-Suyuti",
+   "type": "adm",
+   "from": 1460,
+   "to": 1505,
+   "effects": {
+    "prestige": 0.5,
+    "tech_cost": -0.03
+   },
+   "text": "Gelehrter mit Hunderten von Büchern."
+  },
+  {
+   "id": "mam_yashbak",
+   "tag": "MAM",
+   "name": "Yashbak min Mahdi",
+   "type": "dip",
+   "from": 1470,
+   "to": 1480,
+   "effects": {
+    "dip": 1
+   },
+   "text": "Erfahrener Unterhändler an der Nordgrenze."
+  },
+  {
+   "id": "qar_pir_budaq",
+   "tag": "QAR",
+   "name": "Pir Budaq",
+   "type": "mil",
+   "from": 1444,
+   "to": 1466,
+   "effects": {
+    "combat": 0.04
+   },
+   "text": "Sohn des Schahs, ein Feldherr mit eigenem Kopf."
+  },
+  {
+   "id": "qar_tabrizi",
+   "tag": "QAR",
+   "name": "Kalligraph von Täbris",
+   "type": "adm",
+   "from": 1444,
+   "to": 1480,
+   "effects": {
+    "prestige": 0.5,
+    "unrest": -0.25
+   },
+   "text": "Seine Schrift schmückt die Blaue Moschee von Täbris."
+  },
+  {
+   "id": "qar_wazir",
+   "tag": "QAR",
+   "name": "Großwesir Hasan Beg",
+   "type": "dip",
+   "from": 1450,
+   "to": 1467,
+   "effects": {
+    "dip": 1,
+    "ae_decay": 0.05
+   },
+   "text": "Hält die Stämme mit Geschenken bei Laune."
+  },
+  {
+   "id": "eth_zara",
+   "tag": "ETH",
+   "name": "Abt Giyorgis von Gasicha",
+   "type": "adm",
+   "from": 1444,
+   "to": 1470,
+   "effects": {
+    "unrest": -0.5,
+    "prestige": 0.25
+   },
+   "text": "Ein strenger Abt, der die Kirche des Hochlands ordnet."
+  },
+  {
+   "id": "eth_eleni",
+   "tag": "ETH",
+   "name": "Kaiserin Eleni",
+   "type": "dip",
+   "from": 1468,
+   "to": 1522,
+   "effects": {
+    "dip": 1,
+    "ae_decay": 0.05
+   },
+   "text": "Kaiserin und Regentin, sie schreibt Briefe nach Lissabon."
+  },
+  {
+   "id": "eth_dawit",
+   "tag": "ETH",
+   "name": "Ras Wossen Seged",
+   "type": "mil",
+   "from": 1490,
+   "to": 1540,
+   "effects": {
+    "combat": 0.05
+   },
+   "text": "Feldherr der Grenzmarken gegen Adal."
   },
   {
    "id": "fra_coeur",
@@ -1856,6 +2092,72 @@
     "develop_cost": -0.08
    },
    "text": "Bargeldloser Zahlungsverkehr nach Amsterdamer Vorbild."
+  },
+  {
+   "id": "por_casa_india",
+   "tag": "POR",
+   "name": "Casa da Índia",
+   "year": 1500,
+   "effects": {
+    "trade": 0.18,
+    "naval": 0.05
+   },
+   "text": "Das königliche Handelshaus für Pfeffer aus Indien."
+  },
+  {
+   "id": "ven_muda",
+   "tag": "VEN",
+   "name": "Mude-Galeerenkonvois",
+   "year": 1444,
+   "effects": {
+    "trade": 0.15,
+    "income": 0.03
+   },
+   "text": "Staatliche Konvois nach Alexandria, Beirut und Flandern."
+  },
+  {
+   "id": "hun_besztercebanya",
+   "tag": "HUN",
+   "name": "Kupferhandel von Neusohl",
+   "year": 1495,
+   "effects": {
+    "income": 0.12,
+    "production": 0.05
+   },
+   "text": "Thurzó und die Fugger fördern das Kupfer Oberungarns."
+  },
+  {
+   "id": "mam_khan_khalili",
+   "tag": "MAM",
+   "name": "Khan el-Khalili",
+   "year": 1444,
+   "effects": {
+    "trade": 0.15,
+    "tax": 0.03
+   },
+   "text": "Der große Basar von Kairo."
+  },
+  {
+   "id": "qar_silk_caravans",
+   "tag": "QAR",
+   "name": "Seidenkarawanen von Täbris",
+   "year": 1450,
+   "effects": {
+    "trade": 0.15,
+    "production": 0.03
+   },
+   "text": "Seide aus dem Norden für die Märkte von Aleppo und Bursa."
+  },
+  {
+   "id": "eth_aksum_trade",
+   "tag": "ETH",
+   "name": "Hochlandhandel von Aksum",
+   "year": 1450,
+   "effects": {
+    "trade": 0.12,
+    "income": 0.03
+   },
+   "text": "Gold, Elfenbein und Kaffee auf dem Weg zum Roten Meer."
   },
   {
    "id": "fra_lyon",
