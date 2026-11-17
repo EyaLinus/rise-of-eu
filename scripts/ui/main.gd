@@ -1162,13 +1162,9 @@ func _after_tick() -> void:
 		_show_peace_offer(game.pending_peace[0])
 		return
 	if side_panel.visible and panel_mode != "peace" and not debug_screen.typing():
-		# never rebuild the panel under a slider that is being dragged
-		if _press_range == null and Time.get_ticks_msec() - _last_refresh_ms >= PANEL_REFRESH_MS:
-			_refresh_pending = false
-			_last_refresh_ms = Time.get_ticks_msec()
-			_refresh()
-		else:
-			_refresh_pending = true
+		# rebuilt at the start of the next frame (_process), not in this one: the month's last simulation
+		# steps already used this frame, and a panel rebuild costs 10-35 ms. Never under a dragged slider.
+		_refresh_pending = true
 
 
 const MODE_LEGENDS := [
