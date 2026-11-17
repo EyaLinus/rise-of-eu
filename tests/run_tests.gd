@@ -510,7 +510,14 @@ func test_economy_goods_and_trade() -> void:
 	check(absf(n.income - n.tax_income - n.prod_income - n.trade_income) < 0.001, "income is the sum of its parts")
 	for k in g.prices:
 		var base: float = float(g.goods_def[k].price)
-		check(g.prices[k] >= base * 0.59 and g.prices[k] <= base * 1.61, "price of %s stays in bounds" % k)
+		var shock: float = float(g.shocks[k].mult) if g.shocks.has(k) else 1.0
+		check(g.prices[k] >= base * float(g.bal.price_min) * shock - 0.002 and g.prices[k] <= base * float(g.bal.price_max) * shock + 0.002, "price of %s stays in bounds" % k)
+	# demand grows with the world economy: twice the output everywhere doubles demand too
+	var doubled := {}
+	for k in g.base_supply:
+		doubled[k] = float(g.base_supply[k]) * 2.0
+	check(absf(g.Economy.economy_growth(g, doubled) - pow(2.0, float(g.bal.demand_econ_elasticity))) < 0.001, "demand follows world output")
+	check(g.Economy.price_level(g) <= float(g.bal.price_level_start) + 0.001 and g.Economy.price_level(g) >= float(g.bal.price_level_end) - 0.001, "price level between start and end")
 	# merchants: count, send, recall
 	var Eco = g.Economy
 	check(n.merchants.size() == Eco.merchant_count(g, n), "AI/auto fills all merchant slots")

@@ -348,9 +348,10 @@ static func yearly(g) -> void:
 	var s := supply(g)
 	var years: float = g.year() - int(g.bal.start_year)
 	g.prev_prices = g.prices.duplicate()
+	var econ: float = economy_growth(g, s)
 	for k in g.goods_def:
-		var demand: float = float(g.base_supply.get(k, 1.0)) * (1.0 + float(g.bal.demand_growth) * years) * g.Urban.demand_mult(g, k)
-		var ratio: float = sqrt(demand / maxf(0.01, s[k]))
+		var demand: float = float(g.base_supply.get(k, 1.0)) * econ * (1.0 + float(g.bal.demand_growth) * years) * g.Urban.demand_mult(g, k)
+		var ratio: float = price_level(g) * sqrt(demand / maxf(0.01, s[k]))
 		var shock: float = float(g.shocks[k].mult) if g.shocks.has(k) else 1.0
 		g.prices[k] = snappedf(float(g.goods_def[k].price) * clampf(ratio, float(g.bal.price_min), float(g.bal.price_max)) * shock, 0.001)
 	refresh_goods_leaders(g)
@@ -358,6 +359,30 @@ static func yearly(g) -> void:
 		var n = g.nations[tag]
 		if n.alive and (n.merchant_auto or tag != g.player):
 			auto_merchants(g, n)
+
+
+## How much richer the world is than at the start, as a demand factor: total output of all goods now
+## against the start, to the power of `demand_econ_elasticity` (1 = demand keeps pace with the economy,
+## so only goods that grow faster than the rest get cheaper; 0 = fixed demand, everything deflates).
+static func economy_growth(g, s: Dictionary) -> float:
+	var now := 0.0
+	var start := 0.0
+	for k in s:
+		now += float(s[k])
+	for k in g.base_supply:
+		start += float(g.base_supply[k])
+	if start <= 0.0 or now <= 0.0:
+		return 1.0
+	return pow(now / start, float(g.bal.get("demand_econ_elasticity", 0.0)))
+
+
+## General price level: slides from `price_level_start` to `price_level_end` over the game, so
+## goods get gently cheaper overall while each good still moves with its own supply and demand.
+static func price_level(g) -> float:
+	var a: float = float(g.bal.get("price_level_start", 1.0))
+	var b: float = float(g.bal.get("price_level_end", 1.0))
+	var t: float = clampf(float(g.month) / maxf(1.0, float(g.bal.total_months)), 0.0, 1.0)
+	return lerpf(a, b, t)
 
 
 ## Market shocks: now and then a good gets scarce (harvest failure, war, plague) or floods the market
