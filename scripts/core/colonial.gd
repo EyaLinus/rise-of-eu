@@ -14,7 +14,8 @@ const NATIVE := "NAT"  # owner of uncolonized native land
 ## Seas beyond the Old World: unknown until explored. Old World realms know every other sea (also the
 ## West African coast down to Sierra Leone, which Portuguese caravels reached by 1444).
 const NEW_SEAS := ["guinea", "ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes",
-		"south_atlantic", "cape", "mozambique", "swahili", "indian", "af_lakes"]
+		"south_atlantic", "cape", "mozambique", "swahili", "indian", "af_lakes",
+		"guiana", "amazon", "brazil", "plata", "patagonian", "horn", "humboldt"]
 ## Monsoon trade: realms with a coast on one of these known seas also know the Swahili coast from the start.
 const MONSOON := {"swahili": ["aden", "arabian", "persian_gulf"]}
 
@@ -24,8 +25,13 @@ static func setup(g, data: Dictionary) -> void:
 	g.wa_first = g.provinces.size()
 	g.nw_end = g.provinces.size()
 	g.af_first = g.provinces.size()
+	g.sa_first = g.provinces.size()
 	for i in data.map.provinces.size():
 		var pd: Dictionary = data.map.provinces[i]
+		if pd.get("sa", false):
+			if g.sa_first == g.provinces.size():
+				g.sa_first = i  # South America and the finer North American east coast: after Africa, region "america"
+			continue
 		if pd.get("af", false):
 			if g.af_first == g.provinces.size():
 				g.af_first = i  # Africa south of the Sahara: overseas again, after the east block
@@ -41,7 +47,7 @@ static func setup(g, data: Dictionary) -> void:
 	for pid in g.provinces.size():
 		if is_new_world(g, pid):
 			g.overseas.append(pid)
-			if pid >= g.wa_first:
+			if region(g, pid) == "africa":
 				g.africa.append(pid)
 	g.found = {}
 	if g.nations.has(NATIVE):
@@ -108,11 +114,11 @@ static func reset_knowledge(g, n) -> void:
 				n.known_nw[a] = true
 
 
-## "old" (Europe, North Africa, the Near East), "america" or "africa" (West Africa).
+## "old" (Europe, North Africa, the Near East), "america" or "africa" (West Africa and the south).
 static func region(g, pid: int) -> String:
 	if not is_new_world(g, pid):
 		return "old"
-	return "africa" if pid >= g.wa_first else "america"
+	return "africa" if pid >= g.wa_first and pid < g.sa_first else "america"
 
 
 static func is_native_realm(g, tag: String) -> bool:

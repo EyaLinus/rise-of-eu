@@ -5,7 +5,7 @@ mountain ranges (real lon/lat polylines) as relief plus small peak glyphs, darke
 outside the playable provinces. Colours come from the art_profile palette; noise only blends
 between neighbouring ramp colours. Needs numpy, scipy, pillow, pyyaml.
 
-    python3 tools/art/map_terrain.py   # writes assets/art/map/terrain.png, terrain_south.png and terrain_half.png
+    python3 tools/art/map_terrain.py   # writes assets/art/map/terrain.png, the tiles (terrain_south.png, terrain_sa.png) and terrain_half.png
 """
 import json
 import math
@@ -92,6 +92,19 @@ RANGES = [
     (0.4, [(-77.0, 20.0), (-75.8, 20.1)]),  # Sierra Maestra
     (0.4, [(-66.2, 49.0), (-65.4, 48.8)]),  # Chic-Chocs
     (0.4, [(-63.0, 56.6), (-63.6, 58.4), (-64.4, 59.6)]),  # Torngat
+    # South America
+    (0.6, [(-74.0, 10.6), (-73.4, 10.9)]),  # Sierra Nevada de Santa Marta
+    (0.75, [(-77.6, 1.2), (-76.2, 3.6), (-75.6, 5.8), (-75.4, 7.2)]),  # Cordillera Central (Colombia)
+    (0.7, [(-76.4, 2.0), (-74.6, 4.2), (-73.2, 6.2), (-72.6, 8.0), (-71.2, 8.8), (-70.0, 9.6)]),  # Cordillera Oriental, Mérida Andes
+    (1.0, [(-78.0, 0.6), (-78.6, -1.4), (-79.0, -3.8), (-78.3, -6.4), (-77.5, -8.6), (-76.3, -10.4), (-74.9, -12.0), (-73.2, -13.6), (-71.3, -14.6), (-69.8, -15.6)]),  # the Andes of Ecuador and Peru
+    (1.0, [(-73.4, -15.2), (-71.4, -16.6), (-69.8, -18.6), (-68.6, -21.6), (-68.4, -24.6), (-69.2, -27.6), (-70.0, -30.6), (-70.1, -33.0), (-70.6, -35.6), (-71.2, -38.2), (-71.8, -41.0)]),  # Cordillera Occidental, the Andes of Chile
+    (0.7, [(-72.4, -44.0), (-73.0, -47.4), (-73.2, -50.4), (-72.4, -52.6), (-70.6, -54.4)]),  # Patagonian Andes
+    (0.7, [(-68.0, -15.6), (-66.6, -17.6), (-65.6, -20.0), (-65.2, -23.0)]),  # Cordillera Oriental (Bolivia)
+    (0.35, [(-64.8, -30.6), (-64.6, -32.8)]),  # Sierras de Córdoba
+    (0.45, [(-64.0, 4.8), (-61.6, 5.2), (-60.6, 4.6)]),  # Guiana highlands, Roraima
+    (0.45, [(-48.8, -25.6), (-46.4, -23.6), (-44.4, -22.8), (-42.4, -22.2)]),  # Serra do Mar
+    (0.35, [(-44.0, -21.2), (-43.6, -18.6), (-42.6, -15.6)]),  # Mantiqueira, Espinhaço
+    (0.3, [(-41.6, -12.8), (-41.0, -10.6)]),  # Chapada Diamantina
 ]
 
 
@@ -158,12 +171,15 @@ def main():
     dist = ndimage.gaussian_filter(dist, 2.0)
     dist = np.asarray(Image.fromarray(dist).resize((W, H), Image.BILINEAR)) / 2.0
     n_sea = fbm(H, W, rng, 4, 5)
-    # the part of the map no texture covers (south-west of "terrain_south") is drawn in plain sea_deep:
-    # fade the sea noise out towards it so the texture edge does not show
-    sx, sy = m.get("terrain_south", [0, H])
+    # the part of the map below "terrain_split" that no tile covers is drawn in plain sea_deep:
+    # fade the sea noise out towards it so the tile edges do not show
+    sy = int(m.get("terrain_split", H))
+    tiles = m.get("terrain_tiles", [])
     if sy < H:
         bare = np.zeros((H, W), bool)
-        bare[sy:, :sx] = True
+        bare[sy:, :] = True
+        for _, tx, ty, tw, th in tiles:
+            bare[ty:ty + th, tx:tx + tw] = False
         n_sea = 0.5 + (n_sea - 0.5) * np.clip(ndimage.distance_transform_edt(~bare) / 80.0, 0, 1)
     t = np.clip(dist / 90.0, 0, 1) ** 0.6 + (n_sea - 0.5) * 0.25
     sea = ramp(1 - t, [P["sea_deep"], P["sea"], P["sea_shallow"]])
@@ -228,14 +244,14 @@ def main():
         d.line([left, top, right], fill=tuple(int(c) for c in P["rock_dark"]), width=1)
 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    # Android caps textures at 4096 px: the map below the Gulf of Guinea ("terrain_south" in map.json)
-    # is its own texture, and it only covers Africa (open sea west of it is the plain sea colour)
+    # Android caps textures at 4096 px: below "terrain_split" (the Gulf of Guinea) the map is cut into tiles
+    # ("terrain_tiles" in map.json: Africa, South America); open sea outside them is the plain sea colour
     out.crop((0, 0, W, sy)).save(OUT, optimize=True)
-    south = OUT.replace("terrain.png", "terrain_south.png")
     files = [OUT]
-    if sy < H:
-        out.crop((sx, sy, W, H)).save(south, optimize=True)
-        files.append(south)
+    for name, tx, ty, tw, th in tiles:
+        f = os.path.join(os.path.dirname(OUT), name)
+        out.crop((tx, ty, tx + tw, ty + th)).save(f, optimize=True)
+        files.append(f)
     # half size for zoomed-out views (no mipmaps: .import files are not versioned)
     half = OUT.replace("terrain.png", "terrain_half.png")
     out.resize((W // 2, H // 2), Image.LANCZOS).save(half, optimize=True)
