@@ -38,6 +38,8 @@ STYLE = {
     "LIV": ("der Orden", "Nowgorod, Litauen und Dänemark", {"combat": 0.02}),
     "MAM": ("Kairo", "die Osmanen und die Beduinenfürsten", {"trade": 0.03}),
     "MOR": ("Fes", "Kastilien, Portugal und die Berber der Wüste", {"combat": 0.02}),
+    "QAR": ("die Schwarzen Hammel", "die Weißen Hammel, die Timuriden und die Osmanen", {"manpower": 0.05}),
+    "ETH": ("der Kaiser von Äthiopien", "Adal, die Osmanen und die Herren des Roten Meeres", {"combat": 0.02}),
 }
 
 

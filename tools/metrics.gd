@@ -1,7 +1,7 @@
 extends RefCounted
 ## Balance metrics for one finished (or running) game and aggregation over many runs.
 
-const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP", "TUR", "POL", "BUR"]  # all playable nations
+const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP", "TUR", "POL", "BUR", "POR", "VEN", "HUN", "MAM", "QAR", "ETH"]  # all playable nations
 
 
 static func collect(g) -> Dictionary:

@@ -30,7 +30,7 @@ const HUD_TIPS := {
 	"army": "Regimenter / Truppenlimit", "ae": "Aggressive Expansion: ab der Koalitionsgrenze drohen Koalitionen",
 }
 const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP"]
-const EXTRA_PLAYABLE := ["TUR", "POL", "BUR"]  # playable too, listed after the majors (same amount of content since v0.9.5)
+const EXTRA_PLAYABLE := ["TUR", "POL", "BUR", "POR", "VEN", "HUN", "MAM", "QAR", "ETH"]  # playable too, listed after the majors (same amount of content since v0.9.5)
 
 var data: Dictionary
 var game

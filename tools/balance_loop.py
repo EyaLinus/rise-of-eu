@@ -18,7 +18,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MAJORS = ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP"]
-EXTRA = ["TUR", "POL", "BUR"]  # playable, tracked but not part of major_survival
+EXTRA = ["TUR", "POL", "BUR", "POR", "VEN", "HUN", "MAM", "QAR", "ETH"]  # playable, tracked but not part of major_survival
 
 # metric -> (low, high) acceptable range
 TARGETS = {
