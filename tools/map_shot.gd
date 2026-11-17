@@ -69,6 +69,16 @@ func _run(m) -> void:
 		await _shot("map_swahili")
 		m.map.focus(g.provinces[g.key_to_pid["highveld"]].center, 1.0)
 		await _shot("map_south_africa")
+	# South America (third terrain tile, west of the African one) and the finer North American east coast
+	if g.key_to_pid.has("cusco"):
+		m.map.focus(g.provinces[g.key_to_pid["madeira"]].center, 0.4)
+		await _shot("map_south_america")
+		m.map.focus(g.provinces[g.key_to_pid["cusco"]].center, 1.2)
+		await _shot("map_andes")
+		m.map.focus(g.provinces[g.key_to_pid["pernambuco"]].center + Vector2(300, 0), 0.9)
+		await _shot("map_brazil_seam")
+		m.map.focus(g.provinces[g.key_to_pid["munsee"]].center, 1.2)
+		await _shot("map_east_coast")
 	# selection, hover tooltip, war map mode
 	m.map.focus(paris, 1.4)
 	m.map.selected_pid = g.key_to_pid["paris"]

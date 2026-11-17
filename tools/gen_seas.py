@@ -46,7 +46,7 @@ SEAS = [
     # Africa south of the equator: unknown to Europe until explored; the Swahili coast is known to the
     # monsoon traders of Arabia (Colonial.MONSOON) and to the Swahili towns themselves
     ("south_atlantic", "Südatlantik", (6.0, -14.0), [(8.0, -1.0), (5.0, -4.0), (10.5, -8.0), (11.0, -14.0), (11.5, -20.0), (13.0, -26.0), (15.0, -31.0),
-                                                   (0.0, -15.0), (-8.0, -5.0), (-14.0, -22.0), (-6.0, -32.0), (4.0, -26.0), (-18.0, -8.0)]),
+                                                   (0.0, -15.0), (-1.0, -5.0), (-4.0, -22.0), (-6.0, -32.0), (4.0, -26.0), (-3.0, -40.0), (8.0, -42.0)]),
     ("cape", "Kap der Guten Hoffnung", (22.0, -35.0), [(18.0, -35.2), (21.0, -35.3), (25.0, -34.6), (28.5, -33.8), (31.0, -31.8), (15.5, -34.8)]),
     ("mozambique", "Straße von Mosambik", (41.0, -20.0), [(41.0, -17.0), (38.0, -21.0), (41.5, -23.0), (36.5, -24.5), (42.5, -14.0), (34.5, -27.0), (40.0, -26.0)]),
     ("swahili", "Swahiliküste", (42.5, -4.0), [(41.5, -1.5), (40.5, -5.5), (41.0, -9.0), (43.5, -1.0), (44.5, -6.0), (46.5, 0.5), (41.2, -12.0)]),
@@ -58,8 +58,17 @@ SEAS = [
     ("sargasso", "Sargassosee", (-62.0, 30.0), [(-62.0, 30.0), (-56.0, 38.0), (-55.0, 25.0), (-68.0, 26.0), (-73.0, 27.5), (-50.0, 32.0)]),
     ("caribbean", "Karibik", (-75.0, 15.0), [(-75.0, 15.0), (-80.0, 13.0), (-68.0, 14.0), (-63.0, 12.5), (-82.0, 17.0), (-86.0, 18.0), (-58.0, 15.0), (-79.0, 10.5)]),
     ("gulf", "Golf von Mexiko", (-90.0, 25.0), [(-90.0, 25.0), (-94.5, 23.0), (-86.0, 27.0), (-95.0, 27.5), (-84.0, 24.6), (-92.5, 20.5), (-88.5, 29.6)]),
-    ("pacific", "Südsee", (-98.0, 13.0), [(-98.0, 13.0), (-102.5, 17.0), (-93.0, 13.5), (-88.0, 11.0), (-84.0, 8.0), (-80.0, 7.8), (-104.0, 19.5)]),
+    ("pacific", "Südsee", (-98.0, 13.0), [(-80.4, 4.0), (-86.0, 3.0), (-98.0, 13.0), (-102.5, 17.0), (-93.0, 13.5), (-88.0, 11.0), (-84.0, 8.0), (-80.0, 7.8), (-104.0, 19.5)]),
     ("hudson", "Hudsonbucht", (-86.0, 59.0), [(-86.0, 59.0), (-80.0, 56.5), (-80.0, 53.0), (-91.0, 60.0), (-71.0, 62.0), (-67.5, 59.0), (-84.0, 63.5)]),
+    # South America (shifted New World coordinates: every longitude here is west of the Atlantic cut)
+    ("guiana", "Guayanaküste", (-55.0, 8.0), [(-57.0, 8.0), (-53.0, 6.6), (-59.6, 9.4), (-50.0, 5.0), (-55.0, 10.5)]),
+    ("amazon", "Amazonasmündung", (-44.0, 1.0), [(-47.0, 1.2), (-43.0, -1.0), (-39.0, -2.4), (-36.2, -4.2), (-48.6, 3.0), (-42.0, 2.0)]),
+    ("brazil", "Brasilianische Küste", (-35.8, -14.0), [(-34.6, -9.6), (-35.6, -11.6), (-36.6, -13.6), (-37.6, -17.0), (-38.6, -20.6), (-35.2, -16.0)]),
+    ("plata", "Südbrasilien und La Plata", (-46.0, -29.0), [(-41.8, -24.2), (-45.6, -26.4), (-47.6, -29.2), (-50.2, -32.4), (-53.2, -35.6), (-56.6, -36.6), (-44.0, -30.0)]),
+    ("patagonian", "Patagonische See", (-60.0, -45.0), [(-57.0, -40.0), (-60.4, -44.0), (-63.0, -47.6), (-64.0, -51.6), (-60.0, -49.0), (-55.0, -45.0)]),
+    ("horn", "Kap Hoorn", (-66.0, -55.8), [(-66.0, -56.0), (-70.0, -56.3), (-74.6, -55.2), (-62.0, -55.6), (-77.0, -53.0)]),
+    ("humboldt", "Humboldtsee", (-80.0, -18.0), [(-81.8, -5.6), (-79.0, -12.0), (-76.0, -17.6), (-72.6, -23.6), (-73.6, -30.0), (-75.6, -36.0),
+                                               (-77.0, -42.0), (-78.0, -48.0), (-81.6, -1.0), (-86.0, -12.0), (-86.0, -30.0), (-86.0, -46.0)]),
     ("lakes", "Große Seen", (-85.0, 45.0), [(-87.5, 47.6), (-87.0, 43.5), (-82.4, 44.6), (-81.2, 42.2), (-77.8, 43.6), (-97.5, 52.5)]),
 ]
 
@@ -134,7 +143,9 @@ def main():
                 continue
             if "af_lakes" in (SEAS[x][0], SEAS[y][0]):
                 continue  # the African lakes are inland water
-            if {SEAS[x][0], SEAS[y][0]} & {"south_atlantic", "cape"} and {SEAS[x][0], SEAS[y][0]} & {"pacific", "caribbean", "gulf", "sargasso"}:
+            if {SEAS[x][0], SEAS[y][0]} & {"humboldt", "pacific"} and {SEAS[x][0], SEAS[y][0]} & {"caribbean", "gulf", "guiana", "amazon", "ocean"}:
+                continue  # the Pacific reaches the Atlantic only round Cape Horn (no Panama canal)
+            if {SEAS[x][0], SEAS[y][0]} & {"south_atlantic", "cape"} and {SEAS[x][0], SEAS[y][0]} & {"pacific", "caribbean", "gulf", "sargasso", "humboldt"}:
                 continue  # the map's empty south-west corner: no shortcut from the Americas to the Cape
             if "west_africa" in (SEAS[x][0], SEAS[y][0]) and {SEAS[x][0], SEAS[y][0]} & {"caribbean", "sargasso"}:
                 continue  # the squeezed Atlantic puts them side by side; the way west is the open ocean
@@ -158,7 +169,8 @@ def main():
 
 
 NEW_SEAS = {"guinea", "ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes",
-            "south_atlantic", "cape", "mozambique", "swahili", "indian", "af_lakes"}
+            "south_atlantic", "cape", "mozambique", "swahili", "indian", "af_lakes",
+            "guiana", "amazon", "brazil", "plata", "patagonian", "horn", "humboldt"}
 FOG_CELL = 8
 
 
