@@ -8,18 +8,21 @@ extends RefCounted
 ## An army that leaves a province in the same month a hostile army enters it is caught too (no more
 ## armies circling past each other). Changing the next step throws the progress away.
 ##
-## Battles: two rounds a month. Round 1 is skirmishing (less loss), then melee. Each round both sides
+## Battles: one round a month (slow enough to follow on the map). The first rounds are the fire fight
+## (artillery and infantry count most, the very first round costs fewer men), then melee (cavalry).
+## Unit mix, unique units and terrain shape each side's power per phase (Units). Each round both sides
 ## lose men and battle morale by the strength ratio; a side whose morale breaks loses and is pursued.
 ## The side that holds the province gets its terrain's defence, troops fresh off a ship fight worse.
 ## Armies that march in join the fight; armies in battle cannot march away.
 
 const Economy = preload("res://scripts/core/economy.gd")
+const Units = preload("res://scripts/core/units.gd")
 
 const TERRAIN_NAMES := {
 	"plains": "🌾 Ebene", "forest": "🌲 Wald", "hills": "⛰️ Hügel", "mountains": "🏔️ Gebirge",
 	"desert": "🏜️ Wüste", "marsh": "💧 Sumpf",
 }
-const PHASES := ["Plänkeln", "Nahkampf"]
+const PHASES := ["Feuergefecht", "Nahkampf"]
 
 
 class Battle:
@@ -33,6 +36,7 @@ class Battle:
 	var lost_att: float = 0.0  # regiments lost so far
 	var lost_def: float = 0.0
 	var start: int = 0  # game month
+	var log: Array = []  # one entry per round: [round, lost_att, lost_def, morale_att, morale_def]
 
 
 static func setup(g, data: Dictionary) -> void:
@@ -260,7 +264,9 @@ static func holds(g, arms: Array, pid: int) -> bool:
 
 static func side_power(g, b: Battle, attackers: bool) -> float:
 	var arms: Array = b.att if attackers else b.def
-	var s: float = g._side_power(arms, b.pid)
+	var s := 0.0
+	for a in arms:
+		s += g._side_power([a], b.pid) * Units.battle_mult(g, a, b.round, b.pid)
 	if holds(g, arms, b.pid):
 		s *= 1.0 + float(terrain(g, b.pid).defense)
 	var landing := 0.0
@@ -274,7 +280,11 @@ static func side_power(g, b: Battle, attackers: bool) -> float:
 
 
 static func phase(b: Battle) -> String:
-	return PHASES[mini(b.round, PHASES.size() - 1)]
+	return PHASES[0] if b.round < Units.FIRE_ROUNDS else PHASES[1]
+
+
+static func phase_of(g, rnd: int) -> String:
+	return PHASES[0] if Units.is_fire(g, rnd) else PHASES[1]
 
 
 ## One battle round. Returns true when the battle is over.
@@ -291,11 +301,14 @@ static func fight_round(g, b: Battle) -> bool:
 	var hit_def: float = pow(r, 0.75)
 	var hit_att: float = pow(1.0 / r, 0.75)
 	var cas: float = float(g.bal.battle_round_loss) * (float(g.bal.battle_skirmish_mult) if b.round == 0 else 1.0)
-	b.lost_def += _bleed(b.def, cas * hit_def)
-	b.lost_att += _bleed(b.att, cas * hit_att)
+	var ld := _bleed(b.def, cas * hit_def)
+	var la := _bleed(b.att, cas * hit_att)
+	b.lost_def += ld
+	b.lost_att += la
 	var mor := float(g.bal.battle_round_morale)
 	b.morale_def -= mor * hit_def * g.rng.randf_range(0.85, 1.15)
 	b.morale_att -= mor * hit_att * g.rng.randf_range(0.85, 1.15)
+	b.log.append([b.round, la, ld, maxf(0.0, b.morale_att), maxf(0.0, b.morale_def)])
 	b.round += 1
 	if b.morale_att > 0.0 and b.morale_def > 0.0 and b.round < int(g.bal.battle_max_rounds):
 		return false
@@ -317,7 +330,7 @@ static func finish(g, b: Battle, war, att_wins: bool) -> void:
 	var win: Array = b.att if att_wins else b.def
 	var lose: Array = b.def if att_wins else b.att
 	var ratio: float = clampf(side_regs(win) / maxf(side_regs(lose), 0.01), 0.5, 2.0)
-	var lost: float = (b.lost_def if att_wins else b.lost_att) + _bleed(lose, float(g.bal.battle_pursuit_loss) * ratio)
+	var lost: float = (b.lost_def if att_wins else b.lost_att) + _bleed(lose, minf(0.6, float(g.bal.battle_pursuit_loss) * ratio * Units.pursuit_mult(g, win)))
 	for a in win:
 		a.power = maxf(0.0, a.power - g.power_max(a.owner) * float(g.bal.army_power_loss_win))
 	for a in lose:
@@ -369,7 +382,7 @@ static func finish(g, b: Battle, war, att_wins: bool) -> void:
 		g.fire_event(a.owner, "war_first_win")
 	for a in lose:
 		g.fire_event(a.owner, "war_first_loss")
-	if b.round >= 6:  # three months or more at 2 rounds per month
+	if b.round >= 6:  # six months or more at 1 round per month
 		for t in involved:
 			g.fire_event(t, "war_long_battle")
 	for a in lose:
@@ -409,7 +422,7 @@ static func to_save(g) -> Array:
 	for b in g.battles:
 		r.append({"pid": b.pid, "war": b.war, "att": b.att.map(func(a): return a.id), "def": b.def.map(func(a): return a.id),
 				"round": b.round, "morale_att": b.morale_att, "morale_def": b.morale_def,
-				"lost_att": b.lost_att, "lost_def": b.lost_def, "start": b.start})
+				"lost_att": b.lost_att, "lost_def": b.lost_def, "start": b.start, "log": b.log})
 	return r
 
 
@@ -433,6 +446,8 @@ static func load_save(g, arr: Array) -> void:
 		b.lost_att = float(e.lost_att)
 		b.lost_def = float(e.lost_def)
 		b.start = int(e.get("start", g.month))
+		for r in e.get("log", []):
+			b.log.append([int(r[0]), float(r[1]), float(r[2]), float(r[3]), float(r[4])])
 		if not b.att.is_empty() and not b.def.is_empty():
 			g.battles.append(b)
 

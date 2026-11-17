@@ -12,6 +12,7 @@ const Monuments = preload("res://scripts/core/monuments.gd")
 const Formables = preload("res://scripts/core/formables.gd")
 const Warfare = preload("res://scripts/core/warfare.gd")
 const Naval = preload("res://scripts/core/naval.gd")
+const Units = preload("res://scripts/core/units.gd")
 const Urban = preload("res://scripts/core/urban.gd")
 const Colonial = preload("res://scripts/core/colonial.gd")
 const Trade = preload("res://scripts/core/trade.gd")
@@ -111,6 +112,8 @@ class Nation:
 	var rivals: Array = []  # declared rivals: cheaper wars against them, power projection from beating them
 	var power_proj: float = 0.0  # power projection 0..pp_max, earned against rivals, decays yearly
 	var embargoes: Array = []  # rivals whose trade we block (costs us a little trade too)
+	var templates: Array = []  # player army templates {name, inf, cav, art} (Units)
+	var recruit_tmpl: int = -1  # template for new regiments (-1 = standard mix)
 	var religion: String = "catholic"  # state religion
 	var monuments := {}  # finished great works (Monuments)
 	var formed: String = ""  # id of the realm this nation proclaimed (Formables), "" = none
@@ -137,6 +140,8 @@ class Army:
 	var general: int = 0  # 0 = none, 1..3 = skill of the commanding general
 	var move: float = 0.0  # march progress (months) towards path[1] (Warfare)
 	var landing: bool = false  # just came off the ships: fights worse in its next battle
+	var mix: Dictionary = {}  # unit shares {inf, cav, art} (Units); {} = the nation's standard mix
+	var tmpl: int = -1  # player template the army was raised or refitted with (-1 = standard)
 
 
 class War:
@@ -165,6 +170,8 @@ var sea_by_id := {}
 var province_seas := {}  # pid -> [sea ids] of coastal provinces
 var strait_sea := {}  # Warfare.strait_key -> sea id
 var _fleet := {}  # tag -> {sea: ships}, Naval.refresh
+var units_def: Dictionary = {}  # data/units.json (Units)
+var sea_fights: Array = []  # this month's sea battles {sea, win, lose, lost, won_lost, month} (map animation, not saved)
 var sea_blocked := {}  # tag -> {sea: true} where an enemy rules the sea
 var blockaded := {}  # pid -> blockade strength (1.0, more if the blockader is on blockade duty)
 var month: int = 0
@@ -271,6 +278,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		key_to_pid[p.key] = p.id
 	Warfare.setup(self, data)
 	Naval.setup(self, data)
+	Units.setup(self, data)
 	for tag in data.nations:
 		var nd: Dictionary = data.nations[tag]
 		var n := Nation.new()
@@ -757,7 +765,7 @@ func _economy(n: Nation) -> void:
 	n.income = n.tax_income + n.prod_income + n.trade_income
 	Economy.construction_tick(self, n)
 	Urban.tick(self, n)
-	var maint: float = army_regs(n.tag) * regiment_upkeep(n.tag) * maxf(0.2, 1.0 + mod(n, "maintenance"))
+	var maint: float = Units.upkeep_regs(self, n.tag) * regiment_upkeep(n.tag) * maxf(0.2, 1.0 + mod(n, "maintenance"))
 	var war := is_at_war(n.tag)
 	if not war:
 		maint *= float(bal.peace_maintenance_mult)
@@ -1203,6 +1211,7 @@ func _siege(p: Province) -> void:
 	var prog: float = float(bal.siege_base) * minf(regs, 20.0) / (sqrt(p.dev) + 2.0) / (1.0 + Economy.fort_level(self, p) * float(bal.fort_siege_mult))
 	if Naval.is_blockaded(self, p.id):
 		prog *= 1.0 + float(bal.blockade_siege) * Naval.blockade_strength(self, p.id)  # no supply by sea
+	prog *= Units.siege_mult(self, besiegers)  # artillery breaches walls faster
 	p.siege += prog * maxf(0.2, 1.0 + mod(nations[besiegers[0].owner], "siege"))
 	if p.siege >= 100.0:
 		p.siege = 0.0
@@ -1259,7 +1268,7 @@ func _reinforce(a: Army) -> void:
 		return
 	a.regs += amt
 	n.manpower -= amt
-	n.gold -= amt * regiment_cost(a.owner) * 0.5
+	n.gold -= amt * regiment_cost(a.owner) * 0.5 * Units.cost_mult(self, a.owner, a.mix)
 
 
 # ---------------------------------------------------------------- wars
@@ -1987,7 +1996,8 @@ func recruit(tag: String, pid: int, count: int) -> String:
 	var n: Nation = nations[tag]
 	if provinces[pid].owner != tag or provinces[pid].controller != tag:
 		return "Rekrutierung nur in eigenen, unbesetzten Provinzen."
-	var cost: float = count * regiment_cost(tag)
+	var tm: Dictionary = Units.template_mix(self, tag, n.recruit_tmpl)
+	var cost: float = count * regiment_cost(tag) * Units.cost_mult(self, tag, tm)
 	if n.gold < cost:
 		return "Zu wenig Gold (%d benötigt)." % cost
 	if n.manpower < count:
@@ -2000,10 +2010,13 @@ func recruit(tag: String, pid: int, count: int) -> String:
 		if a.owner == tag:
 			# fresh troops dilute the army's fighting power
 			a.power = (a.power * a.regs + float(bal.army_power_start) * power_max(tag) * count) / maxf(0.01, a.regs + count)
+			Units.blend(self, a, count, tm)
 			a.regs += count
 			a.full += count
 			return ""
-	spawn_army(tag, pid, count)
+	var na := spawn_army(tag, pid, count)
+	na.mix = tm
+	na.tmpl = n.recruit_tmpl
 	return ""
 
 
@@ -2035,6 +2048,7 @@ func hire_mercs(tag: String, pid: int) -> String:
 		if a.owner == tag:
 			# fresh troops dilute the army's fighting power
 			a.power = (a.power * a.regs + float(bal.army_power_start) * power_max(tag) * count) / maxf(0.01, a.regs + count)
+			Units.blend(self, a, count, {})
 			a.regs += count
 			a.full += count
 			return ""
@@ -2175,6 +2189,8 @@ func merge_armies(tag: String, pid: int) -> void:
 		var tot: float = here[0].regs + here[i].regs
 		if tot > 0.0:
 			here[0].power = (here[0].power * here[0].regs + here[i].power * here[i].regs) / tot
+		if not (here[0].mix.is_empty() and here[i].mix.is_empty()):
+			Units.blend(self, here[0], here[i].regs, Units.mix_of(self, here[i]))
 		here[0].regs += here[i].regs
 		here[0].full += here[i].full
 		here[0].general = maxi(here[0].general, here[i].general)
@@ -2191,6 +2207,8 @@ func split_army(army: Army) -> Army:
 	b.auto = army.auto
 	b.stance = army.stance
 	b.power = army.power
+	b.mix = army.mix.duplicate()
+	b.tmpl = army.tmpl
 	return b
 
 
@@ -3092,7 +3110,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "embargoes": n.embargoes, "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "fleet_mission": n.fleet_mission, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "embargoes": n.embargoes, "templates": n.templates, "recruit_tmpl": n.recruit_tmpl, "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "fleet_mission": n.fleet_mission, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
 				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n), "colonial": Colonial.nation_save(n)}
 	d.nations = ns
 	var ar := []
@@ -3115,7 +3133,7 @@ func to_dict() -> Dictionary:
 func _army_save(a: Army) -> Dictionary:
 	return {"id": a.id, "owner": a.owner, "pid": a.pid, "regs": a.regs, "full": a.full,
 			"target": a.target, "auto": a.auto, "stance": a.stance, "power": a.power, "general": a.general,
-			"move": a.move, "landing": a.landing, "path": a.path}
+			"move": a.move, "landing": a.landing, "path": a.path, "mix": a.mix, "tmpl": a.tmpl}
 
 
 func _army_load(e: Dictionary) -> Army:
@@ -3134,6 +3152,8 @@ func _army_load(e: Dictionary) -> Army:
 	for x in e.get("path", []):
 		a.path.append(int(x))
 	a.landing = e.get("landing", false)
+	a.mix = e.get("mix", {})
+	a.tmpl = int(e.get("tmpl", -1))
 	return a
 
 
@@ -3273,6 +3293,8 @@ func from_dict(d: Dictionary) -> void:
 		n.monument_build = {} if mb.is_empty() else {"id": str(mb.id), "months": int(mb.months)}
 		Monuments.refresh(self, n)
 		n.formed = str(e.get("formed", ""))
+		n.templates = e.get("templates", [])
+		n.recruit_tmpl = int(e.get("recruit_tmpl", -1))
 		Formables.apply_identity(self, n)
 		n.guarantees = {}
 		for t in e.get("guarantees", []):

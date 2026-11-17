@@ -380,7 +380,7 @@ func _draw() -> void:
 		_outline(selected_pid, SELECT, 3.0)
 	for f in _flashes:
 		var age: float = (_now() - float(f.t0)) / FLASH_S
-		if age < 1.0:
+		if age < 1.0 and not f.has("off"):
 			var gc: Color = f.color
 			gc.a = 0.9 * (1.0 - age)
 			_outline(f.pid, gc, 4.0)
@@ -610,12 +610,12 @@ func _draw_sea_routes(ci: CanvasItem) -> void:
 		ci.draw_dashed_line(pa, pb, col, 2.0 / zoom, 6.0 / zoom)
 
 
-## Sea names; while the player is at war also who rules each sea (our ships : enemy ships).
+## Sea names; while the player is at war also who rules each sea (our ships : enemy ships). Fleets show
+## as ship badges under the sea name (ours always, enemy fleets in war), sea battles flash where they happen.
 func _draw_seas() -> void:
 	var me: String = game.player
 	var war: bool = me != "" and game.is_at_war(me)
-	if not war and map_mode != MODE_WAR:
-		return
+	_check_sea_fights()
 	var ours := [me]
 	for w in game.wars_of(me):
 		for t in game.side_tags(w, game.is_attacker(w, me)):
@@ -628,12 +628,12 @@ func _draw_seas() -> void:
 		var sp := to_screen(s.center)
 		if not Rect2(Vector2(-80, -40), size + Vector2(160, 80)).has_point(sp):
 			continue
-		var txt: String = "⚓ " + s.name
-		var col := Color(0.8, 0.9, 1.0, 0.85)
-		if war:
-			var us := Naval.side_power(game, ours, s.id)
-			var them := Naval.side_power(game, foes, s.id)
-			if us > 0.0 or them > 0.0:
+		var us := Naval.side_power(game, ours, s.id) if me != "" else 0.0
+		var them := Naval.side_power(game, foes, s.id) if war else 0.0
+		if war or map_mode == MODE_WAR:
+			var txt: String = "⚓ " + s.name
+			var col := Color(0.8, 0.9, 1.0, 0.85)
+			if war and (us > 0.0 or them > 0.0):
 				txt += "  %s : %s" % [Naval.fmt(us), Naval.fmt(them)]
 				if game.sea_blocked.get(me, {}).has(s.id):
 					col = Color(1.0, 0.45, 0.4)
@@ -641,10 +641,110 @@ func _draw_seas() -> void:
 					col = Color(0.5, 1.0, 0.5)
 				else:
 					col = Color(1.0, 0.9, 0.5)
-		var fs := 15
-		var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		draw_string_outline(font, sp - Vector2(w / 2, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0, 0, 0, 0.85))
-		draw_string(font, sp - Vector2(w / 2, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+			var fs := 15
+			var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+			draw_string_outline(font, sp - Vector2(w / 2, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0, 0, 0, 0.85))
+			draw_string(font, sp - Vector2(w / 2, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+		if zoom < 0.45:
+			continue
+		# fleet badges: our own ships, and in war the enemy's
+		var mine: float = float(game._fleet.get(me, {}).get(s.id, 0.0)) if me != "" else 0.0
+		var enemy := 0.0
+		var enemy_tag := ""
+		for t in foes:
+			var e: float = float(game._fleet.get(t, {}).get(s.id, 0.0))
+			if e > enemy:
+				enemy_tag = t
+			enemy += e
+		var badges := []
+		if mine >= 0.5:
+			badges.append([me, mine, false])
+		if enemy >= 0.5:
+			badges.append([enemy_tag, enemy, true])
+		for i in badges.size():
+			var bp: Vector2 = sp + Vector2((i - (badges.size() - 1) / 2.0) * 58.0, 24.0)
+			_draw_fleet_badge(bp, badges[i][0], badges[i][1], badges[i][2])
+	_draw_blockades()
+	_draw_sea_fights()
+
+
+## Blockaded coasts the player cares about (own land, or the enemy's in war): a red anchor badge.
+func _draw_blockades() -> void:
+	if zoom < 0.45 or game.blockaded.is_empty():
+		return
+	var me: String = game.player
+	for pid in game.blockaded:
+		var p = game.provinces[pid]
+		if me != "" and p.owner != me and not game.at_war(me, p.owner):
+			continue
+		var sp := to_screen(p.center) + Vector2(-30, -16)
+		if not Rect2(Vector2(-30, -30), size + Vector2(60, 60)).has_point(sp):
+			continue
+		draw_circle(sp, 11.0, Color(0, 0, 0, 0.85))
+		draw_circle(sp, 9.5, Color(0.75, 0.15, 0.12, 0.95) if p.owner == me else Color(0.2, 0.45, 0.8, 0.95))
+		draw_string(font, sp + Vector2(-7, 5), "⚓", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
+
+
+## A ship badge: nation colour, ship glyph and the number of ships (red ring for an enemy fleet).
+func _draw_fleet_badge(at: Vector2, tag: String, ships: float, enemy: bool) -> void:
+	var c: Color = game.nations[tag].color
+	var r := Rect2(at - Vector2(26, 11), Vector2(52, 22))
+	draw_rect(r.grow(2.0), Color(0.85, 0.2, 0.15, 0.95) if enemy else Color(0, 0, 0, 0.9))
+	draw_rect(r, c.darkened(0.25))
+	var bob := sin(_now() * 2.0 + at.x * 0.01) * 1.5
+	draw_string(font, at + Vector2(-23, 6 + bob), "⛵", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color.WHITE)
+	var txt := "%d" % int(round(ships))
+	draw_string_outline(font, at + Vector2(-2, 6), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, 3, Color.BLACK)
+	draw_string(font, at + Vector2(-2, 6), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color.WHITE)
+
+
+const SEA_FIGHT_S := 3.5
+var _sea_fight_seen := {}  # fight dictionary -> wall clock when first shown
+
+
+## New sea battles this month (Naval records them in game.sea_fights): start their map animation.
+func _check_sea_fights() -> void:
+	for f in game.sea_fights:
+		if not _sea_fight_seen.has(f):
+			_sea_fight_seen[f] = _now()
+	for f in _sea_fight_seen.keys():
+		if _now() - float(_sea_fight_seen[f]) > SEA_FIGHT_S:
+			_sea_fight_seen.erase(f)
+
+
+## Sea battle: pulsing cannon smoke over the sea and the ships each side lost floating up.
+func _draw_sea_fights() -> void:
+	var me: String = game.player
+	for f in _sea_fight_seen:
+		var sea = null
+		for s in game.seas:
+			if s.id == f.sea:
+				sea = s
+				break
+		if sea == null or (me != "" and not Colonial.knows_sea(game, me, f.sea)):
+			continue
+		var age: float = (_now() - float(_sea_fight_seen[f])) / SEA_FIGHT_S
+		var sp := to_screen(sea.center) + Vector2(0, -34)
+		if not Rect2(Vector2(-60, -60), size + Vector2(120, 120)).has_point(sp):
+			continue
+		var a := 1.0 - age * age
+		for k in 4:
+			var ang: float = k * TAU / 4.0 + _now() * 1.5
+			draw_circle(sp + Vector2(cos(ang), sin(ang)) * (8.0 + 10.0 * age), 7.0 + 6.0 * age, Color(0.85, 0.85, 0.8, 0.45 * a))
+		draw_circle(sp, 16.0, Color(0, 0, 0, 0.85 * a))
+		draw_circle(sp, 14.0, Color(0.15, 0.3, 0.6, a))
+		draw_string(font, sp + Vector2(-9, 6), "⚓", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 1, 1, a))
+		var lines := [["-%.1f ⛵" % float(f.lost), game.nations[f.lose].color.lightened(0.35)], ["-%.1f ⛵" % float(f.won_lost), game.nations[f.win].color.lightened(0.35)]]
+		for i in 2:
+			var tp: Vector2 = sp + Vector2(-34 if i == 0 else 34, -20 - age * 30)
+			var t: String = lines[i][0]
+			var w := font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
+			var c: Color = lines[i][1]
+			c.a = a
+			draw_string_outline(font, tp - Vector2(w / 2, 0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, 3, Color(0, 0, 0, a))
+			draw_string(font, tp - Vector2(w / 2, 0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, c)
+	if not _sea_fight_seen.is_empty():
+		queue_redraw()
 
 
 ## Province outline with a constant on-screen width (world-space transform must be active).
@@ -1072,7 +1172,7 @@ func _draw_colonies() -> void:
 func _draw_battles() -> void:
 	for b in game.battles:
 		# right of the army counters, so the province name stays readable
-		var s := to_screen(game.provinces[b.pid].center) + (Vector2(66, 4) if zoom >= 0.8 else Vector2(34, 4))
+		var s := to_screen(game.provinces[b.pid].center) + _battle_anchor()
 		if not Rect2(Vector2(-60, -60), size + Vector2(120, 120)).has_point(s):
 			continue
 		var pulse := 0.75 + 0.25 * sin(_now() * 6.0)
@@ -1090,6 +1190,11 @@ func _draw_battles() -> void:
 			var r := Rect2(s.x - bw / 2, s.y + 20 + i * 8, bw, 6)
 			draw_rect(r.grow(1.0), Color(0, 0, 0, 0.9))
 			draw_rect(Rect2(r.position, Vector2(bw * m, 6)), col.lightened(0.15))
+		if zoom >= 0.8:
+			var rt := "R%d · %s" % [b.round + 1, Warfare.phase(b)]
+			var rw := font.get_string_size(rt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+			draw_string_outline(font, s + Vector2(-rw / 2, 50), rt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, Color.BLACK)
+			draw_string(font, s + Vector2(-rw / 2, 50), rt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1.0, 0.85, 0.7))
 
 
 # ---------------------------------------------------------------- development feedback
@@ -1111,6 +1216,7 @@ func check_dev_changes() -> void:
 			continue
 		var up: bool = p.dev > old
 		_flashes.append({"pid": p.id, "text": "%+d 🏘️" % (p.dev - old), "color": Color(0.55, 1.0, 0.45) if up else Color(1.0, 0.4, 0.3), "t0": _now()})
+	_check_battle_rounds()
 	if not _flashes.is_empty():
 		queue_redraw()
 
@@ -1118,6 +1224,42 @@ func check_dev_changes() -> void:
 func reset_dev_seen() -> void:
 	_dev_seen.clear()
 	_flashes.clear()
+	_battle_seen.clear()
+
+
+var _battle_seen := {}  # Warfare.Battle -> rounds already shown
+
+
+## Every new battle round in view: both sides' losses float up beside the battle marker (attacker left,
+## defender right, in their colours), so a fight can be followed round by round.
+func _check_battle_rounds() -> void:
+	var keep := {}
+	for b in game.battles:
+		var seen: int = _battle_seen.get(b, 0)
+		keep[b] = b.log.size()
+		if seen >= b.log.size() or b.att.is_empty() or b.def.is_empty():
+			continue
+		if not (known(b.pid) or _involves_player(b)):
+			continue
+		var e: Array = b.log[-1]
+		for i in 2:
+			var arms: Array = b.att if i == 0 else b.def
+			var lost: float = float(e[1 + i])
+			_flashes.append({"pid": b.pid, "text": "-%.1f" % lost, "color": game.nations[arms[0].owner].color.lightened(0.35),
+					"t0": _now(), "off": _battle_anchor() + Vector2(-26 if i == 0 else 26, -6)})
+	_battle_seen = keep
+
+
+func _involves_player(b) -> bool:
+	for a in b.att + b.def:
+		if a.owner == game.player:
+			return true
+	return false
+
+
+## Screen offset of the battle marker from the province centre (right of the army counters).
+func _battle_anchor() -> Vector2:
+	return Vector2(66, 4) if zoom >= 0.8 else Vector2(34, 4)
 
 
 func _draw_flashes() -> void:
@@ -1130,7 +1272,7 @@ func _draw_flashes() -> void:
 		keep.append(f)
 		var c: Color = f.color
 		c.a = 1.0 - age * age
-		var s := to_screen(game.provinces[f.pid].center) - Vector2(0, 26 + age * 34)
+		var s: Vector2 = to_screen(game.provinces[f.pid].center) + f.get("off", Vector2.ZERO) - Vector2(0, 26 + age * 34)
 		var fs := int(20 * label_scale)
 		var w := font.get_string_size(f.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		draw_string_outline(font, s - Vector2(w / 2, 0), f.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0, 0, 0, c.a))
