@@ -3095,6 +3095,9 @@ func choose_event_option(tag: String, event_id: String, idx: int) -> void:
 	var e: Dictionary = event_by_id[event_id]
 	var opt: Dictionary = e.options[clampi(idx, 0, e.options.size() - 1)]
 	apply_effects(tag, opt.get("effects", {}))
+	# the player's own answers go to the chronicle, so a decision can be looked up later
+	if tag == player:
+		log_msg("📜 %s: %s" % [e.get("title", event_id), opt.get("text", "")], [tag])
 
 
 func available_missions(tag: String) -> Array:

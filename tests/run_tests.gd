@@ -68,6 +68,7 @@ func _init() -> void:
 		"test_debug_tools",
 		"test_ledger",
 		"test_goods_events",
+		"test_playable_flavour",
 		"test_more_goods_and_softer_costs",
 		"test_supply_and_ai_stacks",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
@@ -3860,3 +3861,33 @@ func test_goods_events() -> void:
 			check(good == "" or g.goods_def.has(good), "%s: good %s exists" % [e.id, good])
 	check(n >= 15, "goods events present (%d)" % n)
 	check(g.check_conditions("VEN", g.event_by_id["gds_glass_secret"].trigger) == (g.year() >= 1450), "Venice makes glass, so the glass story can fire")
+
+
+## Every playable realm gets at least ten own events (the v1.0 playables started with 3-6).
+func test_playable_flavour() -> void:
+	var g = new_game("POR", 5)
+	var per := {}
+	for e in g.event_defs:
+		per[e.tag] = int(per.get(e.tag, 0)) + 1
+		if String(e.id).begins_with("pf_"):
+			for k in ["claim"]:
+				for o in e.options:
+					for key in o.effects.get(k, []):
+						check(g.key_to_pid.has(key), "%s claims a known province %s" % [e.id, key])
+			for t in e.trigger.get("owns", []) + e.trigger.get("not_owns", []):
+				check(g.key_to_pid.has(t), "%s names a known province %s" % [e.id, t])
+			for o in e.options:
+				for t in o.effects.get("relations", {}):
+					check(g.nations.has(t), "%s: relations with known realm %s" % [e.id, t])
+				if o.effects.has("war"):
+					check(g.nations.has(o.effects.war), "%s: war on known realm" % e.id)
+	for t in g.nations:
+		if g.nations[t].playable:
+			check(int(per.get(t, 0)) >= 10, "%s has own events (%d)" % [t, int(per.get(t, 0))])
+	# the player's answer is written to the chronicle, an AI answer is not
+	var lines: int = g.log_lines.size()
+	g.choose_event_option("POR", "pf_por_sagres", 1)
+	check(g.log_lines.size() == lines + 1 and String(g.log_lines[-1]).contains("Die Schule von Sagres"), "player decision logged")
+	g.choose_event_option("VEN", "pf_ven_arsenal", 0)
+	check(g.log_lines.size() == lines + 1, "AI decision not logged")
+
