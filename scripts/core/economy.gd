@@ -344,6 +344,13 @@ static func supply(g) -> Dictionary:
 ## Yearly: prices follow world supply against slowly growing demand; the biggest producer of a good
 ## (at least `goods_leader_share` of world output) gets that good's bonus.
 static func yearly(g) -> void:
+	yearly_prices(g)
+	for tag in g.order:
+		yearly_merchants(g, tag)
+
+
+## Yearly price update and goods leaders (first part of yearly()).
+static func yearly_prices(g) -> void:
 	_shocks_yearly(g)
 	var s := supply(g)
 	var years: float = g.year() - int(g.bal.start_year)
@@ -354,10 +361,13 @@ static func yearly(g) -> void:
 		var shock: float = float(g.shocks[k].mult) if g.shocks.has(k) else 1.0
 		g.prices[k] = snappedf(float(g.goods_def[k].price) * clampf(ratio, float(g.bal.price_min), float(g.bal.price_max)) * shock, 0.001)
 	refresh_goods_leaders(g)
-	for tag in g.order:
-		var n = g.nations[tag]
-		if n.alive and (n.merchant_auto or tag != g.player):
-			auto_merchants(g, n)
+
+
+## Yearly merchant moves of one realm (second part of yearly(), run for every realm in g.order).
+static func yearly_merchants(g, tag: String) -> void:
+	var n = g.nations[tag]
+	if n.alive and (n.merchant_auto or tag != g.player):
+		auto_merchants(g, n)
 
 
 ## Market shocks: now and then a good gets scarce (harvest failure, war, plague) or floods the market

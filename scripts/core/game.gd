@@ -768,38 +768,116 @@ func log_msg(text: String, tags: Array = []) -> void:
 
 # ---------------------------------------------------------------- tick
 
+## One month of the game, all at once (tests, tools, headless sims).
 func tick() -> void:
-	if game_over:
+	if not tick_begin():
 		return
+	while tick_step():
+		pass
+
+
+var _steps: Array = []  # the running month as small steps (Callables), see tick_begin()/tick_step()
+var _step_i: int = 0
+
+
+## Starts a month without running it. The UI then calls tick_step() a few times per frame until it returns
+## false, so a long month never freezes a frame. The steps run in exactly the order of tick(). False when
+## the game is over (nothing to run).
+func tick_begin() -> bool:
+	if game_over:
+		return false
+	_steps = [_t_markets]
+	for tag in order:
+		_steps.append(_t_economy.bind(tag))
+	_steps += [_t_naval, _t_voyages, _t_colonial, _t_trade, _t_armies, _t_wars]
+	for tag in order:
+		_steps.append(_t_ai.bind(tag))
+	_steps.append(_t_player)
+	_steps.append(_t_month)
+	_step_i = 0
+	return true
+
+
+## True while a month started by tick_begin() still has steps to run (saving must wait for its end).
+func ticking() -> bool:
+	return _step_i < _steps.size()
+
+
+## Runs the next step of the running month. False once the month is complete.
+func tick_step() -> bool:
+	if _step_i >= _steps.size():
+		return false
+	var s: Callable = _steps[_step_i]
+	_step_i += 1
 	_pmark("")
+	s.call()
+	if _step_i >= _steps.size():
+		_steps = []
+		_step_i = 0
+		return false
+	return true
+
+
+## Runs whatever is left of the running month (before saving, loading or quitting).
+func finish_tick() -> void:
+	while tick_step():
+		pass
+
+
+func _t_markets() -> void:
 	Economy.update_markets(self)
 	_pmark("markets")
-	for tag in order:
-		var n: Nation = nations[tag]
-		if n.alive:
-			_economy(n)
-			_pmark("economy")
-			govt.estates_monthly(self, n)
-			_pmark("estates")
+
+
+func _t_economy(tag: String) -> void:
+	var n: Nation = nations[tag]
+	if n.alive:
+		_economy(n)
+		_pmark("economy")
+		govt.estates_monthly(self, n)
+		_pmark("estates")
+
+
+func _t_naval() -> void:
 	Naval.monthly(self)
 	_pmark("naval")
+
+
+func _t_voyages() -> void:
 	Naval.voyages_tick(self)
 	_pmark("voyages")
+
+
+func _t_colonial() -> void:
 	Colonial.monthly(self)
 	_pmark("colonial")
+
+
+func _t_trade() -> void:
 	Trade.monthly(self)
 	_pmark("trade")
+
+
+func _t_armies() -> void:
 	_armies_tick()
 	_pmark("armies")
+
+
+func _t_wars() -> void:
 	_wars_tick()
 	_pmark("wars")
-	for tag in order:
-		var n: Nation = nations[tag]
-		if n.alive and tag != player:
-			ai.think(self, n)
-			if (month + tag.hash()) % 6 == 0:
-				Naval.ai_build(self, n)
-				_pmark("ai.naval")
+
+
+func _t_ai(tag: String) -> void:
+	var n: Nation = nations[tag]
+	if n.alive and tag != player:
+		ai.think(self, n)
+		if (month + tag.hash()) % 6 == 0:
+			Naval.ai_build(self, n)
+			_pmark("ai.naval")
+
+
+func _t_player() -> void:
 	if player != "" and nations[player].alive:
 		ai.control_armies(self, player)
 		Economy.autobuild(self, nations[player])
@@ -807,9 +885,21 @@ func tick() -> void:
 			log_msg("🔬 Forschungsplan: %s erforscht." % t, [player])
 		_overflow_develop(nations[player])
 	_pmark("player")
+
+
+func _t_month() -> void:
 	month += 1
 	if month % 12 == 0:
-		_yearly()
+		for tag in order:
+			_steps.append(_yearly_nation.bind(tag))
+		_steps.append(_yearly_prices)
+		for tag in order:
+			_steps.append(_yearly_merchants.bind(tag))
+		_steps += [_yearly_systems, _yearly_systems2, _yearly_diplo]
+	_steps.append(_t_end)
+
+
+func _t_end() -> void:
 	_pmark("yearly")
 	if month >= int(bal.total_months) and not endless:
 		game_over = true
@@ -1050,37 +1140,68 @@ func reduce_we(tag: String) -> String:
 
 func _yearly() -> void:
 	for tag in order:
-		var n: Nation = nations[tag]
-		if not n.alive:
-			continue
-		n.ruler.years -= 1
-		if n.ruler.years <= 0:
-			govt.succession(self, n)
-			var who: String = n.ruler_name if n.ruler_name != "" else "Ein neuer Herrscher"
-			var tr: String = govt.trait_name(n.gov.get("ruler_trait", ""))
-			log_msg("👑 %s besteigt den Thron (📜%d 🕊️%d ⚔️%d%s)." % [who, n.ruler.adm, n.ruler.dip, n.ruler.mil, ", " + tr if tr != "" else ""], [tag])
-			_marriage_succession(n)
-			if tag == emperor:
-				hre_election()
-		_pmark("y.ruler")
-		govt.yearly(self, n)
-		Ages.yearly(self, n)
-		_pmark("y.gov_ages")
-		_check_events(n)
-		_pmark("y.events")
-		if tag != player:
-			for m in available_missions(tag):
-				if mission_ready(tag, m):
-					complete_mission(tag, m.id)
-		_pmark("y.missions")
-	Economy.yearly(self)
+		_yearly_nation(tag)
+	_yearly_prices()
+	for tag in order:
+		_yearly_merchants(tag)
+	_yearly_systems()
+	_yearly_systems2()
+	_yearly_diplo()
+
+
+func _yearly_nation(tag: String) -> void:
+	var n: Nation = nations[tag]
+	if not n.alive:
+		return
+	n.ruler.years -= 1
+	if n.ruler.years <= 0:
+		govt.succession(self, n)
+		var who: String = n.ruler_name if n.ruler_name != "" else "Ein neuer Herrscher"
+		var tr: String = govt.trait_name(n.gov.get("ruler_trait", ""))
+		log_msg("👑 %s besteigt den Thron (📜%d 🕊️%d ⚔️%d%s)." % [who, n.ruler.adm, n.ruler.dip, n.ruler.mil, ", " + tr if tr != "" else ""], [tag])
+		_marriage_succession(n)
+		if tag == emperor:
+			hre_election()
+	_pmark("y.ruler")
+	govt.yearly(self, n)
+	Ages.yearly(self, n)
+	_pmark("y.gov_ages")
+	_check_events(n)
+	_pmark("y.events")
+	if tag != player:
+		for m in available_missions(tag):
+			if mission_ready(tag, m):
+				complete_mission(tag, m.id)
+	_pmark("y.missions")
+
+
+## The world's yearly systems, in three steps so a stepped month (tick_step) never runs them all in one frame.
+func _yearly_prices() -> void:
+	Economy.yearly_prices(self)
+	_pmark("y.prices")
+
+
+func _yearly_merchants(tag: String) -> void:
+	Economy.yearly_merchants(self, tag)
+	_pmark("y.merchants")
+
+
+func _yearly_systems() -> void:
 	Urban.yearly(self)
+	_pmark("y.urban")
 	Progression.yearly(self)
+	_pmark("y.progression")
+
+
+func _yearly_systems2() -> void:
 	Religion.yearly(self)
 	Colonial.yearly(self)
 	Trade.yearly(self)
 	Formables.ai_yearly(self)
-	_pmark("y.systems")
+	_pmark("y.systems2")
+
+
+func _yearly_diplo() -> void:
 	_coalitions_yearly()
 	_liberty_yearly()
 	_record_history()

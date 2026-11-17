@@ -16,6 +16,7 @@ const BEAT_MS := 10000
 const TICK_SAMPLES := 120
 
 var m
+var tick_frames := 1  # frames the last month was spread over (main._run_month)
 var tick_us: Array = []  # duration of the last TICK_SAMPLES game.tick() calls in microseconds
 var last_crash := {}  # heartbeat of the previous session if it did not end cleanly
 var pid := -1  # province the cheats act on (selected when the panel was opened)
@@ -93,10 +94,11 @@ func _write(d: Dictionary) -> void:
 
 # ---------------------------------------------------------------- timing + overlay
 
-func note_tick(usec: int) -> void:
+func note_tick(usec: int, frames: int = 1) -> void:
 	tick_us.append(usec)
 	if tick_us.size() > TICK_SAMPLES:
 		tick_us.pop_front()
+	tick_frames = frames
 
 
 func tick_avg_ms() -> float:
@@ -165,7 +167,7 @@ func build() -> void:
 		var rows := [
 			["FPS", "%d" % int(Performance.get_monitor(Performance.TIME_FPS))],
 			["Bild", "%.1f ms" % (Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0)],
-			["Monat Ø/max", "%.1f / %.1f ms" % [tick_avg_ms(), tick_max_ms()]],
+			["Monat Ø/max", "%.1f / %.1f ms (%d Frames)" % [tick_avg_ms(), tick_max_ms(), tick_frames]],
 			["RAM jetzt/Spitze", "%.0f / %.0f MB" % [Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0,
 				Performance.get_monitor(Performance.MEMORY_STATIC_MAX) / 1048576.0]],
 			["Objekte/Nodes", "%d / %d" % [int(Performance.get_monitor(Performance.OBJECT_COUNT)), int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))]],

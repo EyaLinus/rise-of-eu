@@ -44,6 +44,11 @@ jobs:
           godot --headless --path . -s res://tools/ui_smoke.gd -- --years 25 2>&1 | tee smoke.txt
           test "$(grep -c '^SMOKE' smoke.txt)" -eq 10
           ! grep -q "SCRIPT ERROR" smoke.txt
+      - name: Stepped months in the real main loop (2 years)
+        run: |
+          godot --headless --path . -s res://tools/month_steps_smoke.gd 2>&1 | tee steps.txt
+          grep -q "MONTH STEPS OK" steps.txt
+          ! grep -q "SCRIPT ERROR" steps.txt
       - name: No cut-off UI text (140 % UI at 1280 and 1560 px, big touch UI)
         shell: bash  # pipefail needs bash, the container's default sh is dash
         run: |

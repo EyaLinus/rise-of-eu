@@ -22,6 +22,16 @@ Spielverlauf **bitgenau identisch** zu `main` (`tools/state_hash.gd`, 40 Jahre, 
 Die Jahres-Staffelung (Option C, Teil 2) ändert den Spielverlauf und wandert deshalb nach Phase 4,
 mit Balance-Läufen; mit dem Thread aus Phase 2 ist der Jahres-Spike ohnehin unsichtbar.
 
+**Phase 2a erledigt** (gleicher PR), **ohne Thread**: Statt die Simulation in einen Hintergrund-Thread zu
+legen (Race Conditions mit jeder UI-Leseoperation, Web-Export bräuchte SharedArrayBuffer), wird ein Monat
+in **Schritte** zerlegt (`Game.tick_begin()` / `tick_step()`: ein Schritt je Reich bzw. je Weltsystem,
+Jahresarbeit ebenso). `main.gd` rechnet je Frame ~5 ms (10 ms, wenn der nächste Monat schon fällig ist)
+und reicht den fertigen Monat dann an die UI. `tick()` läuft dieselben Schritte am Stück, deshalb bleibt der
+Spielverlauf bitgenau gleich. Speichern beendet einen angefangenen Monat erst (`finish_tick()`).
+Längster Einzelschritt heute 14–19 ms (Armeen, KI eines großen Reichs im Krieg) statt 220–370 ms für
+einen ganzen Monat. Geschwindigkeitsstufen 3–5 entfernt. Neuer CI-Check `tools/month_steps_smoke.gd`.
+Rest-Ruckler: `_after_tick` (Panel-Neuaufbau ~30–40 ms) → Phase 2b.
+
 Werkzeuge (alle neu bzw. überarbeitet in diesem PR):
 
 | Werkzeug | Was es misst |
@@ -181,7 +191,8 @@ Gewinne sind **Schätzungen ±50 %**; jede Phase misst vorher/nachher mit `tools
 |---|---|---|---|
 | **0** (dieser PR) | Profiler-Marken im Kern, `perf.gd` neu, `render_perf.gd`, dieses Dokument | erledigt | Baseline |
 | **1 Quick Wins** ✓ | A, B, C (Index), D | erledigt | −30 %, bitgenau gleich |
-| **2 Async-Sim** | E, F, Stufen 3–5 entfernen | 1–2 Tage | Frame-Zeit unabhängig vom Tick, keine Ruckler |
+| **2a Gestufter Monat** ✓ | E (als Zeitscheiben statt Thread), Stufen 3–5 entfernen | erledigt | Frame-Zeit unabhängig vom Tick |
+| **2b UI pro Monat** | P (Panels nur ändern statt neu bauen), F (Autosave) | ~1 Tag | kein Ruckler beim Monatswechsel |
 | **3 Welt-Karte** | G, H (+ Projektion neu, die heutige „Atlantik-Verschiebung“ passt nicht zur ganzen Welt) | 2–4 Tage | Rendering skaliert nicht mehr mit Provinzzahl, Textur passt aufs Handy |
 | **4 KI & UI** | I, J (Hot Paths), P | 2–3 Tage | Ø Tick nochmal −25–35 %, UI pro Monat < 10 ms |
 | **5 nur falls nötig** | K, dann evtl. L | 3–6 Tage | wenn Welt-Budget nach Phase 4 nicht erreicht |

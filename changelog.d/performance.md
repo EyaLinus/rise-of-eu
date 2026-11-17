@@ -1,1 +1,3 @@
 - Performance: ein Spielmonat rechnet rund 30 % schneller (Modifikator-Cache, Vasallen-/Embargo-Index, Ereignis-Index, Marine nur bei Bedarf). Der Spielverlauf bleibt unverändert.
+- Flüssigeres Spiel: ein Spielmonat wird über mehrere Bilder verteilt berechnet, statt das Bild bei jedem Monat (und vor allem zum Jahreswechsel) kurz einzufrieren.
+- Nur noch zwei Geschwindigkeiten (normal und schnell); die drei schnelleren Stufen sind entfallen.

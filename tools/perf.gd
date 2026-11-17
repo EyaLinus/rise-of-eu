@@ -37,9 +37,25 @@ func _init() -> void:
 		var n := 0
 		var w0 := Time.get_ticks_usec()
 		var worst := 0
+		var worst_step := 0
+		var worst_step_name := ""
 		for m in mini(every, years - block) * 12:
 			var a := Time.get_ticks_usec()
-			g.tick()
+			if "_steps" in g:
+				# the stepped month of the UI: also find the longest single step (one frame's worth at most)
+				if g.tick_begin():
+					while true:
+						var nxt: Callable = g._steps[g._step_i]
+						var sa := Time.get_ticks_usec()
+						var more: bool = g.tick_step()
+						var sd := Time.get_ticks_usec() - sa
+						if sd > worst_step:
+							worst_step = sd
+							worst_step_name = nxt.get_method()
+						if not more:
+							break
+			else:
+				g.tick()
 			worst = maxi(worst, Time.get_ticks_usec() - a)
 			n += 1
 		var wall := Time.get_ticks_usec() - w0
@@ -51,6 +67,8 @@ func _init() -> void:
 		print("\n== %d-%d  (%d alive, %d armies, %d wars)  %.2f ms/tick  worst tick %.1f ms" % [
 				g.year() - mini(every, years - block), g.year(), alive, g.armies.size(), g.wars.size(),
 				wall / 1000.0 / n, worst / 1000.0])
+		if worst_step > 0:
+			print("  longest single step: %s %.1f ms" % [worst_step_name, worst_step / 1000.0])
 		var pr: Dictionary = g.prof if "prof" in g else {}
 		var keys: Array = pr.keys()
 		keys.sort_custom(func(x, y): return pr[x] > pr[y])

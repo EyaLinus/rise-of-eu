@@ -196,7 +196,9 @@ static func side_power(g, tags: Array, sea: String) -> float:
 	var s := 0.0
 	for t in tags:
 		if g.nations[t].alive:
-			s += float(g._fleet.get(t, {}).get(sea, 0.0)) * power_mult(g, t)
+			var ships: float = float(g._fleet.get(t, {}).get(sea, 0.0))
+			if ships != 0.0:  # (adding 0 * mult changes nothing, so skip the modifier lookups)
+				s += ships * power_mult(g, t)
 	return s
 
 
