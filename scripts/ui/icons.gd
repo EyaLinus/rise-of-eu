@@ -10,7 +10,7 @@ const EMOJI := {
 	"prestige": "⭐", "dev": "🏘️", "fort": "🏰", "date": "📅", "siege": "🔥", "claim": "🎯",
 	"tab_nation": "🏛️", "tab_economy": "💰", "tab_tech": "🔬", "tab_government": "⚖️", "tab_diplomacy": "🤝", "tab_wars": "⚔️", "tab_navy": "⚓", "tab_missions": "🎯", "tab_log": "📜",
 	"tab_mapmode": "🗺️", "tab_advice": "💡", "event": "📯", "peace": "🕊️", "war": "🔥", "coalition": "⚠️",
-	"vassal": "⛓️", "annex": "📜",
+	"vassal": "⛓️", "annex": "📜", "settlers": "🏕",
 }
 
 static var _cache := {}
