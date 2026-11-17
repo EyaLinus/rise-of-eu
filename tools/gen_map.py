@@ -304,7 +304,7 @@ PROVINCES = [
     ("lucayas", "Lucayas", -77.8, 24.4, "NAT", 1, 2.0),
     ("trinidad", "Trinidad", -61.3, 10.4, "NAT", 1, 0.7),
     # North America: Gulf and the south-east
-    ("florida", "Florida", -81.4, 27.8, "NAT", 2),
+    ("florida", "Florida", -81.6, 28.0, "NAT", 2),
     ("apalachee", "Apalachee", -84.3, 30.6, "NAT", 2),
     ("maubila", "Maubila", -87.9, 31.5, "NAT", 2),
     ("natchez", "Natchez", -91.3, 32.0, "NAT", 3),
@@ -324,10 +324,10 @@ PROVINCES = [
     ("secotan", "Secotan", -77.2, 35.6, "NAT", 2),
     ("powhatan", "Powhatan", -77.4, 37.7, "NAT", 3),
     ("susquehannock", "Susquehannock", -76.6, 40.2, "NAT", 2),
-    ("lenape", "Lenapehoking", -74.6, 40.6, "NAT", 2),
+    ("lenape", "Lenapehoking", -74.7, 39.9, "NAT", 2),
     ("mahican", "Mahican", -73.7, 42.7, "NAT", 2),
-    ("massachusett", "Massachusett", -71.4, 42.2, "NAT", 3),
-    ("abenaki", "Abenaki", -69.6, 44.9, "NAT", 2),
+    ("massachusett", "Massachusett", -71.3, 42.5, "NAT", 3),
+    ("abenaki", "Abenaki", -71.4, 44.3, "NAT", 2),
     ("mikmaq", "Mi'kma'ki", -63.6, 45.2, "NAT", 1),
     ("gaspe", "Gaspé", -66.2, 48.0, "NAT", 1),
     ("newfoundland", "Neufundland", -56.0, 48.6, "NAT", 1),
@@ -534,6 +534,114 @@ PROVINCES = [
     ("imerina", "Imerina", 47.4, -19.2, "NAT", 3, 6.0),
     ("menabe", "Menabe", 44.6, -20.8, "NAT", 2, 6.0),
     ("androy", "Androy", 46.0, -24.2, "NAT", 1, 6.0),
+    # --- South America and a finer North American east coast (appended after Africa so every older id
+    # stays stable; "sa" + "nw" in map.json: overseas/colonial, region "america") ---
+    # the North American east coast (finer cut: colonial landing places)
+    ("calusa", "Calusa", -81.3, 26.0, "NAT", 2, 2.0),
+    ("timucua", "Timucua", -82.0, 30.0, "NAT", 2),
+    ("guale", "Guale", -81.6, 31.8, "NAT", 2),
+    ("tuscarora", "Tuscarora", -78.6, 35.4, "NAT", 2),
+    ("nanticoke", "Nanticoke", -75.7, 38.6, "NAT", 1),
+    ("munsee", "Manahatta", -73.9, 41.0, "NAT", 2),
+    ("pequot", "Pequot", -72.4, 41.6, "NAT", 2),
+    ("wampanoag", "Wampanoag", -70.7, 41.8, "NAT", 2),
+    ("penobscot", "Penobscot", -68.8, 44.9, "NAT", 1),
+    ("wolastoqiyik", "Wolastoqiyik", -66.4, 46.2, "NAT", 1),
+    # the Caribbean coast of South America and the Guianas
+    ("tairona", "Tairona", -73.9, 10.9, "NAT", 3, 6.0),
+    ("calamari", "Calamarí", -75.2, 10.1, "NAT", 2, 6.0),
+    ("zenu", "Zenú", -75.8, 8.5, "NAT", 2, 6.0),
+    ("antioquia", "Antioquia", -75.6, 6.4, "NAT", 2, 6.0),
+    ("coquivacoa", "Coquivacoa", -71.8, 10.4, "NAT", 2, 6.0),
+    ("caracas", "Caracas", -67.2, 10.1, "NAT", 2, 6.0),
+    ("cumana", "Cumaná", -64.0, 10.0, "NAT", 1, 6.0),
+    ("llanos", "Llanos", -68.8, 7.2, "NAT", 1, 6.0),
+    ("orinoco", "Orinoco-Delta", -61.8, 8.4, "NAT", 1, 6.0),
+    ("guayana", "Guayana", -58.6, 6.0, "NAT", 1, 6.0),
+    ("suriname", "Suriname", -55.6, 4.6, "NAT", 1, 6.0),
+    ("cayenne", "Cayenne", -53.0, 4.0, "NAT", 1, 6.0),
+    ("roraima", "Roraima", -62.4, 3.8, "NAT", 1, 6.0),
+    # the Muisca and the northern Andes
+    ("bacata", "Bacatá", -74.1, 4.6, "MUI", 6, 6.0),
+    ("hunza", "Hunza", -73.0, 5.8, "MUI", 5, 6.0),
+    ("cauca", "Popayán", -76.6, 2.4, "NAT", 2, 6.0),
+    ("quito", "Quito", -78.5, -0.2, "QTO", 5, 6.0),
+    ("guayaquil", "Huancavilca", -80.0, -1.8, "NAT", 3, 6.0),
+    ("canari", "Tumipampa", -78.9, -2.9, "NAT", 3, 6.0),
+    # Chimor and the coast of Peru
+    ("tumbes", "Tumbes", -80.5, -4.6, "CHM", 2, 6.0),
+    ("lambayeque", "Lambayeque", -79.9, -6.6, "CHM", 4, 6.0),
+    ("chan_chan", "Chan Chan", -79.0, -8.1, "CHM", 7, 6.0),
+    ("cajamarca", "Cajamarca", -78.4, -7.1, "NAT", 3, 6.0),
+    ("chachapoyas", "Chachapoyas", -77.8, -6.0, "NAT", 3, 6.0),
+    ("huanuco", "Huánuco", -76.2, -9.8, "NAT", 2, 6.0),
+    ("pachacamac", "Pachacámac", -77.0, -12.0, "NAT", 4, 6.0),
+    ("jauja", "Xauxa", -75.4, -11.9, "NAT", 3, 6.0),
+    ("chincha", "Chincha", -76.0, -13.6, "NAT", 4, 6.0),
+    ("nazca", "Nazca", -74.9, -14.9, "NAT", 2, 6.0),
+    # the Inca and the Altiplano
+    ("cusco", "Cusco", -72.0, -13.5, "INC", 8, 6.0),
+    ("apurimac", "Andahuaylas", -73.4, -13.7, "INC", 4, 6.0),
+    ("antisuyu", "Antisuyu", -71.0, -12.0, "INC", 2, 6.0),
+    ("arequipa", "Arequipa", -71.6, -16.3, "NAT", 3, 6.0),
+    ("collao", "Hatun Colla", -70.2, -15.0, "CLL", 5, 6.0),
+    ("chucuito", "Chucuito", -68.6, -16.9, "CLL", 4, 6.0),
+    ("charcas", "Charcas", -65.6, -19.4, "NAT", 3, 6.0),
+    ("atacama", "Atacama", -69.4, -22.0, "NAT", 1, 6.0),
+    ("moxos", "Moxos", -65.0, -14.4, "NAT", 1, 6.0),
+    ("chiquitos", "Chiquitos", -61.0, -17.4, "NAT", 1, 6.0),
+    # Chile
+    ("copiapo", "Copiapó", -70.2, -27.4, "NAT", 1, 6.0),
+    ("coquimbo", "Coquimbo", -71.0, -30.2, "NAT", 2, 6.0),
+    ("mapocho", "Mapocho", -70.7, -33.4, "NAT", 2, 6.0),
+    ("maule", "Maule", -71.6, -35.6, "NAT", 2, 6.0),
+    ("araucania", "Araucanía", -72.6, -38.6, "NAT", 3, 6.0),
+    ("huilliche", "Huilliche", -73.2, -41.6, "NAT", 1, 6.0),
+    ("aysen", "Chonos", -73.0, -46.4, "NAT", 1, 6.0),
+    ("magallanes", "Feuerland", -69.8, -53.6, "NAT", 1, 6.0),
+    # the Andes foothills, the Chaco and the Pampas
+    ("tucuman", "Tucumán", -65.4, -26.6, "NAT", 2, 6.0),
+    ("cuyo", "Cuyo", -68.6, -32.8, "NAT", 1, 6.0),
+    ("cordoba", "Comechingones", -64.2, -31.4, "NAT", 1, 6.0),
+    ("chaco", "Gran Chaco", -61.2, -24.4, "NAT", 1, 6.0),
+    ("pampa", "Pampa", -62.4, -36.0, "NAT", 1, 6.0),
+    ("rio_plata", "Río de la Plata", -58.6, -34.4, "NAT", 1, 6.0),
+    ("parana", "Paraná", -59.6, -30.4, "NAT", 1, 6.0),
+    ("patagonia", "Patagonien", -67.0, -42.6, "NAT", 1, 6.0),
+    ("santa_cruz", "Santa Cruz", -69.6, -48.8, "NAT", 1, 6.0),
+    ("malvinas", "Malwinen", -59.2, -51.7, "NAT", 1, 2.0),
+    # Paraguay and the Banda Oriental
+    ("guarani", "Guaraní", -57.6, -25.4, "NAT", 2, 6.0),
+    ("charrua", "Charrúa", -56.0, -32.8, "NAT", 1, 6.0),
+    ("guaira", "Guairá", -53.4, -24.6, "NAT", 1, 6.0),
+    # the coast of Brazil
+    ("tape", "Tape", -52.4, -29.6, "NAT", 1, 6.0),
+    ("carijo", "Carijó", -49.2, -27.0, "NAT", 1, 6.0),
+    ("sao_vicente", "São Vicente", -46.6, -23.6, "NAT", 2, 6.0),
+    ("guanabara", "Guanabara", -43.2, -22.6, "NAT", 2, 6.0),
+    ("espirito_santo", "Espírito Santo", -40.6, -19.8, "NAT", 1, 6.0),
+    ("porto_seguro", "Porto Seguro", -39.4, -16.4, "NAT", 1, 6.0),
+    ("bahia", "Bahia", -38.8, -12.8, "NAT", 2, 6.0),
+    ("pernambuco", "Pernambuco", -35.4, -8.2, "NAT", 2, 6.0),
+    ("potiguara", "Potiguara", -36.0, -5.6, "NAT", 1, 6.0),
+    ("ceara", "Ceará", -39.2, -4.2, "NAT", 1, 6.0),
+    ("maranhao", "Maranhão", -44.4, -3.0, "NAT", 1, 6.0),
+    ("para", "Pará", -48.6, -1.6, "NAT", 1, 6.0),
+    ("amapa", "Amapá", -51.4, 1.2, "NAT", 1, 6.0),
+    # the interior of Brazil and the Amazon
+    ("sertao", "Sertão", -41.0, -9.0, "NAT", 1, 6.0),
+    ("tocantins", "Tocantins", -47.6, -8.6, "NAT", 1, 6.0),
+    ("minas", "Minas", -44.4, -18.6, "NAT", 1, 6.0),
+    ("goias", "Goiás", -49.6, -15.4, "NAT", 1, 6.0),
+    ("mato_grosso", "Mato Grosso", -55.8, -13.6, "NAT", 1, 6.0),
+    ("pantanal", "Pantanal", -56.8, -19.2, "NAT", 1, 6.0),
+    ("tapajos", "Tapajós", -55.0, -4.4, "NAT", 1, 6.0),
+    ("amazonas", "Amazonas", -60.4, -3.2, "NAT", 1, 6.0),
+    ("madeira", "Madeira", -63.6, -8.6, "NAT", 1, 6.0),
+    ("rio_negro", "Rio Negro", -66.0, 0.2, "NAT", 1, 6.0),
+    ("solimoes", "Solimões", -68.4, -4.4, "NAT", 1, 6.0),
+    ("maynas", "Maynas", -74.6, -3.8, "NAT", 1, 6.0),
+    ("ucayali", "Ucayali", -73.8, -8.6, "NAT", 1, 6.0),
 ]
 
 # Extra sea/strait connections (province keys)
@@ -555,6 +663,8 @@ STRAITS = [
     ("aden", "zeila"), ("tihama", "danakil"), ("mecca", "suakin"), ("hasa", "bushehr"),
     # Zanzibar and the Mozambique Channel (Comoros crossing)
     ("zanzibar", "kilwa"), ("zanzibar", "mombasa"), ("mozambique", "boina"),
+    # South America: Trinidad, Tierra del Fuego, the Falklands; the Panama isthmus is a land link below
+    ("trinidad", "cumana"), ("magallanes", "santa_cruz"), ("malvinas", "santa_cruz"),
 ]
 
 # land borders the coarse polygons miss (isthmus, small gaps): adjacency only, not sea crossings
@@ -565,24 +675,30 @@ LAND_LINKS = [("constantinople", "edirne"), ("morea", "thessaly"), ("crimea", "z
               ("tabuk", "medina"), ("basra", "hasa"), ("aswan", "upper_egypt"), ("aswan", "dongola"), ("dongola", "alwa"),
               # Saharan caravans to the Fezzan and Lake Chad, and the Nile into the Sudd
               ("fezzan", "tripoli"), ("fezzan", "sirte"), ("fezzan", "kanem"), ("fezzan", "air"), ("tibesti", "kanem"),
-              ("sudd", "sennar")]
+              ("sudd", "sennar"),
+              # the Darién gap (the coarse polygons leave the isthmus open)
+              ("darien", "zenu")]
 
 sys.path.insert(0, os.path.dirname(__file__))
-from mapproj import LAT0, MIN_LAT, NEW_WORLD, NW_MIN_LAT, OLD_WORLD, SCALE, proj, size  # noqa: E402
+from mapproj import ATL_SHIFT, LAT0, MIN_LAT, NEW_WORLD, NW_MIN_LAT, OLD_WORLD, SCALE, SOUTH_AMERICA, proj, size  # noqa: E402
 
 FIRST_NEW_WORLD = "tenochtitlan"  # provinces from here on are overseas/colonial ("nw" in map.json)
 FIRST_AFRICA = "arguin"  # ... and from here on they are West Africa ("wa" in map.json, also "nw")
 FIRST_EAST = "baghdad"  # ... up to here: the Middle East and the Horn are Old World again ("east" in map.json)
 FIRST_SOUTH = "fezzan"  # ... and from here on Africa south of the Sahara: overseas again ("af", also "nw" and "wa")
+FIRST_SA = "calusa"  # ... and from here on South America and the finer east coast of North America ("sa", also "nw")
 # big African lakes cut out of the land south of the Sahara
 AF_LAKES = {"Lake Victoria", "Lake Tanganyika", "Lake Malawi"}
-# the map texture is split in two below this latitude (each part < 4096 px on Android); the south
-# part only covers Africa (east of TERRAIN_SOUTH_LON), the rest of it is plain open sea. Both lines
-# run through open water well away from any coast, so map_terrain can fade the sea into the plain colour
+# the map texture is split below this latitude (each part < 4096 px on Android): the south part is two
+# tiles, Africa (east of TERRAIN_SOUTH_LON, down to TERRAIN_AFRICA_MIN_LAT) and South America (west of it,
+# down to the map edge); the rest is plain open sea. The lines run through open water well away from any
+# coast, so map_terrain can fade the sea into the plain colour
 TERRAIN_SOUTH_LAT = 1.5
 TERRAIN_SOUTH_LON = -2.0
+TERRAIN_AFRICA_MIN_LAT = -37.0
+TERRAIN_SA_LON = (-56.5, -2.0)  # shifted longitudes: the Pacific coast of Peru at -81.3 is -54.3 after the shift
 # big lakes cut out of the New World land (Natural Earth lakes); Europe keeps its old shapes
-LAKES = {"Lake Superior", "Lake Michigan", "Lake Huron", "Lake Erie", "Lake Ontario", "Lake Winnipeg", "Lago de Nicaragua"}
+LAKES = {"Lake Superior", "Lake Michigan", "Lake Huron", "Lake Erie", "Lake Ontario", "Lake Winnipeg", "Lago de Nicaragua", "Lago Titicaca"}
 
 
 def project_geom(g):
@@ -603,7 +719,8 @@ def main(land_path, lakes_path):
         lakes_gj = json.load(f)
     lakes = unary_union([shape(ft["geometry"]) for ft in lakes_gj["features"] if ft["properties"].get("name") in LAKES])
     af_lakes = unary_union([shape(ft["geometry"]) for ft in lakes_gj["features"] if ft["properties"].get("name") in AF_LAKES])
-    windows = [box(OLD_WORLD[0], MIN_LAT, OLD_WORLD[1], LAT0), box(NEW_WORLD[0], NW_MIN_LAT, NEW_WORLD[1], LAT0)]
+    windows = [box(OLD_WORLD[0], MIN_LAT, OLD_WORLD[1], LAT0),
+               box(NEW_WORLD[0], NW_MIN_LAT, NEW_WORLD[1], LAT0).union(box(*SOUTH_AMERICA))]
     land_parts = []
     for feat in gj["features"]:
         g = shape(feat["geometry"])
@@ -634,6 +751,7 @@ def main(land_path, lakes_path):
     wa_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_AFRICA)
     east_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_EAST)
     south_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_SOUTH)
+    sa_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_SA)
     max_r = 3.2 * SCALE
     raw = []
     for i, p in enumerate(PROVINCES):
@@ -698,10 +816,13 @@ def main(land_path, lakes_path):
             d["wa"] = True
         if south_first > i >= east_first:
             d["east"] = True
-        if i >= south_first:
+        if sa_first > i >= south_first:
             d["nw"] = True
             d["wa"] = True
             d["af"] = True
+        if i >= sa_first:
+            d["nw"] = True
+            d["sa"] = True
         provinces.append(d)
 
     key_to_id = {p[0]: i for i, p in enumerate(PROVINCES)}
@@ -731,7 +852,13 @@ def main(land_path, lakes_path):
             bg.append([[round(x, 1), round(y, 1)] for x, y in list(q.exterior.coords)[:-1]])
 
     tx, ty = proj(TERRAIN_SOUTH_LON, TERRAIN_SOUTH_LAT)
-    out = {"size": [W, H], "terrain_south": [int(tx), int(round(ty))], "provinces": provinces, "background": bg}
+    tx, ty = int(tx), int(round(ty))
+    _, ay = proj(TERRAIN_SOUTH_LON, TERRAIN_AFRICA_MIN_LAT)
+    sx0, _ = proj(TERRAIN_SA_LON[0] - ATL_SHIFT, 0.0)
+    sx0 = int(sx0)
+    # [file, x, y, w, h] in map pixels; terrain.png itself covers the full width down to ty
+    tiles = [["terrain_south.png", tx, ty, W - tx, int(ay) - ty], ["terrain_sa.png", sx0, ty, tx - sx0, H - ty]]
+    out = {"size": [W, H], "terrain_split": ty, "terrain_tiles": tiles, "provinces": provinces, "background": bg}
     with open("data/map.json", "w") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
     # sea crossings: slower marches, need sea control in war (scripts/core/warfare.gd)

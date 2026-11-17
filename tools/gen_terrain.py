@@ -40,6 +40,15 @@ EAST_MARSH = {"basra"}
 AF_DESERT = {"fezzan", "air", "tibesti", "kanem", "majerteen", "damaraland", "namaqua", "kalahari", "karoo", "androy"}
 AF_MARSH = {"sudd", "okavango"}
 AF_FOREST = {"cameroon", "ogowe", "loango", "tio", "congo_basin", "ubangi", "ituri", "maniema", "kuba", "azande", "betsimisaraka", "buganda"}
+# South America ("sa" in map.json): rain forest unless listed; the Andes come from the ridges
+SA_DESERT = {"atacama", "copiapo", "nazca", "chincha", "pachacamac", "arequipa", "cuyo", "patagonia", "santa_cruz", "tumbes"}
+SA_PLAINS = {"llanos", "pampa", "rio_plata", "charrua", "parana", "tape", "chaco", "cordoba", "tucuman", "guarani", "sertao", "goias",
+             "minas", "mato_grosso", "magallanes", "malvinas", "maule", "mapocho", "coquimbo", "ceara", "potiguara", "chiquitos",
+             "pernambuco", "bahia", "guale", "tuscarora", "timucua", "lambayeque", "chan_chan", "guayaquil"}
+SA_MARSH = {"pantanal", "orinoco", "moxos", "calusa", "amapa"}
+# narrow coastal strips next to the Andes: the ridge glow overstates them (the Peruvian coast, the Atacama)
+SA_LOW = {"tumbes", "guayaquil", "lambayeque", "chan_chan", "pachacamac", "chincha", "nazca", "atacama"}
+SA_HILLS = {"mapocho", "maule", "coquimbo", "copiapo", "araucania"}
 NW_MARSH = {"delta", "florida", "mosquitia", "tabasco"}
 NW_PLAINS = {"pawnee", "wichita", "lakota", "dakota", "ioway", "hasinai", "karankawa", "illinois", "assiniboine",
              "yucatan", "campeche", "bajio", "tamaulipas", "tenochtitlan", "tlaxcala", "cahokia", "natchez"}
@@ -67,7 +76,12 @@ def main():
         relief = float(mount[sel].mean()) if sel.any() else 0.0
         peak = float(np.percentile(mount[sel], 90)) if sel.any() else 0.0
         lon, lat = lonlat(*p["center"])
-        if (relief > 0.55 or peak > 1.1) and p["key"] not in HILL_KEYS:
+        if p["key"] in SA_HILLS:
+            t = "hills"
+        elif p["key"] in SA_LOW:
+            k = p["key"]
+            t = "desert" if k in SA_DESERT else "plains"
+        elif (relief > 0.55 or peak > 1.1) and p["key"] not in HILL_KEYS:
             t = "mountains"
         elif relief > 0.2 or peak > 0.6 or p["key"] in HILL_KEYS:
             t = "hills"
@@ -80,6 +94,9 @@ def main():
         elif p.get("wa"):  # West Africa: Sahara and Sahel, savanna, rain forest on the Guinea coast
             k = p["key"]
             t = "desert" if lat > 15.5 else "marsh" if k in WA_MARSH else "forest" if lat < 8.0 or k in WA_FOREST else "plains"
+        elif p.get("sa"):
+            k = p["key"]
+            t = "desert" if k in SA_DESERT else "marsh" if k in SA_MARSH else "plains" if k in SA_PLAINS else "forest"
         elif p.get("nw"):
             k = p["key"]
             t = "desert" if k in NW_DESERT else "marsh" if k in NW_MARSH else "plains" if k in NW_PLAINS else "forest"

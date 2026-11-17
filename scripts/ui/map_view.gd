@@ -18,8 +18,9 @@ const FOG_PATH := "res://data/fog.json"
 const FOG := Color("2f2c26")
 ## Painted base map (tools/art/map_terrain.py). Without it the map falls back to flat SEA/WASTE.
 const TERRAIN_PATH := "res://assets/art/map/terrain.png"
-## The map below the Gulf of Guinea (Africa) is a second texture: Android caps textures at 4096 px.
-const TERRAIN_SOUTH_PATH := "res://assets/art/map/terrain_south.png"
+## The map below the Gulf of Guinea is cut into tiles (Africa, South America; map.json "terrain_tiles"):
+## Android caps textures at 4096 px.
+const TERRAIN_DIR := "res://assets/art/map/"
 const TERRAIN_HALF_PATH := "res://assets/art/map/terrain_half.png"
 const FILL_ALPHA := 0.74
 const PROV_BORDER := Color(0.12, 0.09, 0.06, 0.28)
@@ -40,9 +41,9 @@ var background: Array = []
 var terrain: Texture2D
 var terrain_half: Texture2D
 var _terrain_rect: TextureRect
-var _terrain_south_rect: TextureRect
-var terrain_south: Texture2D
-var terrain_south_at := Vector2.ZERO  # top-left of terrain_south.png in map pixels (map.json "terrain_south")
+var _terrain_tiles: Array = []  # TextureRects of the southern tiles (map.json "terrain_tiles")
+var terrain_tile_defs: Array = []  # [file, x, y, w, h] in map pixels
+var terrain_split := 0.0  # terrain.png covers the full width down to this y (map.json "terrain_split")
 var _world: Node2D  # container of the world layer pieces (map_world_layer.gd)
 var _world_zoom := -1.0
 const WorldLayer = preload("res://scripts/ui/map_world_layer.gd")
@@ -110,8 +111,8 @@ func setup(g, map_data: Dictionary) -> void:
 	bboxes.clear()
 	background.clear()
 	world_size = Vector2(map_data.size[0], map_data.size[1])
-	var ts: Array = map_data.get("terrain_south", [0, map_data.size[1]])
-	terrain_south_at = Vector2(ts[0], ts[1])
+	terrain_split = float(map_data.get("terrain_split", map_data.size[1]))
+	terrain_tile_defs = map_data.get("terrain_tiles", [])
 	for pd in map_data.provinces:
 		var list := []
 		var bb := Rect2()
@@ -334,7 +335,6 @@ func _build_realm_labels() -> void:
 func _setup_terrain() -> void:
 	terrain = load(TERRAIN_PATH) if ResourceLoader.exists(TERRAIN_PATH) else null
 	terrain_half = load(TERRAIN_HALF_PATH) if ResourceLoader.exists(TERRAIN_HALF_PATH) else null
-	terrain_south = load(TERRAIN_SOUTH_PATH) if terrain_south_at.y < world_size.y and ResourceLoader.exists(TERRAIN_SOUTH_PATH) else null
 	if _sea_rect == null:
 		_sea_rect = ColorRect.new()
 		_sea_rect.color = Color("132a45") if terrain != null else SEA
@@ -352,15 +352,21 @@ func _setup_terrain() -> void:
 		_terrain_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_terrain_rect.stretch_mode = TextureRect.STRETCH_SCALE
 		add_child(_terrain_rect)
-	if terrain_south != null and _terrain_south_rect == null:
-		_terrain_south_rect = TextureRect.new()
-		_terrain_south_rect.show_behind_parent = true
-		_terrain_south_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_terrain_south_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-		_terrain_south_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		_terrain_south_rect.stretch_mode = TextureRect.STRETCH_SCALE
-		_terrain_south_rect.texture = terrain_south
-		add_child(_terrain_south_rect)
+	if _terrain_tiles.is_empty() and terrain_split < world_size.y:
+		for td in terrain_tile_defs:
+			var path: String = TERRAIN_DIR + str(td[0])
+			if not ResourceLoader.exists(path):
+				continue
+			var r := TextureRect.new()
+			r.show_behind_parent = true
+			r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			r.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+			r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			r.stretch_mode = TextureRect.STRETCH_SCALE
+			r.texture = load(path)
+			r.set_meta("rect", Rect2(td[1], td[2], td[3], td[4]))
+			add_child(r)
+			_terrain_tiles.append(r)
 	_sync_terrain()
 
 
@@ -378,15 +384,16 @@ func _sync_terrain() -> void:
 	if _terrain_rect.texture != tex:
 		_terrain_rect.texture = tex
 	_terrain_rect.position = offset
-	# the half-size texture is the whole map; the full-size one stops where the southern part begins
-	var split := _terrain_south_rect != null and not half
-	_terrain_rect.size = Vector2(world_size.x, terrain_south_at.y) if split else world_size
+	# the half-size texture is the whole map; the full-size one stops where the southern tiles begin
+	var split := not _terrain_tiles.is_empty() and not half
+	_terrain_rect.size = Vector2(world_size.x, terrain_split) if split else world_size
 	_terrain_rect.scale = Vector2(zoom, zoom)
-	if _terrain_south_rect != null:
-		_terrain_south_rect.visible = split
-		_terrain_south_rect.position = offset + terrain_south_at * zoom
-		_terrain_south_rect.size = world_size - terrain_south_at
-		_terrain_south_rect.scale = Vector2(zoom, zoom)
+	for r in _terrain_tiles:
+		var rc: Rect2 = r.get_meta("rect")
+		r.visible = split
+		r.position = offset + rc.position * zoom
+		r.size = rc.size
+		r.scale = Vector2(zoom, zoom)
 
 
 func _edge_key(a: Vector2, b: Vector2) -> String:
