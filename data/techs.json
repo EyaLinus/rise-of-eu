@@ -1770,6 +1770,272 @@
     "maintenance": 0.05
    },
    "text": "Karl der Kühne baut ein modernes, teures Berufsheer auf."
+  },
+  {
+   "id": "por_sagres",
+   "tag": "POR",
+   "cat": "dip",
+   "name": "Schule von Sagres",
+   "year": 1444,
+   "req": [
+    "dip_messen"
+   ],
+   "effects": {
+    "trade": 0.05,
+    "naval": 0.1
+   },
+   "text": "Heinrich der Seefahrer versammelt Kartographen und Schiffbauer an der Algarve."
+  },
+  {
+   "id": "por_caravela",
+   "tag": "POR",
+   "cat": "dip",
+   "name": "Caravela redonda",
+   "year": 1488,
+   "req": [
+    "dip_karavellen"
+   ],
+   "effects": {
+    "naval": 0.1,
+    "trade": 0.05
+   },
+   "text": "Rahsegel und Lateinsegel zugleich: Schiffe, die bis zum Kap und zurück kommen."
+  },
+  {
+   "id": "por_feitorias",
+   "tag": "POR",
+   "cat": "adm",
+   "name": "Feitorias",
+   "year": 1505,
+   "req": [
+    "adm_kataster"
+   ],
+   "effects": {
+    "income": 0.06,
+    "coring": -0.05
+   },
+   "text": "Befestigte Handelsposten statt teurer Eroberungen."
+  },
+  {
+   "id": "ven_arsenale",
+   "tag": "VEN",
+   "cat": "mil",
+   "name": "Arsenale di Venezia",
+   "year": 1444,
+   "req": [
+    "mil_bombarden"
+   ],
+   "effects": {
+    "naval": 0.15,
+    "build_cost": -0.05
+   },
+   "text": "Die größte Werft der Welt baut eine Galeere am Tag."
+  },
+  {
+   "id": "ven_dieci",
+   "tag": "VEN",
+   "cat": "adm",
+   "name": "Rat der Zehn",
+   "year": 1460,
+   "req": [
+    "adm_landvoegte"
+   ],
+   "effects": {
+    "unrest": -0.5,
+    "dip": 1
+   },
+   "text": "Ein geheimer Rat wacht über die Republik und ihre Feinde."
+  },
+  {
+   "id": "ven_zecca",
+   "tag": "VEN",
+   "cat": "dip",
+   "name": "Zecchino der Zecca",
+   "year": 1484,
+   "req": [
+    "dip_wechsel"
+   ],
+   "effects": {
+    "income": 0.06,
+    "trade": 0.04
+   },
+   "text": "Die venezianische Goldmünze gilt von Brügge bis Alexandria."
+  },
+  {
+   "id": "hun_fekete",
+   "tag": "HUN",
+   "cat": "mil",
+   "name": "Schwarze Armee",
+   "year": 1458,
+   "req": [
+    "mil_ordonnanz"
+   ],
+   "effects": {
+    "combat": 0.07,
+    "maintenance": 0.05
+   },
+   "text": "Matthias Corvinus bezahlt ein stehendes Söldnerheer aus der Krone."
+  },
+  {
+   "id": "hun_vegvar",
+   "tag": "HUN",
+   "cat": "mil",
+   "name": "Grenzfestungen gegen die Osmanen",
+   "year": 1444,
+   "req": [
+    "mil_bombarden"
+   ],
+   "effects": {
+    "siege": 0.1,
+    "manpower": 0.05
+   },
+   "text": "Belgrad, Jajce und Temeswar halten die Osmanen auf."
+  },
+  {
+   "id": "hun_corvina",
+   "tag": "HUN",
+   "cat": "adm",
+   "name": "Bibliotheca Corviniana",
+   "year": 1470,
+   "req": [
+    "adm_buchdruck"
+   ],
+   "effects": {
+    "tech_cost": -0.05,
+    "prestige": 0.5
+   },
+   "text": "Eine der größten Bibliotheken Europas in Buda."
+  },
+  {
+   "id": "mam_furusiyya",
+   "tag": "MAM",
+   "cat": "mil",
+   "name": "Furusiyya",
+   "year": 1444,
+   "req": [
+    "mil_pikenhaufen"
+   ],
+   "effects": {
+    "combat": 0.06
+   },
+   "text": "Die Reitkunst der Mamluken ist die beste der Welt, solange es keine Musketen gibt."
+  },
+  {
+   "id": "mam_karimi",
+   "tag": "MAM",
+   "cat": "dip",
+   "name": "Karimi-Kaufleute",
+   "year": 1444,
+   "req": [
+    "dip_messen"
+   ],
+   "effects": {
+    "trade": 0.12
+   },
+   "text": "Die Gewürzhändler von Kairo verbinden Indien mit dem Mittelmeer."
+  },
+  {
+   "id": "mam_funduq",
+   "tag": "MAM",
+   "cat": "adm",
+   "name": "Ägyptische Steuerkataster",
+   "year": 1480,
+   "req": [
+    "adm_kataster"
+   ],
+   "effects": {
+    "tax": 0.08,
+    "unrest": 0.25
+   },
+   "text": "Jedes Feld am Nil wird vermessen und besteuert."
+  },
+  {
+   "id": "qar_turkmen",
+   "tag": "QAR",
+   "cat": "mil",
+   "name": "Turkmenische Reiterei",
+   "year": 1444,
+   "req": [
+    "mil_lehnsaufgebot"
+   ],
+   "effects": {
+    "manpower": 0.1,
+    "combat": 0.03
+   },
+   "text": "Die Stämme der Schwarzen Hammel reiten schneller als jedes Heer."
+  },
+  {
+   "id": "qar_tabriz_silk",
+   "tag": "QAR",
+   "cat": "dip",
+   "name": "Seidenmarkt von Täbris",
+   "year": 1450,
+   "req": [
+    "dip_messen"
+   ],
+   "effects": {
+    "trade": 0.1
+   },
+   "text": "Karawanen aus Gilan und Masandaran bringen Seide nach Täbris."
+  },
+  {
+   "id": "qar_divan",
+   "tag": "QAR",
+   "cat": "adm",
+   "name": "Persischer Diwan",
+   "year": 1470,
+   "req": [
+    "adm_kanzlei"
+   ],
+   "effects": {
+    "coring": -0.1,
+    "adm": 1
+   },
+   "text": "Persische Schreiber verwalten das Reich der Turkmenen."
+  },
+  {
+   "id": "eth_kebra",
+   "tag": "ETH",
+   "cat": "adm",
+   "name": "Kebra Nagast",
+   "year": 1444,
+   "req": [
+    "adm_kanzlei"
+   ],
+   "effects": {
+    "prestige": 0.5,
+    "unrest": -0.5
+   },
+   "text": "Das Buch der Herrlichkeit der Könige: die Kaiser stammen von Salomo ab."
+  },
+  {
+   "id": "eth_ketema",
+   "tag": "ETH",
+   "cat": "mil",
+   "name": "Wandernde Hoflager",
+   "year": 1450,
+   "req": [
+    "mil_lehnsaufgebot"
+   ],
+   "effects": {
+    "manpower": 0.1,
+    "force_limit": 2
+   },
+   "text": "Der Kaiser zieht mit Zehntausenden durch das Hochland und hält die Provinzen bei der Stange."
+  },
+  {
+   "id": "eth_portuguese",
+   "tag": "ETH",
+   "cat": "mil",
+   "name": "Portugiesische Musketiere",
+   "year": 1541,
+   "req": [
+    "mil_arkebusiere"
+   ],
+   "effects": {
+    "combat": 0.06
+   },
+   "text": "Christliche Verbündete aus Europa bringen Feuerwaffen ins Hochland."
   }
  ]
 }

@@ -213,6 +213,55 @@ SPECIAL = {
         ("bur_ordonnanzen", "mil", "Burgundische Ordonnanzen", 1471, "mil_ordonnanz", {"combat": 0.06, "force_limit": 2, "maintenance": 0.05},
          "Karl der Kühne baut ein modernes, teures Berufsheer auf."),
     ],
+    # playable since v1.0 (thread "Add next regions and playable nations")
+    "POR": [
+        ("por_sagres", "dip", "Schule von Sagres", 1444, "dip_messen", {"trade": 0.05, "naval": 0.1},
+         "Heinrich der Seefahrer versammelt Kartographen und Schiffbauer an der Algarve."),
+        ("por_caravela", "dip", "Caravela redonda", 1488, "dip_karavellen", {"naval": 0.1, "trade": 0.05},
+         "Rahsegel und Lateinsegel zugleich: Schiffe, die bis zum Kap und zurück kommen."),
+        ("por_feitorias", "adm", "Feitorias", 1505, "adm_kataster", {"income": 0.06, "coring": -0.05},
+         "Befestigte Handelsposten statt teurer Eroberungen."),
+    ],
+    "VEN": [
+        ("ven_arsenale", "mil", "Arsenale di Venezia", 1444, "mil_bombarden", {"naval": 0.15, "build_cost": -0.05},
+         "Die größte Werft der Welt baut eine Galeere am Tag."),
+        ("ven_dieci", "adm", "Rat der Zehn", 1460, "adm_landvoegte", {"unrest": -0.5, "dip": 1},
+         "Ein geheimer Rat wacht über die Republik und ihre Feinde."),
+        ("ven_zecca", "dip", "Zecchino der Zecca", 1484, "dip_wechsel", {"income": 0.06, "trade": 0.04},
+         "Die venezianische Goldmünze gilt von Brügge bis Alexandria."),
+    ],
+    "HUN": [
+        ("hun_fekete", "mil", "Schwarze Armee", 1458, "mil_ordonnanz", {"combat": 0.07, "maintenance": 0.05},
+         "Matthias Corvinus bezahlt ein stehendes Söldnerheer aus der Krone."),
+        ("hun_vegvar", "mil", "Grenzfestungen gegen die Osmanen", 1444, "mil_bombarden", {"siege": 0.1, "manpower": 0.05},
+         "Belgrad, Jajce und Temeswar halten die Osmanen auf."),
+        ("hun_corvina", "adm", "Bibliotheca Corviniana", 1470, "adm_buchdruck", {"tech_cost": -0.05, "prestige": 0.5},
+         "Eine der größten Bibliotheken Europas in Buda."),
+    ],
+    "MAM": [
+        ("mam_furusiyya", "mil", "Furusiyya", 1444, "mil_pikenhaufen", {"combat": 0.06},
+         "Die Reitkunst der Mamluken ist die beste der Welt, solange es keine Musketen gibt."),
+        ("mam_karimi", "dip", "Karimi-Kaufleute", 1444, "dip_messen", {"trade": 0.12},
+         "Die Gewürzhändler von Kairo verbinden Indien mit dem Mittelmeer."),
+        ("mam_funduq", "adm", "Ägyptische Steuerkataster", 1480, "adm_kataster", {"tax": 0.08, "unrest": 0.25},
+         "Jedes Feld am Nil wird vermessen und besteuert."),
+    ],
+    "QAR": [
+        ("qar_turkmen", "mil", "Turkmenische Reiterei", 1444, "mil_lehnsaufgebot", {"manpower": 0.1, "combat": 0.03},
+         "Die Stämme der Schwarzen Hammel reiten schneller als jedes Heer."),
+        ("qar_tabriz_silk", "dip", "Seidenmarkt von Täbris", 1450, "dip_messen", {"trade": 0.1},
+         "Karawanen aus Gilan und Masandaran bringen Seide nach Täbris."),
+        ("qar_divan", "adm", "Persischer Diwan", 1470, "adm_kanzlei", {"coring": -0.1, "adm": 1},
+         "Persische Schreiber verwalten das Reich der Turkmenen."),
+    ],
+    "ETH": [
+        ("eth_kebra", "adm", "Kebra Nagast", 1444, "adm_kanzlei", {"prestige": 0.5, "unrest": -0.5},
+         "Das Buch der Herrlichkeit der Könige: die Kaiser stammen von Salomo ab."),
+        ("eth_ketema", "mil", "Wandernde Hoflager", 1450, "mil_lehnsaufgebot", {"manpower": 0.1, "force_limit": 2},
+         "Der Kaiser zieht mit Zehntausenden durch das Hochland und hält die Provinzen bei der Stange."),
+        ("eth_portuguese", "mil", "Portugiesische Musketiere", 1541, "mil_arkebusiere", {"combat": 0.06},
+         "Christliche Verbündete aus Europa bringen Feuerwaffen ins Hochland."),
+    ],
 }
 
 # ---------------------------------------------------------------- government
@@ -242,6 +291,25 @@ ADVISORS = [
 # National advisors (historical figures), hireable from..to, they leave the court after `to`.
 # (id, tag, name, power, from, to, effects)
 NATIONAL_ADVISORS = [
+    # playable since v1.0
+    ("por_henrique", "POR", "Heinrich der Seefahrer", "dip", 1444, 1460, {"naval": 0.1, "trade": 0.05}),
+    ("por_gama", "POR", "Vasco da Gama", "mil", 1497, 1524, {"naval": 0.15, "prestige": 0.5}),
+    ("por_albuquerque", "POR", "Afonso de Albuquerque", "mil", 1503, 1515, {"combat": 0.05, "trade": 0.05}),
+    ("ven_foscari", "VEN", "Francesco Foscari", "dip", 1444, 1457, {"dip": 1, "prestige": 0.5}),
+    ("ven_colleoni", "VEN", "Bartolomeo Colleoni", "mil", 1448, 1475, {"combat": 0.05}),
+    ("ven_aldus", "VEN", "Aldus Manutius", "adm", 1494, 1515, {"tech_cost": -0.05}),
+    ("hun_hunyadi", "HUN", "Johann Hunyadi", "mil", 1444, 1456, {"combat": 0.06, "manpower": 0.05}),
+    ("hun_vitez", "HUN", "Johann Vitéz", "adm", 1458, 1472, {"adm": 1}),
+    ("hun_kinizsi", "HUN", "Paul Kinizsi", "mil", 1479, 1494, {"combat": 0.04, "siege": 0.1}),
+    ("mam_qaitbay", "MAM", "Emir Qaitbay", "mil", 1444, 1468, {"combat": 0.04, "build_cost": -0.1}),
+    ("mam_suyuti", "MAM", "Dschalal ad-Din as-Suyuti", "adm", 1460, 1505, {"prestige": 0.5, "tech_cost": -0.03}),
+    ("mam_yashbak", "MAM", "Yashbak min Mahdi", "dip", 1470, 1480, {"dip": 1}),
+    ("qar_pir_budaq", "QAR", "Pir Budaq", "mil", 1444, 1466, {"combat": 0.04}),
+    ("qar_tabrizi", "QAR", "Kalligraph von Täbris", "adm", 1444, 1480, {"prestige": 0.5, "unrest": -0.25}),
+    ("qar_wazir", "QAR", "Großwesir Hasan Beg", "dip", 1450, 1467, {"dip": 1, "ae_decay": 0.05}),
+    ("eth_zara", "ETH", "Abt Giyorgis von Gasicha", "adm", 1444, 1470, {"unrest": -0.5, "prestige": 0.25}),
+    ("eth_eleni", "ETH", "Kaiserin Eleni", "dip", 1468, 1522, {"dip": 1, "ae_decay": 0.05}),
+    ("eth_dawit", "ETH", "Ras Wossen Seged", "mil", 1490, 1540, {"combat": 0.05}),
     ("fra_coeur", "FRA", "Jacques Cœur", "dip", 1444, 1456, {"trade": 0.15, "income": 0.03}),
     ("fra_bureau", "FRA", "Jean Bureau", "mil", 1444, 1463, {"siege": 0.3, "combat": 0.03}),
     ("fra_sully", "FRA", "Herzog von Sully", "adm", 1597, 1611, {"income": 0.1, "unrest": -0.5}),
@@ -302,6 +370,13 @@ COMPANIES = [
 
 # National companies: (id, tag, name, year, effects, text)
 NATIONAL_COMPANIES = [
+    # playable since v1.0
+    ("por_casa_india", "POR", "Casa da Índia", 1500, {"trade": 0.18, "naval": 0.05}, "Das königliche Handelshaus für Pfeffer aus Indien."),
+    ("ven_muda", "VEN", "Mude-Galeerenkonvois", 1444, {"trade": 0.15, "income": 0.03}, "Staatliche Konvois nach Alexandria, Beirut und Flandern."),
+    ("hun_besztercebanya", "HUN", "Kupferhandel von Neusohl", 1495, {"income": 0.12, "production": 0.05}, "Thurzó und die Fugger fördern das Kupfer Oberungarns."),
+    ("mam_khan_khalili", "MAM", "Khan el-Khalili", 1444, {"trade": 0.15, "tax": 0.03}, "Der große Basar von Kairo."),
+    ("qar_silk_caravans", "QAR", "Seidenkarawanen von Täbris", 1450, {"trade": 0.15, "production": 0.03}, "Seide aus dem Norden für die Märkte von Aleppo und Bursa."),
+    ("eth_aksum_trade", "ETH", "Hochlandhandel von Aksum", 1450, {"trade": 0.12, "income": 0.03}, "Gold, Elfenbein und Kaffee auf dem Weg zum Roten Meer."),
     ("fra_lyon", "FRA", "Seidenmanufaktur von Lyon", 1466, {"production": 0.15, "tax": -0.03}, "Ludwig XI. holt italienische Seidenweber ins Land."),
     ("eng_muscovy", "ENG", "Muscovy Company", 1555, {"trade": 0.2, "prestige": -0.25}, "Händler auf der Nordroute nach Moskau."),
     ("spa_mesta", "SPA", "Honrado Concejo de la Mesta", 1444, {"production": 0.12, "develop_cost": 0.05}, "Die Schafzüchter dürfen das ganze Land beweiden."),
@@ -479,6 +554,8 @@ GOV_FORMS = {
     "MAM": "Sultanat", "TUN": "Sultanat", "TLE": "Sultanat", "MOR": "Sultanat", "KNI": "Ordensstaat", "TRE": "Kaiserreich",
     "KAR": "Beylik", "CND": "Beylik", "DUL": "Beylik", "AKK": "Stammesföderation", "QAR": "Stammesföderation",
     "CIR": "Stammesföderation",
+    "ETH": "Kaiserreich", "SAF": "Theokratie", "HJZ": "Theokratie", "TIM": "Sultanat", "HOR": "Sultanat",
+    "YEM": "Sultanat", "ADA": "Sultanat", "MAZ": "Sultanat",
 }
 
 # Every form of government has a small, permanent trade-off (part of the "gov" bonus source).
@@ -547,6 +624,25 @@ FORM_CHANGES = [
 
 # Short flavour line per advisor, ruler trait, law and reform group (shown under the name in the UI).
 FLAVOUR = {
+    # playable since v1.0
+    "por_henrique": "Der Infant schickt Jahr für Jahr Karavellen weiter nach Süden.",
+    "por_gama": "Hat den Seeweg nach Indien gefunden und kennt jede Küste.",
+    "por_albuquerque": "Eroberer von Goa, Malakka und Hormus.",
+    "ven_foscari": "Der Doge, der Venedig zur Macht auf dem Festland machte.",
+    "ven_colleoni": "Condottiere im Dienst der Republik, später in Bronze gegossen.",
+    "ven_aldus": "Drucker der schönsten Bücher Europas.",
+    "hun_hunyadi": "Der Türkenschreck, Sieger von Belgrad.",
+    "hun_vitez": "Humanist, Erzbischof und Erzieher des jungen Königs.",
+    "hun_kinizsi": "Ein Müllerssohn, der mit zwei Türken unter den Armen tanzte.",
+    "mam_qaitbay": "Baut Festungen an der Küste und Moscheen in Kairo.",
+    "mam_suyuti": "Gelehrter mit Hunderten von Büchern.",
+    "mam_yashbak": "Erfahrener Unterhändler an der Nordgrenze.",
+    "qar_pir_budaq": "Sohn des Schahs, ein Feldherr mit eigenem Kopf.",
+    "qar_tabrizi": "Seine Schrift schmückt die Blaue Moschee von Täbris.",
+    "qar_wazir": "Hält die Stämme mit Geschenken bei Laune.",
+    "eth_zara": "Ein strenger Abt, der die Kirche des Hochlands ordnet.",
+    "eth_eleni": "Kaiserin und Regentin, sie schreibt Briefe nach Lissabon.",
+    "eth_dawit": "Feldherr der Grenzmarken gegen Adal.",
     # advisors
     "kaemmerer": "Zählt jede Münze zweimal, bevor sie die Schatzkammer verlässt.",
     "steuermeister": "Holt aus jedem Dorf das Letzte heraus. Die Bürger fluchen.",
