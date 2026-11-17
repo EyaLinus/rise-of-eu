@@ -173,6 +173,15 @@ assets:
     source: assets/src/pixel/flags/flag_ADA.txt
     status: done
     updated: '2026-11-17'
+  flag_AJU:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_AJU (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_AJU.png
+    source: assets/src/pixel/flags/flag_AJU.txt
+    status: done
+    updated: '2026-11-17'
   flag_ALB:
     created: '2026-10-24'
     kind: flag
@@ -218,6 +227,15 @@ assets:
     source: assets/src/pixel/flags/flag_BOH.txt
     status: done
     updated: '2026-10-24'
+  flag_BOR:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_BOR (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_BOR.png
+    source: assets/src/pixel/flags/flag_BOR.txt
+    status: done
+    updated: '2026-11-17'
   flag_BOS:
     created: '2026-10-24'
     kind: flag
@@ -281,6 +299,15 @@ assets:
     source: assets/src/pixel/flags/flag_DAN.txt
     status: done
     updated: '2026-10-24'
+  flag_DAR:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_DAR (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_DAR.png
+    source: assets/src/pixel/flags/flag_DAR.txt
+    status: done
+    updated: '2026-11-17'
   flag_ENG:
     created: '2026-10-24'
     kind: flag
@@ -390,6 +417,15 @@ assets:
     source: assets/src/pixel/flags/flag_IRE.txt
     status: done
     updated: '2026-10-24'
+  flag_KAN:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_KAN (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_KAN.png
+    source: assets/src/pixel/flags/flag_KAN.txt
+    status: done
+    updated: '2026-11-17'
   flag_KAZ:
     created: '2026-10-24'
     kind: flag
@@ -399,6 +435,24 @@ assets:
     source: assets/src/pixel/flags/flag_KAZ.txt
     status: done
     updated: '2026-10-24'
+  flag_KIL:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_KIL (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_KIL.png
+    source: assets/src/pixel/flags/flag_KIL.txt
+    status: done
+    updated: '2026-11-17'
+  flag_KIT:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_KIT (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_KIT.png
+    source: assets/src/pixel/flags/flag_KIT.txt
+    status: done
+    updated: '2026-11-17'
   flag_KOL:
     created: '2026-10-24'
     kind: flag
@@ -408,6 +462,15 @@ assets:
     source: assets/src/pixel/flags/flag_KOL.txt
     status: done
     updated: '2026-10-24'
+  flag_KON:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_KON (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_KON.png
+    source: assets/src/pixel/flags/flag_KON.txt
+    status: done
+    updated: '2026-11-17'
   flag_LIT:
     created: '2026-10-24'
     kind: flag
@@ -444,6 +507,24 @@ assets:
     source: assets/src/pixel/flags/flag_MAZ.txt
     status: done
     updated: '2026-11-17'
+  flag_MBA:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_MBA (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_MBA.png
+    source: assets/src/pixel/flags/flag_MBA.txt
+    status: done
+    updated: '2026-11-17'
+  flag_MLD:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_MLD (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_MLD.png
+    source: assets/src/pixel/flags/flag_MLD.txt
+    status: done
+    updated: '2026-11-17'
   flag_MLO:
     created: '2026-10-24'
     kind: flag
@@ -462,6 +543,15 @@ assets:
     source: assets/src/pixel/flags/flag_MOL.txt
     status: done
     updated: '2026-10-24'
+  flag_MUT:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_MUT (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_MUT.png
+    source: assets/src/pixel/flags/flag_MUT.txt
+    status: done
+    updated: '2026-11-17'
   flag_NAP:
     created: '2026-10-24'
     kind: flag
@@ -480,6 +570,15 @@ assets:
     source: assets/src/pixel/flags/flag_NAV.txt
     status: done
     updated: '2026-10-24'
+  flag_NDO:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_NDO (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_NDO.png
+    source: assets/src/pixel/flags/flag_NDO.txt
+    status: done
+    updated: '2026-11-17'
   flag_NOV:
     created: '2026-10-24'
     kind: flag
@@ -772,6 +871,15 @@ assets:
     source: assets/src/pixel/icons/prestige.txt
     status: done
     updated: '2026-10-24'
+  rivers_atlas:
+    created: '2026-11-17'
+    kind: texture
+    note: pixel-art rivers, 32 px tiles packed (data/river_tiles.json), drawn by map_view._draw_rivers
+    outputs:
+    - assets/art/map/rivers_atlas.png
+    source: tools/art/rivers.py
+    status: done
+    updated: '2026-11-17'
   siege:
     created: '2026-10-24'
     kind: icon
@@ -880,6 +988,60 @@ assets:
     source: assets/src/pixel/icons/terr_oasis.txt
     status: done
     updated: '2026-11-17'
+  tico_desert:
+    created: '2026-11-17'
+    kind: icon
+    note: tico_desert – terrain badge on the province plaque (tools/art/terrain_glyphs.py)
+    outputs:
+    - assets/art/icons/tico_desert.png
+    source: assets/src/pixel/icons/tico_desert.txt
+    status: done
+    updated: '2026-11-17'
+  tico_forest:
+    created: '2026-11-17'
+    kind: icon
+    note: tico_forest – terrain badge on the province plaque (tools/art/terrain_glyphs.py)
+    outputs:
+    - assets/art/icons/tico_forest.png
+    source: assets/src/pixel/icons/tico_forest.txt
+    status: done
+    updated: '2026-11-17'
+  tico_hills:
+    created: '2026-11-17'
+    kind: icon
+    note: tico_hills – terrain badge on the province plaque (tools/art/terrain_glyphs.py)
+    outputs:
+    - assets/art/icons/tico_hills.png
+    source: assets/src/pixel/icons/tico_hills.txt
+    status: done
+    updated: '2026-11-17'
+  tico_marsh:
+    created: '2026-11-17'
+    kind: icon
+    note: tico_marsh – terrain badge on the province plaque (tools/art/terrain_glyphs.py)
+    outputs:
+    - assets/art/icons/tico_marsh.png
+    source: assets/src/pixel/icons/tico_marsh.txt
+    status: done
+    updated: '2026-11-17'
+  tico_mountains:
+    created: '2026-11-17'
+    kind: icon
+    note: tico_mountains – terrain badge on the province plaque (tools/art/terrain_glyphs.py)
+    outputs:
+    - assets/art/icons/tico_mountains.png
+    source: assets/src/pixel/icons/tico_mountains.txt
+    status: done
+    updated: '2026-11-17'
+  tico_plains:
+    created: '2026-11-17'
+    kind: icon
+    note: tico_plains – terrain badge on the province plaque (tools/art/terrain_glyphs.py)
+    outputs:
+    - assets/art/icons/tico_plains.png
+    source: assets/src/pixel/icons/tico_plains.txt
+    status: done
+    updated: '2026-11-17'
   ui_kit:
     created: '2026-10-26'
     kind: ui
@@ -928,102 +1090,3 @@ assets:
     source: assets/src/pixel/icons/war.txt
     status: done
     updated: '2026-10-24'
-  flag_KAN:
-    created: '2026-11-17'
-    kind: flag
-    note: flag_KAN (tools/art/flags.py)
-    outputs:
-    - assets/art/icons/flag_KAN.png
-    source: assets/src/pixel/flags/flag_KAN.txt
-    status: done
-    updated: '2026-11-17'
-  flag_BOR:
-    created: '2026-11-17'
-    kind: flag
-    note: flag_BOR (tools/art/flags.py)
-    outputs:
-    - assets/art/icons/flag_BOR.png
-    source: assets/src/pixel/flags/flag_BOR.txt
-    status: done
-    updated: '2026-11-17'
-  flag_DAR:
-    created: '2026-11-17'
-    kind: flag
-    note: flag_DAR (tools/art/flags.py)
-    outputs:
-    - assets/art/icons/flag_DAR.png
-    source: assets/src/pixel/flags/flag_DAR.txt
-    status: done
-    updated: '2026-11-17'
-  flag_AJU:
-    created: '2026-11-17'
-    kind: flag
-    note: flag_AJU (tools/art/flags.py)
-    outputs:
-    - assets/art/icons/flag_AJU.png
-    source: assets/src/pixel/flags/flag_AJU.txt
-    status: done
-    updated: '2026-11-17'
-  flag_MLD:
-    created: '2026-11-17'
-    kind: flag
-    note: flag_MLD (tools/art/flags.py)
-    outputs:
-    - assets/art/icons/flag_MLD.png
-    source: assets/src/pixel/flags/flag_MLD.txt
-    status: done
-    updated: '2026-11-17'
-  flag_MBA:
-    created: '2026-11-17'
-    kind: flag
-    note: flag_MBA (tools/art/flags.py)
-    outputs:
-    - assets/art/icons/flag_MBA.png
-    source: assets/src/pixel/flags/flag_MBA.txt
-    status: done
-    updated: '2026-11-17'
-  flag_KIL:
-    created: '2026-11-17'
-    kind: flag
-    note: flag_KIL (tools/art/flags.py)
-    outputs:
-    - assets/art/icons/flag_KIL.png
-    source: assets/src/pixel/flags/flag_KIL.txt
-    status: done
-    updated: '2026-11-17'
-  flag_KIT:
-    created: '2026-11-17'
-    kind: flag
-    note: flag_KIT (tools/art/flags.py)
-    outputs:
-    - assets/art/icons/flag_KIT.png
-    source: assets/src/pixel/flags/flag_KIT.txt
-    status: done
-    updated: '2026-11-17'
-  flag_KON:
-    created: '2026-11-17'
-    kind: flag
-    note: flag_KON (tools/art/flags.py)
-    outputs:
-    - assets/art/icons/flag_KON.png
-    source: assets/src/pixel/flags/flag_KON.txt
-    status: done
-    updated: '2026-11-17'
-  flag_NDO:
-    created: '2026-11-17'
-    kind: flag
-    note: flag_NDO (tools/art/flags.py)
-    outputs:
-    - assets/art/icons/flag_NDO.png
-    source: assets/src/pixel/flags/flag_NDO.txt
-    status: done
-    updated: '2026-11-17'
-  flag_MUT:
-    created: '2026-11-17'
-    kind: flag
-    note: flag_MUT (tools/art/flags.py)
-    outputs:
-    - assets/art/icons/flag_MUT.png
-    source: assets/src/pixel/flags/flag_MUT.txt
-    status: done
-    updated: '2026-11-17'

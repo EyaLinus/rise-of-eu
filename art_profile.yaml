@@ -58,6 +58,10 @@ palette:
   wood_light: "#b5844f"
   wood: "#7d5130"
   wood_dark: "#4a2d1b"
+  # map-only colours (tools/art/rivers.py; not used in icons)
+  river_bank: "#1e3552"
+  river: "#3b6e9e"
+  river_light: "#8cbdd6"
   purple_light: "#b07cd0"
   purple: "#8e44ad"
   purple_dark: "#4f2463"

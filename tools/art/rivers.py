@@ -1,11 +1,24 @@
-"""Major rivers for the world map: writes data/rivers.json (projected polylines, map pixels).
-map_view._draw_rivers draws them over the province colours. Courses are rough (lon, lat) traces,
-enough for an old-atlas look, not for navigation. Run after changing tools/mapproj.py:
+"""Major rivers for the world map, as pixel art.
+
+Courses are rough (lon, lat) traces, enough for an old-atlas look, not for navigation. They are
+smoothed, given deterministic meanders and then rasterised one art pixel per map pixel (the same
+grid as the terrain glyphs and city sprites): water widening from the source to the mouth, a dark
+bank pixel on each side, a few light ripples on the broad rivers. Pixels in the sea are dropped.
+
+Writes
+  data/rivers.json                 meandered polylines (map_view draws them as thin lines when zoomed out)
+  data/river_tiles.json            {"tile": T, "tiles": [[map_x, map_y, atlas_x, atlas_y], ...]}
+  assets/art/map/rivers_atlas.png  only the T x T tiles that hold river pixels, packed (one texture, one batch)
+
+Needs numpy + pillow. Run after changing tools/mapproj.py or the map:
     python3 tools/art/rivers.py
 """
 import json
 import os
 import sys
+
+import numpy as np
+from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from mapproj import proj  # noqa: E402
@@ -59,14 +72,129 @@ RIVERS = [
 ]
 
 
-def main():
+TILE = 32
+# art_profile.yaml palette: river_bank / river / river_light
+BANK = (0x1e, 0x35, 0x52, 235)
+WATER = (0x3b, 0x6e, 0x9e, 255)
+LIGHT = (0x8c, 0xbd, 0xd6, 255)
+MAX_HALF = {1: 0.9, 2: 1.3, 3: 1.8}  # half width of the water at the mouth, per width class (map px)
+
+
+def _catmull(pts, step=3.0):
+    """Smooth curve through the trace points, resampled every `step` px."""
+    p = [pts[0]] + pts + [pts[-1]]
     out = []
-    for name, w, pts in RIVERS:
-        out.append({"name": name, "w": w, "pts": [[round(c, 1) for c in proj(lon, lat)] for lon, lat in pts]})
+    for i in range(1, len(p) - 2):
+        p0, p1, p2, p3 = (np.array(q, float) for q in p[i - 1:i + 3])
+        n = max(2, int(np.linalg.norm(p2 - p1) / step))
+        for k in range(n):
+            t = k / n
+            t2, t3 = t * t, t * t * t
+            out.append(0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (-p0 + 3 * p1 - 3 * p2 + p3) * t3))
+    out.append(np.array(pts[-1], float))
+    return np.array(out)
+
+
+def _meander(c, seed):
+    """Perpendicular wiggle (two wave lengths, random phases), zero at source and mouth."""
+    rng = np.random.default_rng(seed)
+    d = np.diff(c, axis=0)
+    seg = np.linalg.norm(d, axis=1)
+    s = np.concatenate([[0.0], np.cumsum(seg)])
+    tang = np.gradient(c, axis=0)
+    tang /= np.maximum(np.linalg.norm(tang, axis=1, keepdims=True), 1e-6)
+    nrm = np.stack([-tang[:, 1], tang[:, 0]], axis=1)
+    L = max(s[-1], 1.0)
+    off = np.zeros(len(c))
+    for wl, amp in ((70.0, 5.0), (23.0, 2.2), (9.0, 0.8)):
+        ph = rng.uniform(0, 2 * np.pi)
+        wl2 = wl * rng.uniform(0.8, 1.25)
+        off += amp * np.sin(2 * np.pi * s / wl2 + ph + 0.6 * np.sin(s / (wl2 * 2.7)))
+    env = np.clip(np.minimum(s, L - s) / 25.0, 0.0, 1.0)
+    return c + nrm * (off * env)[:, None], s / L
+
+
+def _land_mask(W, H):
+    m = json.load(open(os.path.join(ROOT, "data", "map.json")))
+    img = Image.new("L", (W, H), 0)
+    dr = ImageDraw.Draw(img)
+    for pd in m["provinces"]:
+        for poly in pd["polys"]:
+            dr.polygon([tuple(q) for q in poly], fill=1, outline=1)
+    for poly in m["background"]:
+        dr.polygon([tuple(q) for q in poly], fill=1, outline=1)
+    land = np.array(img, bool)
+    # one pixel into the sea, so mouths touch the coast
+    grow = land.copy()
+    grow[1:] |= land[:-1]; grow[:-1] |= land[1:]; grow[:, 1:] |= land[:, :-1]; grow[:, :-1] |= land[:, 1:]
+    return land, grow
+
+
+def main():
+    m = json.load(open(os.path.join(ROOT, "data", "map.json")))
+    W, H = m["size"]
+    land, grow = _land_mask(W, H)
+    water = np.zeros((H, W), bool)
+    light = np.zeros((H, W), bool)
+    out = []
+    for idx, (name, w, pts) in enumerate(RIVERS):
+        trace = [proj(lon, lat) for lon, lat in pts]
+        c, t = _meander(_catmull(trace), 1009 + idx * 7919)
+        out.append({"name": name, "w": w, "pts": [[round(float(x), 1), round(float(y), 1)] for x, y in c[::3]] + ([[round(float(c[-1][0]), 1), round(float(c[-1][1]), 1)]] if (len(c) - 1) % 3 else [])})
+        # dense samples for the raster
+        dense = []
+        for i in range(len(c) - 1):
+            n = max(1, int(np.linalg.norm(c[i + 1] - c[i]) / 0.35))
+            for k in range(n):
+                f = k / n
+                dense.append((c[i] * (1 - f) + c[i + 1] * f, t[i] * (1 - f) + t[i + 1] * f))
+        for q, tt in dense:
+            r = 0.5 + (MAX_HALF[w] - 0.5) * (tt ** 0.6)
+            x0, y0 = int(np.floor(q[0] - r)), int(np.floor(q[1] - r))
+            for y in range(y0, int(np.ceil(q[1] + r)) + 1):
+                for x in range(x0, int(np.ceil(q[0] + r)) + 1):
+                    if 0 <= x < W and 0 <= y < H and (x + 0.5 - q[0]) ** 2 + (y + 0.5 - q[1]) ** 2 <= r * r + 0.15:
+                        water[y, x] = True
+        # ripples: short light dashes on the middle line of broad stretches
+        for j, (q, tt) in enumerate(dense):
+            r = 0.5 + (MAX_HALF[w] - 0.5) * (tt ** 0.6)
+            if r >= 1.25 and (j // 9) % 4 == 0:
+                light[int(q[1]), int(q[0])] = True
+    water &= grow
+    light &= water
+    # keep ripples off the bank-side pixels (only where all 4 neighbours are water)
+    inner = water.copy()
+    inner[1:] &= water[:-1]; inner[:-1] &= water[1:]; inner[:, 1:] &= water[:, :-1]; inner[:, :-1] &= water[:, 1:]
+    light &= inner
+    bank = np.zeros_like(water)
+    bank[1:] |= water[:-1]; bank[:-1] |= water[1:]; bank[:, 1:] |= water[:, :-1]; bank[:, :-1] |= water[:, 1:]
+    bank &= ~water & land
+    rgba = np.zeros((H, W, 4), np.uint8)
+    rgba[bank] = BANK
+    rgba[water] = WATER
+    rgba[light] = LIGHT
+    # pack the non-empty tiles into one atlas
+    used = []
+    for ty in range(0, H, TILE):
+        for tx in range(0, W, TILE):
+            if rgba[ty:ty + TILE, tx:tx + TILE, 3].any():
+                used.append((tx, ty))
+    cols = 64
+    rows = (len(used) + cols - 1) // cols
+    atlas = np.zeros((rows * TILE, cols * TILE, 4), np.uint8)
+    tiles = []
+    for i, (tx, ty) in enumerate(used):
+        ax, ay = (i % cols) * TILE, (i // cols) * TILE
+        part = rgba[ty:ty + TILE, tx:tx + TILE]
+        atlas[ay:ay + part.shape[0], ax:ax + part.shape[1]] = part
+        tiles.append([tx, ty, ax, ay])
+    Image.fromarray(atlas, "RGBA").save(os.path.join(ROOT, "assets", "art", "map", "rivers_atlas.png"), optimize=True)
+    with open(os.path.join(ROOT, "data", "river_tiles.json"), "w") as f:
+        json.dump({"tile": TILE, "tiles": tiles}, f, separators=(",", ":"))
     path = os.path.join(ROOT, "data", "rivers.json")
     with open(path, "w") as f:
         f.write("[\n" + ",\n".join(json.dumps(r, ensure_ascii=False, separators=(",", ":")) for r in out) + "\n]\n")
-    print(len(out), "rivers ->", path)
+    print(len(out), "rivers ->", path, "|", len(tiles), "tiles, atlas", atlas.shape[1], "x", atlas.shape[0])
 
 
 if __name__ == "__main__":

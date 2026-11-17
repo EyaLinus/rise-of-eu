@@ -67,6 +67,21 @@ static func nation(tag: String, _fallback: String = "") -> String:
 	return s
 
 
+static var _names := {}
+
+
+## File name (assets/art/emoji/<name>.png) of the pixel glyph for a code point, "" when there is none.
+static func glyph_name(cp: int) -> String:
+	if _names.is_empty():
+		var f := FileAccess.open(DIR + "emoji.json", FileAccess.READ)
+		if f != null:
+			var map = JSON.parse_string(f.get_as_text())
+			if map is Dictionary:
+				for hex in map:
+					_names[hex.hex_to_int()] = map[hex]
+	return _names.get(cp, "")
+
+
 ## Adds every flag glyph up front. A glyph added later, while text is being drawn (map hover tip), could
 ## show as a garbled character on some PCs because the font texture changed mid-frame.
 static func add_nations(tags: Array) -> void:
