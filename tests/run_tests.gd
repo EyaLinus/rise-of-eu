@@ -35,6 +35,7 @@ func _init() -> void:
 		"test_units_and_templates",
 		"test_colonial",
 		"test_west_africa",
+		"test_south_africa",
 		"test_troop_transport",
 		"test_embargo",
 		"test_hall_of_fame",
@@ -141,8 +142,8 @@ func test_map_geometry() -> void:
 			check(arr.size() >= 3 and not Geometry2D.triangulate_polygon(arr).is_empty(), "polygon of %s triangulates" % p.key)
 
 
-## The Old World (with West Africa, over the Saharan caravan routes) and the New World are each one
-## connected landmass (no land route across the Atlantic).
+## The Old World (with all of Africa, over the Saharan caravan routes and the Comoros crossing to
+## Madagascar) and the New World are each one connected landmass (no land route across the Atlantic).
 func test_map_connected() -> void:
 	var g = new_game()
 	var Col = load("res://scripts/core/colonial.gd")
@@ -685,7 +686,7 @@ func test_cape_route() -> void:
 	g.month = (1500 - int(g.bal.start_year)) * 12
 	for k in int(g.bal.east_factory_ships):
 		check(T.buy_ship(g, tag) == "", "buy an Indiaman")
-	check(T.take_factory(g, tag, "sofala") == "" and g.east.factories.sofala == tag, "found a factory")
+	check(T.take_factory(g, tag, "maldives") == "" and g.east.factories.maldives == tag, "found a factory")
 	check(T.east_income(g, tag) > 0.0 and absf(T.share(g, tag) - 1.0) < 0.001, "sole trader takes the whole route")
 	var inc0: float = g.Economy.trade_income(g, n)
 	g.month += 120
@@ -702,10 +703,10 @@ func test_cape_route() -> void:
 	if other != "":
 		g.east.known[other] = true
 		g.east.ships[other] = T.ships(g, tag) + 2
-		check(T.factory_block_reason(g, other, "sofala") != "", "no storming in peace")
+		check(T.factory_block_reason(g, other, "maldives") != "", "no storming in peace")
 		g.declare_war(other, tag)
 		if g.at_war(other, tag):
-			check(T.take_factory(g, other, "sofala") == "" and g.east.factories.sofala == other, "factory stormed in war")
+			check(T.take_factory(g, other, "maldives") == "" and g.east.factories.maldives == other, "factory stormed in war")
 	var g2 = new_game("FRA", 9)
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
 	check(g2.east.cape == tag and g2.Trade.knows(g2, tag) and g2.Trade.ships(g2, tag) == T.ships(g, tag), "far trade is saved")
@@ -1688,6 +1689,42 @@ func test_save_roundtrip() -> void:
 		g2.tick()
 	# JSON keeps ~15 significant digits, so allow tiny float drift
 	check(g.month == g2.month and absf(g.nations.ENG.gold - g2.nations.ENG.gold) < 1.0, "game continues identically after load")
+
+
+## Africa south of the Sahara: an overseas block after the Middle East, native kingdoms, the Swahili
+## coast known to the monsoon traders, seas that Europe has to explore around the Cape first.
+func test_south_africa() -> void:
+	const Col = preload("res://scripts/core/colonial.gd")
+	var g = new_game("POR", 5)
+	check(g.af_first > g.nw_end and g.af_first < g.provinces.size(), "Africa south of the Sahara follows the east block (%d)" % g.af_first)
+	for pid in range(g.af_first, g.provinces.size()):
+		check(Col.is_new_world(g, pid) and Col.region(g, pid) == "africa" and g.overseas.has(pid) and g.africa.has(pid), "%s is overseas Africa" % g.provinces[pid].key)
+	check(g.overseas.size() == (g.nw_end - g.nw_first) + (g.provinces.size() - g.af_first), "overseas list covers both blocks")
+	for tag in ["KAN", "BOR", "DAR", "AJU", "MLD", "MBA", "KIL", "KIT", "KON", "NDO", "MUT"]:
+		check(g.nations[tag].alive and Col.is_native_realm(g, tag), "%s is a living African realm" % tag)
+		check(Col.region(g, g.nations[tag].capital) == "africa", "%s sits in Africa" % tag)
+	var kongo: int = g.key_to_pid["kongo"]
+	var kilwa: int = g.key_to_pid["kilwa"]
+	var bornu: int = g.key_to_pid["bornu"]
+	check(not Col.knows(g, "POR", kongo) and not Col.knows(g, "FRA", kilwa), "Kongo and Kilwa are unknown in Europe")
+	check(Col.knows(g, "POR", bornu), "Bornu is known from the Saharan caravans")
+	check(Col.knows(g, "YEM", kilwa) and Col.knows_sea(g, "YEM", "swahili"), "Yemen knows the Swahili coast (monsoon trade)")
+	check(not Col.knows_sea(g, "POR", "swahili") and not Col.knows_sea(g, "POR", "south_atlantic"), "Portugal has to explore the seas around Africa")
+	check(Col.knows(g, "KON", kongo) and Col.knows_sea(g, "KIL", "swahili"), "the African realms know their own lands and seas")
+	# expeditions only start from seas our own ships can reach: not the Arabian Sea from Lisbon
+	g.nations.POR.known_seas["guinea"] = true
+	var t: Array = Col.explore_targets(g, "POR")
+	check(t.has("south_atlantic") and not t.has("swahili") and not t.has("indian"), "Portugal sails on along the coast, not from the Arabian Sea (%s)" % [t])
+	# settlers need a sea route over known seas
+	var maj: int = g.key_to_pid["majerteen"]
+	check(g.provinces[maj].owner == Col.NATIVE, "the Majerteen coast is native land")
+	check(not Col.reachable(g, "FRA", maj), "France cannot settle at the Horn without a way there")
+	check(Col.reachable(g, "YEM", maj), "Yemen can (Gulf of Aden)")
+	check(g.provinces[g.key_to_pid["hausa"]].owner == "KAN", "Kano rules Hausaland")
+	# a few months of the whole game with the new region
+	for i in 6:
+		g.tick()
+	check(g.nations.KON.alive and g.nations.KIL.alive, "the game runs with the new region")
 
 
 ## The New World: terra incognita, expeditions, colonies, natives, save/load and old saves.

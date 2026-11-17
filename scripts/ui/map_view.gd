@@ -18,6 +18,8 @@ const FOG_PATH := "res://data/fog.json"
 const FOG := Color("2f2c26")
 ## Painted base map (tools/art/map_terrain.py). Without it the map falls back to flat SEA/WASTE.
 const TERRAIN_PATH := "res://assets/art/map/terrain.png"
+## The map below the Gulf of Guinea (Africa) is a second texture: Android caps textures at 4096 px.
+const TERRAIN_SOUTH_PATH := "res://assets/art/map/terrain_south.png"
 const TERRAIN_HALF_PATH := "res://assets/art/map/terrain_half.png"
 const FILL_ALPHA := 0.74
 const PROV_BORDER := Color(0.12, 0.09, 0.06, 0.28)
@@ -38,6 +40,9 @@ var background: Array = []
 var terrain: Texture2D
 var terrain_half: Texture2D
 var _terrain_rect: TextureRect
+var _terrain_south_rect: TextureRect
+var terrain_south: Texture2D
+var terrain_south_at := Vector2.ZERO  # top-left of terrain_south.png in map pixels (map.json "terrain_south")
 var _world: Node2D  # container of the world layer pieces (map_world_layer.gd)
 var _world_zoom := -1.0
 const WorldLayer = preload("res://scripts/ui/map_world_layer.gd")
@@ -105,6 +110,8 @@ func setup(g, map_data: Dictionary) -> void:
 	bboxes.clear()
 	background.clear()
 	world_size = Vector2(map_data.size[0], map_data.size[1])
+	var ts: Array = map_data.get("terrain_south", [0, map_data.size[1]])
+	terrain_south_at = Vector2(ts[0], ts[1])
 	for pd in map_data.provinces:
 		var list := []
 		var bb := Rect2()
@@ -327,6 +334,7 @@ func _build_realm_labels() -> void:
 func _setup_terrain() -> void:
 	terrain = load(TERRAIN_PATH) if ResourceLoader.exists(TERRAIN_PATH) else null
 	terrain_half = load(TERRAIN_HALF_PATH) if ResourceLoader.exists(TERRAIN_HALF_PATH) else null
+	terrain_south = load(TERRAIN_SOUTH_PATH) if terrain_south_at.y < world_size.y and ResourceLoader.exists(TERRAIN_SOUTH_PATH) else null
 	if _sea_rect == null:
 		_sea_rect = ColorRect.new()
 		_sea_rect.color = Color("132a45") if terrain != null else SEA
@@ -344,6 +352,15 @@ func _setup_terrain() -> void:
 		_terrain_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_terrain_rect.stretch_mode = TextureRect.STRETCH_SCALE
 		add_child(_terrain_rect)
+	if terrain_south != null and _terrain_south_rect == null:
+		_terrain_south_rect = TextureRect.new()
+		_terrain_south_rect.show_behind_parent = true
+		_terrain_south_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_terrain_south_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		_terrain_south_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_terrain_south_rect.stretch_mode = TextureRect.STRETCH_SCALE
+		_terrain_south_rect.texture = terrain_south
+		add_child(_terrain_south_rect)
 	_sync_terrain()
 
 
@@ -356,12 +373,20 @@ func _sync_terrain() -> void:
 			_refresh_world(false)
 	if _terrain_rect == null:
 		return
-	var tex := terrain_half if zoom < 0.7 and terrain_half != null else terrain
+	var half := zoom < 0.7 and terrain_half != null
+	var tex := terrain_half if half else terrain
 	if _terrain_rect.texture != tex:
 		_terrain_rect.texture = tex
 	_terrain_rect.position = offset
-	_terrain_rect.size = world_size
+	# the half-size texture is the whole map; the full-size one stops where the southern part begins
+	var split := _terrain_south_rect != null and not half
+	_terrain_rect.size = Vector2(world_size.x, terrain_south_at.y) if split else world_size
 	_terrain_rect.scale = Vector2(zoom, zoom)
+	if _terrain_south_rect != null:
+		_terrain_south_rect.visible = split
+		_terrain_south_rect.position = offset + terrain_south_at * zoom
+		_terrain_south_rect.size = world_size - terrain_south_at
+		_terrain_south_rect.scale = Vector2(zoom, zoom)
 
 
 func _edge_key(a: Vector2, b: Vector2) -> String:
@@ -1359,7 +1384,7 @@ func _draw_voyages() -> void:
 ## (at every zoom level, so the race for the New World and Africa can be followed on the map).
 func _draw_colonies() -> void:
 	var fs := 12 if zoom < 0.8 else 14
-	for pid in range(game.nw_first, game.nw_end):
+	for pid in game.overseas:
 		var p = game.provinces[pid]
 		if p.colonist == "" or not known(pid):
 			continue

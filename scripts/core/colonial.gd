@@ -13,22 +13,36 @@ extends RefCounted
 const NATIVE := "NAT"  # owner of uncolonized native land
 ## Seas beyond the Old World: unknown until explored. Old World realms know every other sea (also the
 ## West African coast down to Sierra Leone, which Portuguese caravels reached by 1444).
-const NEW_SEAS := ["guinea", "ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes"]
+const NEW_SEAS := ["guinea", "ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes",
+		"south_atlantic", "cape", "mozambique", "swahili", "indian", "af_lakes"]
+## Monsoon trade: realms with a coast on one of these known seas also know the Swahili coast from the start.
+const MONSOON := {"swahili": ["aden", "arabian", "persian_gulf"]}
 
 
 static func setup(g, data: Dictionary) -> void:
 	g.nw_first = g.provinces.size()
 	g.wa_first = g.provinces.size()
 	g.nw_end = g.provinces.size()
+	g.af_first = g.provinces.size()
 	for i in data.map.provinces.size():
 		var pd: Dictionary = data.map.provinces[i]
+		if pd.get("af", false):
+			if g.af_first == g.provinces.size():
+				g.af_first = i  # Africa south of the Sahara: overseas again, after the east block
+			continue
 		if pd.get("nw", false) and g.nw_first == g.provinces.size():
 			g.nw_first = i
 		if pd.get("wa", false) and g.wa_first == g.provinces.size():
 			g.wa_first = i
-		if g.nw_first < g.provinces.size() and not pd.get("nw", false) and i > g.nw_first:
+		if g.nw_first < g.provinces.size() and not pd.get("nw", false) and i > g.nw_first and g.nw_end == g.provinces.size():
 			g.nw_end = i  # the Middle East and the Horn ("east") follow the overseas block: Old World again
-			break
+	g.overseas = []
+	g.africa = []
+	for pid in g.provinces.size():
+		if is_new_world(g, pid):
+			g.overseas.append(pid)
+			if pid >= g.wa_first:
+				g.africa.append(pid)
 	g.found = {}
 	if g.nations.has(NATIVE):
 		var nat = g.nations[NATIVE]
@@ -63,7 +77,7 @@ static func reset_knowledge(g, n) -> void:
 				if region(g, pid) == home:
 					n.known_seas[s.id] = true
 					break
-		for pid in range(g.nw_first, g.nw_end):
+		for pid in g.overseas:
 			if region(g, pid) == home:
 				n.known_nw[pid] = true
 		return
@@ -73,8 +87,18 @@ static func reset_knowledge(g, n) -> void:
 			for pid in s.provinces:
 				if is_new_world(g, pid):
 					n.known_nw[pid] = true
+	for sea in MONSOON:
+		var home := false
+		for pid in g.provinces_of(n.tag):
+			for s2 in g.province_seas.get(pid, []):
+				if MONSOON[sea].has(s2):
+					home = true
+		if home and g.sea_by_id.has(sea):
+			n.known_seas[sea] = true
+			for pid in g.sea_by_id[sea].provinces:
+				n.known_nw[pid] = true
 	# the Sahel and Mali are known from the gold caravans; the forest belt and the Guinea coast are not
-	for pid in range(g.wa_first, g.nw_end):
+	for pid in g.africa:
 		if g.provinces[pid].center.y < float(g.bal.wa_known_y):
 			n.known_nw[pid] = true
 	# caravan routes: the land next to our own (Morocco knows the way to Taghaza)
@@ -96,7 +120,7 @@ static func is_native_realm(g, tag: String) -> bool:
 
 
 static func is_new_world(g, pid: int) -> bool:
-	return pid >= g.nw_first and pid < g.nw_end
+	return (pid >= g.nw_first and pid < g.nw_end) or pid >= g.af_first
 
 
 static func is_native_land(g, pid: int) -> bool:
@@ -159,14 +183,42 @@ static func can_explore_tech(g, n) -> bool:
 static func explore_targets(g, tag: String) -> Array:
 	var n = g.nations[tag]
 	var r := []
+	var reach := sea_reach(g, tag)
 	for s in g.seas:
 		if not NEW_SEAS.has(s.id) or n.known_seas.has(s.id):
 			continue
 		for a in s.get("adj", []):
-			if n.known_seas.has(a):
+			if reach.has(a):  # a known sea our ships can sail to (not the Arabian Sea from the Atlantic)
 				r.append(s.id)
 				break
 	return r
+
+
+## Seas the realm's ships can reach: the known seas at its own coasts and every known sea linked to them.
+## Cached per realm until the month or its sea knowledge changes.
+static func sea_reach(g, tag: String) -> Dictionary:
+	var n = g.nations[tag]
+	var key := "%d:%d:%d" % [g.month, n.known_seas.size(), g.owned.get(tag, []).size()]
+	var c: Array = g.sea_reach_cache.get(tag, [])
+	if not c.is_empty() and c[0] == key:
+		return c[1]
+	var reach := {}
+	var queue := []
+	for pid in g.provinces_of(tag):
+		for s in g.province_seas.get(pid, []):
+			if n.known_seas.has(s) and not reach.has(s):
+				reach[s] = true
+				queue.append(s)
+	var head := 0
+	while head < queue.size():
+		var cur: String = queue[head]
+		head += 1
+		for nb in g.sea_by_id[cur].get("adj", []):
+			if not reach.has(nb) and n.known_seas.has(nb) and g.sea_by_id.has(nb):
+				reach[nb] = true
+				queue.append(nb)
+	g.sea_reach_cache[tag] = [key, reach]
+	return reach
 
 
 static func explore_cost(g, n) -> float:
@@ -284,7 +336,7 @@ static func recruit_colonist(g, tag: String) -> String:
 
 static func running_colonies(g, tag: String) -> Array:
 	var r := []
-	for pid in range(g.nw_first, g.nw_end):
+	for pid in g.overseas:
 		if g.provinces[pid].colonist == tag:
 			r.append(pid)
 	return r
@@ -301,8 +353,8 @@ static func colony_months(g, p) -> int:
 	return int(round(float(g.bal.colony_months) * (1.0 + p.natives * float(g.bal.natives_slow))))
 
 
-## A province the realm can reach with settlers: next to its land, or a known coast on a sea it knows
-## (by ship, so the realm needs a coast of its own).
+## A province the realm can reach with settlers: next to its land, or a known coast on a sea its ships
+## can reach over known seas (so the realm needs a coast of its own).
 static func reachable(g, tag: String, pid: int) -> bool:
 	var p = g.provinces[pid]
 	for a in p.adj:
@@ -310,8 +362,9 @@ static func reachable(g, tag: String, pid: int) -> bool:
 			return true
 	if not p.coastal or not has_coast(g, tag):
 		return false
+	var reach := sea_reach(g, tag)
 	for s in g.province_seas.get(pid, []):
-		if knows_sea(g, tag, s):
+		if reach.has(s):
 			return true
 	return false
 
@@ -459,9 +512,9 @@ static func colonies_owned(g, tag: String) -> int:
 # ---------------------------------------------------------------- ticks
 
 static func monthly(g) -> void:
-	if g.nw_first >= g.nw_end:
+	if g.overseas.is_empty():
 		return
-	for pid in range(g.nw_first, g.nw_end):
+	for pid in g.overseas:
 		var p = g.provinces[pid]
 		if p.colonist != "":
 			_colony_tick(g, p)
@@ -477,7 +530,7 @@ static func monthly(g) -> void:
 
 ## Yearly: settlers push inland, and old discoveries become common knowledge.
 static func yearly(g) -> void:
-	if g.nw_first >= g.nw_end:
+	if g.overseas.is_empty():
 		return
 	for tag in g.order:
 		var n = g.nations[tag]

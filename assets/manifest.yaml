@@ -928,3 +928,102 @@ assets:
     source: assets/src/pixel/icons/war.txt
     status: done
     updated: '2026-10-24'
+  flag_KAN:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_KAN (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_KAN.png
+    source: assets/src/pixel/flags/flag_KAN.txt
+    status: done
+    updated: '2026-11-17'
+  flag_BOR:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_BOR (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_BOR.png
+    source: assets/src/pixel/flags/flag_BOR.txt
+    status: done
+    updated: '2026-11-17'
+  flag_DAR:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_DAR (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_DAR.png
+    source: assets/src/pixel/flags/flag_DAR.txt
+    status: done
+    updated: '2026-11-17'
+  flag_AJU:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_AJU (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_AJU.png
+    source: assets/src/pixel/flags/flag_AJU.txt
+    status: done
+    updated: '2026-11-17'
+  flag_MLD:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_MLD (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_MLD.png
+    source: assets/src/pixel/flags/flag_MLD.txt
+    status: done
+    updated: '2026-11-17'
+  flag_MBA:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_MBA (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_MBA.png
+    source: assets/src/pixel/flags/flag_MBA.txt
+    status: done
+    updated: '2026-11-17'
+  flag_KIL:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_KIL (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_KIL.png
+    source: assets/src/pixel/flags/flag_KIL.txt
+    status: done
+    updated: '2026-11-17'
+  flag_KIT:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_KIT (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_KIT.png
+    source: assets/src/pixel/flags/flag_KIT.txt
+    status: done
+    updated: '2026-11-17'
+  flag_KON:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_KON (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_KON.png
+    source: assets/src/pixel/flags/flag_KON.txt
+    status: done
+    updated: '2026-11-17'
+  flag_NDO:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_NDO (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_NDO.png
+    source: assets/src/pixel/flags/flag_NDO.txt
+    status: done
+    updated: '2026-11-17'
+  flag_MUT:
+    created: '2026-11-17'
+    kind: flag
+    note: flag_MUT (tools/art/flags.py)
+    outputs:
+    - assets/art/icons/flag_MUT.png
+    source: assets/src/pixel/flags/flag_MUT.txt
+    status: done
+    updated: '2026-11-17'

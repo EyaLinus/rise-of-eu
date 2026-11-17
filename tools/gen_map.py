@@ -387,7 +387,7 @@ PROVINCES = [
     ("benin", "Benin", 5.8, 6.6, "BEN", 7),
     ("niger_delta", "Nigerdelta", 6.6, 5.0, "BEN", 2),
     ("nupe", "Nupe", 6.2, 9.4, "NAT", 3),
-    ("hausa", "Hausaland", 8.5, 12.0, "NAT", 5),
+    ("hausa", "Kano", 8.5, 12.0, "KAN", 6),
     ("niani", "Niani", -9.4, 11.4, "MAL", 6),
     ("kaarta", "Kaarta", -10.2, 14.4, "MAL", 3),
     ("segu", "Ségou", -7.0, 13.0, "MAL", 4),
@@ -452,6 +452,88 @@ PROVINCES = [
     ("zeila", "Zeila", 43.4, 11.2, "ADA", 5, 1.8),
     ("berbera", "Berbera", 45.0, 10.2, "ADA", 3, 2.0),
     ("ogaden", "Ogaden", 44.0, 7.4, "ADA", 2, 2.6),
+    # --- Africa south of the Sahara (appended after the east block so every older id stays stable;
+    # "af" in map.json, also "nw" and "wa": overseas/colonial like West Africa). South of the Sahara the
+    # radius is 6° so the Voronoi cells fill the land without wasteland gaps ---
+    # the Sahara and the Sudan belt
+    ("fezzan", "Fessan", 14.4, 26.0, "NAT", 2, 4.4),
+    ("air", "Aïr", 8.0, 17.5, "NAT", 2, 3.6),
+    ("tibesti", "Tibesti", 18.5, 20.8, "NAT", 1, 4.6),
+    ("bornu", "Bornu", 12.3, 12.6, "BOR", 7, 6.0),
+    ("kanem", "Kanem", 15.6, 14.6, "BOR", 3, 3.0),
+    ("bagirmi", "Bagirmi", 17.2, 11.0, "NAT", 2, 6.0),
+    ("wadai", "Wadai", 21.0, 13.5, "NAT", 2, 6.0),
+    ("darfur", "Darfur", 24.6, 13.0, "DAR", 5, 6.0),
+    ("kordofan", "Kordofan", 29.8, 12.8, "NAT", 2, 6.0),
+    ("adamawa", "Adamaua", 13.0, 8.0, "NAT", 2, 6.0),
+    ("cameroon", "Kamerun", 10.0, 4.3, "NAT", 2, 6.0),
+    # the Somali coast and southern Ethiopia
+    ("majerteen", "Majerteen", 48.6, 9.6, "NAT", 2, 6.0),
+    ("hobyo", "Hobyo", 47.2, 5.6, "AJU", 3, 6.0),
+    ("mogadishu", "Mogadischu", 45.3, 2.3, "AJU", 7, 6.0),
+    ("juba", "Jubaland", 42.3, 0.2, "AJU", 2, 6.0),
+    ("borana", "Borana", 39.0, 4.6, "NAT", 1, 6.0),
+    ("kaffa", "Kaffa", 35.8, 6.6, "NAT", 3, 6.0),
+    ("bale", "Bale", 40.3, 7.2, "NAT", 2, 6.0),
+    # the Swahili coast
+    ("malindi", "Malindi", 40.0, -2.8, "MLD", 5, 6.0),
+    ("mombasa", "Mombasa", 39.5, -4.2, "MBA", 6, 6.0),
+    ("zanzibar", "Sansibar", 39.35, -6.1, "KIL", 5, 0.35),
+    ("bagamoyo", "Bagamoyo", 38.4, -6.5, "NAT", 2, 6.0),
+    ("kilwa", "Kilwa", 39.3, -8.8, "KIL", 7, 6.0),
+    ("mozambique", "Mosambik", 40.2, -14.0, "KIL", 3, 6.0),
+    ("sofala", "Sofala", 34.8, -19.6, "KIL", 4, 6.0),
+    ("inhambane", "Inhambane", 34.9, -23.4, "NAT", 2, 6.0),
+    # East Africa and the Great Lakes
+    ("kenya", "Kikuyu-Hochland", 37.0, -0.6, "NAT", 2, 6.0),
+    ("maasai", "Massaisteppe", 36.6, -3.9, "NAT", 1, 6.0),
+    ("unyamwezi", "Unyamwezi", 33.2, -5.4, "NAT", 2, 6.0),
+    ("yao", "Yao", 37.0, -11.0, "NAT", 2, 6.0),
+    ("bunyoro", "Bunyoro", 31.4, 1.5, "KIT", 5, 6.0),
+    ("buganda", "Buganda", 32.5, 0.2, "NAT", 3, 6.0),
+    ("rwanda", "Ruanda", 29.9, -2.0, "NAT", 3, 6.0),
+    ("sudd", "Sudd", 30.6, 7.5, "NAT", 1, 6.0),
+    ("azande", "Azande", 26.0, 4.8, "NAT", 1, 6.0),
+    ("ituri", "Ituri", 28.6, 1.0, "NAT", 1, 6.0),
+    # Kongo and Central Africa
+    ("kongo", "Kongo", 14.4, -6.0, "KON", 8, 6.0),
+    ("loango", "Loango", 12.2, -4.0, "NAT", 3, 6.0),
+    ("ndongo", "Ndongo", 15.5, -9.2, "NDO", 4, 6.0),
+    ("benguela", "Benguela", 14.2, -12.8, "NAT", 2, 6.0),
+    ("yaka", "Kwango", 17.8, -6.4, "NAT", 2, 6.0),
+    ("tio", "Tio", 16.0, -2.6, "NAT", 3, 6.0),
+    ("ogowe", "Ogowe", 11.2, -0.6, "NAT", 1, 6.0),
+    ("ubangi", "Ubangi", 18.6, 3.2, "NAT", 1, 6.0),
+    ("congo_basin", "Kongobecken", 21.0, -0.8, "NAT", 1, 6.0),
+    ("kuba", "Kuba", 21.8, -5.2, "NAT", 2, 6.0),
+    ("luba", "Luba", 25.8, -7.4, "NAT", 3, 6.0),
+    ("lunda", "Lunda", 22.5, -10.0, "NAT", 2, 6.0),
+    ("katanga", "Katanga", 27.5, -11.0, "NAT", 2, 6.0),
+    ("maniema", "Maniema", 26.0, -3.0, "NAT", 1, 6.0),
+    # Mutapa and southern Africa
+    ("mutapa", "Mutapa", 31.2, -16.6, "MUT", 6, 6.0),
+    ("zimbabwe", "Groß-Simbabwe", 30.9, -20.2, "MUT", 5, 6.0),
+    ("maravi", "Maravi", 33.8, -13.5, "NAT", 2, 6.0),
+    ("luangwa", "Luangwa", 30.2, -12.8, "NAT", 1, 6.0),
+    ("lozi", "Barotseland", 23.5, -15.5, "NAT", 2, 6.0),
+    ("ovambo", "Ovambo", 16.0, -17.8, "NAT", 2, 6.0),
+    ("okavango", "Okavango", 22.5, -19.8, "NAT", 1, 6.0),
+    ("damaraland", "Damaraland", 16.5, -22.0, "NAT", 1, 6.0),
+    ("kalahari", "Kalahari", 22.0, -24.0, "NAT", 1, 6.0),
+    ("namaqua", "Namaland", 18.0, -28.0, "NAT", 1, 6.0),
+    ("cape", "Kap", 19.0, -33.6, "NAT", 1, 6.0),
+    ("karoo", "Karoo", 22.5, -31.5, "NAT", 1, 6.0),
+    ("xhosa", "Xhosa", 27.0, -32.4, "NAT", 2, 6.0),
+    ("natal", "Natal", 30.2, -28.8, "NAT", 2, 6.0),
+    ("highveld", "Hochveld", 27.0, -26.6, "NAT", 2, 6.0),
+    ("limpopo", "Limpopo", 29.5, -23.6, "NAT", 2, 6.0),
+    ("delagoa", "Delagoa", 32.6, -25.6, "NAT", 2, 6.0),
+    # Madagascar
+    ("boina", "Boina", 46.4, -16.2, "NAT", 2, 6.0),
+    ("betsimisaraka", "Betsimisaraka", 49.0, -16.8, "NAT", 2, 6.0),
+    ("imerina", "Imerina", 47.4, -19.2, "NAT", 3, 6.0),
+    ("menabe", "Menabe", 44.6, -20.8, "NAT", 2, 6.0),
+    ("androy", "Androy", 46.0, -24.2, "NAT", 1, 6.0),
 ]
 
 # Extra sea/strait connections (province keys)
@@ -471,6 +553,8 @@ STRAITS = [
     ("lucayas", "camaguey"), ("newfoundland", "labrador"), ("newfoundland", "mikmaq"),
     # the Red Sea, the Gulf of Aden and the Persian Gulf
     ("aden", "zeila"), ("tihama", "danakil"), ("mecca", "suakin"), ("hasa", "bushehr"),
+    # Zanzibar and the Mozambique Channel (Comoros crossing)
+    ("zanzibar", "kilwa"), ("zanzibar", "mombasa"), ("mozambique", "boina"),
 ]
 
 # land borders the coarse polygons miss (isthmus, small gaps): adjacency only, not sea crossings
@@ -478,7 +562,10 @@ LAND_LINKS = [("constantinople", "edirne"), ("morea", "thessaly"), ("crimea", "z
               # caravan routes across the Sahara (slow: long march distance)
               ("sous", "taghaza"), ("taghaza", "timbuktu"), ("taghaza", "walata"),
               # the Hejaz road and the Nile (desert gaps the radius clip leaves open)
-              ("tabuk", "medina"), ("basra", "hasa"), ("aswan", "upper_egypt"), ("aswan", "dongola"), ("dongola", "alwa")]
+              ("tabuk", "medina"), ("basra", "hasa"), ("aswan", "upper_egypt"), ("aswan", "dongola"), ("dongola", "alwa"),
+              # Saharan caravans to the Fezzan and Lake Chad, and the Nile into the Sudd
+              ("fezzan", "tripoli"), ("fezzan", "sirte"), ("fezzan", "kanem"), ("fezzan", "air"), ("tibesti", "kanem"),
+              ("sudd", "sennar")]
 
 sys.path.insert(0, os.path.dirname(__file__))
 from mapproj import LAT0, MIN_LAT, NEW_WORLD, NW_MIN_LAT, OLD_WORLD, SCALE, proj, size  # noqa: E402
@@ -486,6 +573,14 @@ from mapproj import LAT0, MIN_LAT, NEW_WORLD, NW_MIN_LAT, OLD_WORLD, SCALE, proj
 FIRST_NEW_WORLD = "tenochtitlan"  # provinces from here on are overseas/colonial ("nw" in map.json)
 FIRST_AFRICA = "arguin"  # ... and from here on they are West Africa ("wa" in map.json, also "nw")
 FIRST_EAST = "baghdad"  # ... up to here: the Middle East and the Horn are Old World again ("east" in map.json)
+FIRST_SOUTH = "fezzan"  # ... and from here on Africa south of the Sahara: overseas again ("af", also "nw" and "wa")
+# big African lakes cut out of the land south of the Sahara
+AF_LAKES = {"Lake Victoria", "Lake Tanganyika", "Lake Malawi"}
+# the map texture is split in two below this latitude (each part < 4096 px on Android); the south
+# part only covers Africa (east of TERRAIN_SOUTH_LON), the rest of it is plain open sea. Both lines
+# run through open water well away from any coast, so map_terrain can fade the sea into the plain colour
+TERRAIN_SOUTH_LAT = 1.5
+TERRAIN_SOUTH_LON = -2.0
 # big lakes cut out of the New World land (Natural Earth lakes); Europe keeps its old shapes
 LAKES = {"Lake Superior", "Lake Michigan", "Lake Huron", "Lake Erie", "Lake Ontario", "Lake Winnipeg", "Lago de Nicaragua"}
 
@@ -507,6 +602,7 @@ def main(land_path, lakes_path):
     with open(lakes_path) as f:
         lakes_gj = json.load(f)
     lakes = unary_union([shape(ft["geometry"]) for ft in lakes_gj["features"] if ft["properties"].get("name") in LAKES])
+    af_lakes = unary_union([shape(ft["geometry"]) for ft in lakes_gj["features"] if ft["properties"].get("name") in AF_LAKES])
     windows = [box(OLD_WORLD[0], MIN_LAT, OLD_WORLD[1], LAT0), box(NEW_WORLD[0], NW_MIN_LAT, NEW_WORLD[1], LAT0)]
     land_parts = []
     for feat in gj["features"]:
@@ -516,6 +612,8 @@ def main(land_path, lakes_path):
                 part = g.intersection(window)
                 if wi == 1:
                     part = part.difference(lakes)
+                else:
+                    part = part.difference(af_lakes)
                 land_parts.append(project_geom(part))
     # Natural Earth cuts the Suez Canal (1869) through the isthmus: close it again
     land_parts.append(project_geom(box(32.1, 29.94, 32.7, 31.32)))
@@ -535,6 +633,7 @@ def main(land_path, lakes_path):
     nw_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_NEW_WORLD)
     wa_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_AFRICA)
     east_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_EAST)
+    south_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_SOUTH)
     max_r = 3.2 * SCALE
     raw = []
     for i, p in enumerate(PROVINCES):
@@ -597,8 +696,12 @@ def main(land_path, lakes_path):
             d["nw"] = True
         if east_first > i >= wa_first:
             d["wa"] = True
-        if i >= east_first:
+        if south_first > i >= east_first:
             d["east"] = True
+        if i >= south_first:
+            d["nw"] = True
+            d["wa"] = True
+            d["af"] = True
         provinces.append(d)
 
     key_to_id = {p[0]: i for i, p in enumerate(PROVINCES)}
@@ -627,7 +730,8 @@ def main(land_path, lakes_path):
         if q.geom_type == "Polygon" and q.area > 200.0:
             bg.append([[round(x, 1), round(y, 1)] for x, y in list(q.exterior.coords)[:-1]])
 
-    out = {"size": [W, H], "provinces": provinces, "background": bg}
+    tx, ty = proj(TERRAIN_SOUTH_LON, TERRAIN_SOUTH_LAT)
+    out = {"size": [W, H], "terrain_south": [int(tx), int(round(ty))], "provinces": provinces, "background": bg}
     with open("data/map.json", "w") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
     # sea crossings: slower marches, need sea control in war (scripts/core/warfare.gd)

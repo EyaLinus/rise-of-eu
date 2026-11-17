@@ -364,6 +364,20 @@ M["YEM"] = (stripes(["R", "w", "k"], 3), "Yemen – red, white, black bands (sty
 M["ALO"] = (cross(solid("B"), "G", 2), "Alodia – gold cross on blue (stylised)")
 M["ETH"] = (centred(stripes(["L", "G", "R"], 3), recolor(LION_SMALL, {"U": "k"})), "Ethiopia – lion of Judah on green, gold, red (stylised)")
 M["ADA"] = (centred(solid("B"), recolor(CRESCENT, TO_WHITE), cy=3), "Adal – white crescent on blue (stylised)")
+# Africa south of the Sahara (stylised, no historical flags)
+KNOT = ["w.....w", ".w.w.w.", "..www..", ".wwwww.", "..www..", ".w.w.w.", "w.....w"]
+BIRD = ["..GG...", ".GkG...", "..GGG..", "..GGGG.", "...GGGD", "...G.G.", "..DD.D."]
+M["KAN"] = (centred(solid("k"), recolor(KNOT, {"w": "L"})), "Kano – green Hausa knot on black (stylised)")
+M["BOR"] = (centred(solid("U"), recolor(CRESCENT, TO_WHITE), cy=3), "Bornu – white crescent on purple (stylised)")
+M["DAR"] = (centred(per_pale("O", "k"), recolor(CRESCENT, TO_WHITE), cy=3), "Darfur – white crescent on brown and black (stylised)")
+M["AJU"] = (centred(field("N", "w", "N"), recolor(CRESCENT, TO_GOLD), cy=3), "Ajuran – gold crescent on blue and white (stylised)")
+M["MLD"] = (centred(solid("R"), recolor(CRESCENT, TO_WHITE), cy=3), "Malindi – white crescent on red (stylised)")
+M["MBA"] = (centred(border(solid("L"), "R", 2), recolor(CRESCENT, TO_WHITE), cy=3), "Mombasa – white crescent on jade, red border (stylised)")
+M["KIL"] = (centred(solid("G"), recolor(CRESCENT, TO_RED), cy=3), "Kilwa – red crescent on gold (stylised)")
+M["KIT"] = (centred(solid("O"), recolor(BULL, TO_WHITE)), "Kitara – white long-horned bull on brown (stylised)")
+M["KON"] = (saltire(solid("R"), "G"), "Kongo – gold saltire on red (stylised)")
+M["NDO"] = (centred(per_pale("k", "R"), SWORD), "Ndongo – sword on black and red (stylised)")
+M["MUT"] = (centred(solid("F"), BIRD), "Mutapa – gold Zimbabwe bird on dark green (stylised)")
 FLAGS.update(M)
 
 # Naples: Aragon pallets impaled with Anjou (blue with gold fleur), to differ from Aragón
