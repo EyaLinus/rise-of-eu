@@ -4049,6 +4049,10 @@ func test_colonial_events() -> void:
 	var pw: int = g.key_to_pid["powhatan"]
 	g.apply_effects("ENG", {"discover": ["powhatan"]})
 	check(g.Colonial.knows(g, "ENG", pw) and g.provinces[pw].owner == "NAT", "discover reveals without settling")
+	if g.key_to_pid.has("pernambuco"):
+		g.apply_effects("POR", {"colony_grant": ["pernambuco", "bahia"]})
+		check(g.provinces[g.key_to_pid["pernambuco"]].owner == "POR", "Brazil colony for Portugal")
+		check(g.Colonial.knows(g, "POR", g.key_to_pid["bahia"]), "Brazilian coast discovered")
 	for ev in g.event_defs:
 		if String(ev.id).begins_with("col_"):
 			check(g.nations.has(ev.tag) and data.nations[ev.tag].has("colonial"), "%s belongs to a colonial nation" % ev.id)
