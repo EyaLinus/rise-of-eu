@@ -348,7 +348,7 @@ func _setup_terrain() -> void:
 		_terrain_rect = TextureRect.new()
 		_terrain_rect.show_behind_parent = true
 		_terrain_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_terrain_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		_terrain_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # VRAM-compressed with mipmaps (no shimmer when zoomed out)
 		_terrain_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_terrain_rect.stretch_mode = TextureRect.STRETCH_SCALE
 		add_child(_terrain_rect)
@@ -356,7 +356,7 @@ func _setup_terrain() -> void:
 		_terrain_south_rect = TextureRect.new()
 		_terrain_south_rect.show_behind_parent = true
 		_terrain_south_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_terrain_south_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		_terrain_south_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 		_terrain_south_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_terrain_south_rect.stretch_mode = TextureRect.STRETCH_SCALE
 		_terrain_south_rect.texture = terrain_south

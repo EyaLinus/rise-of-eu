@@ -32,6 +32,11 @@ Längster Einzelschritt heute 14–19 ms (Armeen, KI eines großen Reichs im Kri
 einen ganzen Monat. Geschwindigkeitsstufen 3–5 entfernt. Neuer CI-Check `tools/month_steps_smoke.gd`.
 Rest-Ruckler: `_after_tick` (Panel-Neuaufbau ~30–40 ms) → Phase 2b.
 
+**Phase 3a erledigt** (Texturen, Option H ohne Kacheln): Terrain-Texturen VRAM-komprimiert (S3TC auf PC,
+ETC2 auf Android) mit Mipmaps: Texturspeicher **95 → 31 MB**, Videospeicher 108 → 44 MB. Optisch im
+Screenshot-Vergleich kein sichtbarer Unterschied. APK wächst um ~8 MB (komprimierte Texturen sind größer als
+das verlustfreie Format auf der Platte, dafür viel kleiner im Grafikspeicher).
+
 Werkzeuge (alle neu bzw. überarbeitet in diesem PR):
 
 | Werkzeug | Was es misst |

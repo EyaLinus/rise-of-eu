@@ -4,3 +4,5 @@ build/
 export/
 *.keystore
 __pycache__/
+# map terrain: VRAM compression + mipmaps are set in these import files, so CI exports must see them
+!assets/art/map/*.import
