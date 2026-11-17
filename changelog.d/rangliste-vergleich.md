@@ -1,1 +1,0 @@
-- **Rangliste mit Vergleich:** Die 🏆 Rangliste lässt sich jetzt nach Punkten, Entwicklung, Provinzen, Einnahmen, Armee, Flotte, Technik oder Ansehen sortieren.

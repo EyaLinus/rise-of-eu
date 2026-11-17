@@ -1,2 +1,0 @@
-- **Sechs neue spielbare Nationen:** Portugal, Venedig, Ungarn, die Mamluken, Qara Qoyunlu und Äthiopien. Jede mit eigenen Missionen (8 bis 11), Ereignissen, drei Nationaltechnologien, historischen Beratern und einer Handelskompanie.
-- Neue Ereignisse mit schwierigen Entscheidungen, z. B. Portugal und der Menschenhandel an der Guineaküste, Venedigs Galeerenruderer oder Raubzüge in den Kaukasus, jeweils mit einer menschlicheren Alternative.
