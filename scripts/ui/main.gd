@@ -2570,8 +2570,14 @@ func _province_army(p) -> void:
 
 
 func _supply_tip() -> String:
-	return "So viele Regimenter ernährt die Provinz (mehr Entwicklung und Straßen = mehr; im eigenen und verbündeten Land das %.1f-fache). Stehen mehr dort, verliert jede Armee im Monat bis zu %d %% des Überschusses und bekommt keinen Nachschub. Im Frieden versorgt dein Reich die Truppen im eigenen Land ohne Verluste. Große Heere also aufteilen und getrennt marschieren lassen." % [
+	return "So viele Regimenter ernährt die Provinz (mehr Entwicklung und Straßen = mehr; im eigenen und verbündeten Land das %.1f-fache). Im eigenen Land hungert nie jemand: dein Reich versorgt die Truppen dort immer, auch im Krieg. In fremdem Land verliert jede Armee über dem Limit im Monat bis zu %d %% des Überschusses und bekommt keinen Nachschub, in verbündetem Land im Krieg nur halb so viel. Große Heere im Feindesland also aufteilen und getrennt marschieren lassen." % [
 			float(game.bal.supply_home_mult), int(float(game.bal.supply_attrition) * 100)]
+
+
+func _command_tip(a) -> String:
+	return "So viele Regimenter führt die Armee ohne Abzug: ohne General %d, ein General auf Stufe 1/2/3 %d/%d/%d (Boni durch Technologie und Kriegsakademie: %+d %%). Jedes Regiment darüber kämpft nur mit %d %% Kraft. Mehr Kommando: General befördern (Militär-Macht) oder die Armee teilen." % [
+			int(game.bal.general_command[0]), int(game.bal.general_command[1]), int(game.bal.general_command[2]), int(game.bal.general_command[3]),
+			int(round(game.mod(game.nations[a.owner], "command") * 100)), int(float(game.bal.general_overflow) * 100)]
 
 
 func _province_armies(pid: int) -> void:
@@ -2951,8 +2957,10 @@ func _panel_army(id: int) -> void:
 				"Moral (max. %d %%, +%.1f %%/Monat) bestimmt, wie gut die Armee kämpft (bei 0 %% nur noch mit %d %% Kraft). Sie steigt jeden Monat, im eigenen und verbündeten Land schneller, mit Straßen noch schneller. Eine gewonnene Schlacht kostet %d %%, eine verlorene %d %%. Der Balken unter der Armee auf der Karte zeigt sie." % [
 				int(round(pm * 100)), game.power_regen(a) * 100, int(float(game.bal.army_power_floor) * 100), int(float(game.bal.army_power_loss_win) * 100), int(float(game.bal.army_power_loss_lose) * 100)],
 				"good" if a.power >= pm * 0.7 else ("" if a.power >= pm * 0.35 else "bad")),
-		_chip(("⭐ General %d" % a.general) if a.general > 0 else "⭐ Kein General",
-				("+%d %% Kampfkraft." % int(a.general * float(game.bal.general_bonus) * 100)) if a.general > 0 else "Ohne General kämpft die Armee ohne Bonus.", "gold" if a.general > 0 else ""),
+		_chip(("⭐ General Stufe %d" % a.general) if a.general > 0 else "⭐ Kein General",
+				("Stufe %d von 3: +%d %% Kampfkraft und mehr Kommando. Höhere Stufen kosten Militär-Macht." % [a.general, int(a.general * float(game.bal.general_bonus) * 100)]) if a.general > 0 else "Ohne General kämpft die Armee ohne Bonus und führt nur wenige Regimenter ohne Abzug.", "gold" if a.general > 0 else ""),
+		_chip("👥 Kommando %d / %d" % [int(round(a.regs)), int(game.command_limit(a))], _command_tip(a),
+				"bad" if a.regs > game.command_limit(a) + 0.01 else ""),
 	]
 	var s_load: float = Warfare.supply_load(game, a.pid, a.owner)
 	var s_lim: float = Warfare.supply_limit(game, a.pid, a.owner)
@@ -3004,8 +3012,14 @@ func _panel_army(id: int) -> void:
 	if a.pid != game.nations[a.owner].capital:
 		acts.append(_btn("🏰 Hauptstadt", func(): _quick_order(a, game.nations[a.owner].capital), "Zur Hauptstadt marschieren."))
 	if a.general == 0:
+		var lvl: int = game.general_start_level(a.owner)
 		acts.append(_btn("⭐ General %d⚔️" % int(game.bal.general_cost), func(): _act(game.hire_general(a.owner, a.id), "⭐ Ein General übernimmt das Kommando"),
-				"Militär-Macht einsetzen: ein General mit 1 bis 3 Sternen (bessere Militärtechnik, bessere Offiziere). Jeder Stern +%d %% Kampfkraft. Generäle können in Schlachten fallen, nach Niederlagen eher." % int(float(game.bal.general_bonus) * 100)))
+				"Militär-Macht einsetzen: ein General auf Stufe %d (Kriegsakademie und die Technologie Generalstab heben die Startstufe je um 1). Jede Stufe +%d %% Kampfkraft und mehr Kommando (%d Regimenter auf dieser Stufe). Generäle können in Schlachten fallen, nach Niederlagen eher." % [
+				lvl, int(float(game.bal.general_bonus) * 100), int(float(game.bal.general_command[lvl]) * maxf(0.2, 1.0 + game.mod(game.nations[a.owner], "command")))]))
+	elif game.promote_cost(a) > 0.0:
+		acts.append(_btn("⭐ Stufe %d · %d⚔️" % [a.general + 1, int(game.promote_cost(a))], func(): _act(game.promote_general(a.owner, a.id), "⭐ Der General steigt auf Stufe %d" % (a.general + 1)),
+				"Militär-Macht einsetzen: der General steigt auf Stufe %d von 3. +%d %% Kampfkraft und Kommando über %d Regimenter (bisher %d)." % [
+				a.general + 1, int(float(game.bal.general_bonus) * 100), int(float(game.bal.general_command[a.general + 1]) * maxf(0.2, 1.0 + game.mod(game.nations[a.owner], "command"))), int(game.command_limit(a))]))
 	_refit_buttons(a)
 	if a.power < pm - 0.001:
 		acts.append(_btn("🔥 Drill %d⚔️" % int(game.drill_cost(a)), func(): _act(game.drill_army(a.owner, a.id), "🔥 Die Truppen sind gedrillt"),
@@ -4208,7 +4222,7 @@ func _advice() -> Array:
 	# armies over the supply limit lose regiments every month at war (Warfare.attrition)
 	var starving := []
 	for a in game.armies_of(me):
-		if Warfare.over_supply(game, a) and not starving.has(a.pid):
+		if Warfare.over_supply(game, a) and not starving.has(a.pid) and not Warfare.home_land(game, a.pid, me):
 			starving.append(a.pid)
 	if not starving.is_empty():
 		var sp: int = starving[0]

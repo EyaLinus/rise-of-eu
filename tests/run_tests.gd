@@ -1588,7 +1588,7 @@ func test_generals() -> void:
 	check(g.hire_general("FRA", a.id) != "", "a general costs military power")
 	g.nations.FRA.mil = 100.0
 	check(g.hire_general("FRA", a.id) == "", "hire a general")
-	check(a.general >= 1 and a.general <= 3, "general has 1-3 stars")
+	check(a.general == 1, "a new general starts at level 1")
 	check(g._side_power([a], cap) > base, "a general makes the army stronger")
 	check(g.hire_general("FRA", a.id) != "", "only one general per army")
 	var b = g.spawn_army("FRA", cap, 2.0)
@@ -1602,6 +1602,41 @@ func test_generals() -> void:
 	var g2 = new_game("FRA", 9)
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
 	check(g2.army_by_id(merged.id).general == stars, "generals are saved")
+	# levels: promotion costs military power, more combat and more command; max level 3
+	var lead = merged
+	g.nations.FRA.mil = 0.0
+	check(g.promote_general("FRA", lead.id) != "", "promotion costs military power")
+	g.nations.FRA.mil = 500.0
+	var lim1: float = g.command_limit(lead)
+	var p1: float = g._side_power([lead], cap)
+	check(g.promote_general("FRA", lead.id) == "" and lead.general == 2, "promote to level 2")
+	check(g.command_limit(lead) > lim1 and g._side_power([lead], cap) > p1, "higher level: more command and strength")
+	check(g.promote_general("FRA", lead.id) == "" and lead.general == 3, "promote to level 3")
+	check(g.promote_general("FRA", lead.id) != "", "level 3 is the top")
+	# command limit: regiments beyond it fight at general_overflow
+	var big = g.spawn_army("FRA", g.provinces_of("FRA")[1], 60.0)
+	var lim: float = g.command_limit(big)
+	check(absf(g.command_regs(big) - (lim + (60.0 - lim) * float(g.bal.general_overflow))) < 0.01, "regiments over the command limit count less")
+	var c0: float = g.command_limit(big)
+	g.nations.FRA.set_bonus("test_cmd", {"command": 0.5})
+	check(absf(g.command_limit(big) - c0 * 1.5) < 0.01, "command bonus scales the limit")
+	# war academy and the general staff tech: start level +1 each, capped at 3
+	check(g.general_start_level("FRA") == 1, "start level 1 by default")
+	g.nations.FRA.set_bonus("monuments", {"general_start": 1.0})
+	check(g.general_start_level("FRA") == 2, "war academy: generals start at level 2")
+	g.nations.FRA.set_bonus("tech_x", {"general_start": 1.0})
+	check(g.general_start_level("FRA") == 3, "academy + general staff: level 3")
+	var c = g.spawn_army("FRA", cap, 4.0)
+	g.hire_general("FRA", c.id)
+	check(c.general == 3, "hired general starts at the boosted level")
+	var mon: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/monuments.json"))
+	check(float(mon.academy.bonus.get("general_start", 0.0)) == 1.0, "the war academy gives +1 general level")
+	var staff := false
+	var techs: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/techs.json"))
+	for t in techs.techs:
+		if float(t.effects.get("general_start", 0.0)) >= 1.0 and int(t.year) >= 1630:
+			staff = true
+	check(staff, "a late tech gives +1 general level")
 
 
 func test_peace_offer_cooldown() -> void:
@@ -3967,6 +4002,18 @@ func test_supply_and_ai_stacks() -> void:
 	var small = g.spawn_army("FRA", g.nations.FRA.capital, 3.0)
 	W.attrition(g)
 	check(absf(small.regs - 3.0) < 0.01, "an army within the limit loses nothing")
+	# own land at war: never any attrition, reinforcements keep coming
+	var home: int = g.nations.FRA.capital
+	g.nations.FRA.truces.erase("ENG")
+	g.nations.ENG.truces.erase("FRA")
+	g.declare_war("FRA", "ENG")
+	check(g.is_at_war("FRA"), "test war started")
+	var h = g.spawn_army("FRA", home, 400.0)
+	h.full = 500.0
+	W.attrition(g)
+	check(absf(h.regs - 400.0) < 0.01, "no attrition in the own land even at war (%.1f)" % h.regs)
+	g._reinforce(h)
+	check(h.regs > 400.0, "reinforcements in the own land even over the limit")
 
 
 

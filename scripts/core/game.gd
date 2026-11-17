@@ -1416,7 +1416,7 @@ func _merge_ai_stacks() -> void:
 			seen[key] = a
 	for key in again:
 		var a: Army = again[key]
-		if not is_at_war(a.owner) or Warfare.supply_load(self, a.pid, a.owner) <= Warfare.supply_limit(self, a.pid, a.owner):
+		if not is_at_war(a.owner) or Warfare.home_land(self, a.pid, a.owner) or Warfare.supply_load(self, a.pid, a.owner) <= Warfare.supply_limit(self, a.pid, a.owner):
 			merge_armies(a.owner, a.pid)
 
 
@@ -1427,8 +1427,36 @@ func _side_power(arms: Array, pid: int) -> float:
 		if provinces[pid].owner == a.owner:
 			m += float(bal.home_defense)
 		m += float(bal.general_bonus) * a.general
-		s += a.regs * m * power_factor(a)
+		s += command_regs(a) * m * power_factor(a)
 	return s
+
+
+## Regiments an army can lead without loss: by general level (0 = none), scaled by `command`.
+func command_limit(a: Army) -> float:
+	var steps: Array = bal.general_command
+	var base: float = float(steps[clampi(a.general, 0, steps.size() - 1)])
+	return base * maxf(0.2, 1.0 + mod(nations[a.owner], "command"))
+
+
+## Regiments that count in battle: beyond the command limit each one fights at general_overflow.
+func command_regs(a: Army) -> float:
+	var lim: float = command_limit(a)
+	if a.regs <= lim:
+		return a.regs
+	return lim + (a.regs - lim) * float(bal.general_overflow)
+
+
+## Level a new general starts at: 1, +1 per `general_start` (war academy, general staff tech), max 3.
+func general_start_level(tag: String) -> int:
+	return clampi(1 + int(round(mod(nations[tag], "general_start"))), 1, 3)
+
+
+## Military power to raise a general from his level to the next (0 = already at the top).
+func promote_cost(a: Army) -> float:
+	var c: Array = bal.general_promote_cost
+	if a.general <= 0 or a.general >= c.size():
+		return 0.0
+	return float(c[a.general])
 
 
 ## Fights a whole battle at once (tests); in play Warfare runs battles round by round.
@@ -1536,7 +1564,7 @@ func _reinforce(a: Army) -> void:
 	if p.controller != a.owner and not is_allied(a.owner, p.controller):
 		return
 	var n: Nation = nations[a.owner]
-	if is_at_war(a.owner) and Warfare.over_supply(self, a):
+	if is_at_war(a.owner) and Warfare.over_supply(self, a) and not Warfare.home_land(self, a.pid, a.owner):
 		return  # the land cannot feed more men
 	var amt: float = minf(a.full - a.regs, minf(a.full * float(bal.reinforce_rate), n.manpower))
 	if amt <= 0.0 or n.gold < 0.0:
@@ -2333,7 +2361,7 @@ func hire_mercs(tag: String, pid: int) -> String:
 
 # ---- military and diplomatic power actions (besides tech)
 
-## Military power: a general leads the army (+general_bonus combat strength per skill point).
+## Military power: a general leads the army (+general_bonus combat strength per level, more command).
 func hire_general(tag: String, id: int) -> String:
 	var a := army_by_id(id)
 	if a == null or a.owner != tag:
@@ -2343,9 +2371,24 @@ func hire_general(tag: String, id: int) -> String:
 	if nations[tag].mil < float(bal.general_cost):
 		return "Zu wenig Militär (%d)." % int(bal.general_cost)
 	nations[tag].mil -= float(bal.general_cost)
-	# better military tech, better officers
-	var roll := rng.randi_range(1, 3) + (1 if rng.randf() < 0.05 * nations[tag].tech.mil else 0)
-	a.general = mini(3, roll)
+	a.general = general_start_level(tag)
+	return ""
+
+
+## Military power: the army's general rises one level (up to 3).
+func promote_general(tag: String, id: int) -> String:
+	var a := army_by_id(id)
+	if a == null or a.owner != tag:
+		return "Keine eigene Armee."
+	if a.general <= 0:
+		return "Die Armee hat keinen General."
+	var c: float = promote_cost(a)
+	if c <= 0.0:
+		return "Der General hat schon die höchste Stufe."
+	if nations[tag].mil < c:
+		return "Zu wenig Militär (%d)." % int(c)
+	nations[tag].mil -= c
+	a.general += 1
 	return ""
 
 
