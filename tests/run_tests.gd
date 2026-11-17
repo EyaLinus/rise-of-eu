@@ -71,6 +71,9 @@ func _init() -> void:
 		"test_ledger",
 		"test_goods_events",
 		"test_playable_flavour",
+		"test_hungary_powerhouse",
+		"test_colonial_events",
+		"test_event_balance",
 		"test_more_goods_and_softer_costs",
 		"test_supply_and_ai_stacks",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
@@ -4057,6 +4060,73 @@ func test_playable_flavour() -> void:
 	g.choose_event_option("VEN", "pf_ven_arsenal", 0)
 	check(g.log_lines.size() == lines + 1, "AI decision not logged")
 
+
+
+## Hungary (2026-11-17): stronger start, player-only bonus, Habsburg only inherits after the estates chose Ferdinand.
+func test_hungary_powerhouse() -> void:
+	var ai_game = new_game("FRA", 3)
+	var me = new_game("HUN", 3)
+	var buda: int = me.key_to_pid["buda"]
+	var map_dev := 0
+	for pd in data.map.provinces:
+		if pd.key == "buda":
+			map_dev = int(pd.dev)
+	check(me.provinces[buda].dev == map_dev + 4 and ai_game.provinces[buda].dev == map_dev + 4, "dev_bonus on Buda for AI and player")
+	check(me.nations.HUN.mods.get("income", 0.0) > ai_game.nations.HUN.mods.get("income", 0.0) + 0.1, "player bonus only for the player")
+	check(me.nations.HUN.gold > ai_game.nations.HUN.gold + 200.0, "player start gold")
+	check(ai_game.nations.HUN.mods.get("combat", 0.0) >= 0.1, "national idea combat +10 %")
+	# Habsburg cannot inherit Hungary unless Hungary picked Ferdinand
+	var g = new_game("FRA", 4)
+	var e: Dictionary = g.event_by_id["hab_mohacs"]
+	g.month = (1530 - 1444) * 12
+	for w in g.wars.duplicate():
+		g.wars.erase(w)
+	check(not g.check_conditions("HAB", e.trigger), "no Mohács inheritance without the Habsburg king")
+	g.choose_event_option("HUN", "hu_mohacs_crown", 1)
+	check(g.nations.HUN.flags.has("hun_habsburg_king"), "Ferdinand option sets the flag")
+	check(g.check_conditions("HAB", {"nation_flag": {"HUN": "hun_habsburg_king"}}), "nation_flag condition")
+	var hu := 0
+	for ev in g.event_defs:
+		if String(ev.id).begins_with("hu_"):
+			hu += 1
+	check(hu >= 12, "Hungary has its own event chain (%d)" % hu)
+
+
+## Colonial founding events: colony_grant settles the first free listed province, discover only reveals the coast.
+func test_colonial_events() -> void:
+	var g = new_game("FRA", 5)
+	var q: int = g.key_to_pid["quisqueya"]
+	check(not g.Colonial.knows(g, "SPA", q), "Hispaniola unknown at start")
+	check(g.check_conditions("SPA", {"colony_free": ["quisqueya", "no_such_key"]}), "colony_free with unknown keys")
+	g.apply_effects("SPA", {"colony_grant": ["no_such_key", "quisqueya", "ayiti"]})
+	check(g.provinces[q].owner == "SPA" and g.provinces[q].core_months == 0, "granted colony is a cored province")
+	check(g.Colonial.knows(g, "SPA", g.key_to_pid["ayiti"]), "region discovered")
+	check(not g.check_conditions("SPA", {"colony_free": ["quisqueya"]}), "taken province is not free")
+	var pw: int = g.key_to_pid["powhatan"]
+	g.apply_effects("ENG", {"discover": ["powhatan"]})
+	check(g.Colonial.knows(g, "ENG", pw) and g.provinces[pw].owner == "NAT", "discover reveals without settling")
+	if g.key_to_pid.has("pernambuco"):
+		g.apply_effects("POR", {"colony_grant": ["pernambuco", "bahia"]})
+		check(g.provinces[g.key_to_pid["pernambuco"]].owner == "POR", "Brazil colony for Portugal")
+		check(g.Colonial.knows(g, "POR", g.key_to_pid["bahia"]), "Brazilian coast discovered")
+	for ev in g.event_defs:
+		if String(ev.id).begins_with("col_"):
+			check(g.nations.has(ev.tag) and data.nations[ev.tag].has("colonial"), "%s belongs to a colonial nation" % ev.id)
+			check(ev.options[0].effects.has("colony_grant") and ev.trigger.has("colony_free"), "%s grants a colony" % ev.id)
+
+
+## Balance pass: manpower is counted in regiments (no more "+1500" that refills the pool), no option is
+## better than another one on every single effect.
+func test_event_balance() -> void:
+	var g = new_game("FRA", 6)
+	for e in g.event_defs:
+		for o in e.options:
+			check(absf(float(o.effects.get("manpower", 0))) <= 20.0, "%s: manpower in regiments" % e.id)
+	for tag in g.mission_defs:
+		for m in g.mission_defs[tag]:
+			check(absf(float(m.get("reward", {}).get("manpower", 0))) <= 20.0, "%s: manpower in regiments" % m.id)
+	var col = g.event_by_id["spa_columbus"]
+	check(float(col.options[0].effects.mods.income) <= 0.05, "Columbus no longer +10 % income for 50 gold")
 
 
 func test_alert_bar() -> void:

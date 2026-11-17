@@ -789,6 +789,8 @@ func _show_start_menu() -> void:
 		var v := VBoxContainer.new()
 		v.add_child(_lbl("%s %s" % [PixelEmoji.nation(start_pick, nd.emoji), nd.name], 24))
 		v.add_child(_bb(_idea_bb(nd.get("idea", ""), nd.get("bonus", {})), 16))
+		if nd.has("player_bonus"):
+			v.add_child(_bb(_idea_bb(nd.get("player_idea", "Spielerbonus"), nd.player_bonus), 16))
 		v.add_child(_btn("▶ Los geht's als %s (%s)" % [nd.name, Game.DIFFICULTY_NAMES.get(settings.difficulty, "Normal")], _start_game.bind(start_pick)))
 		card.add_child(v)
 		modal_box.add_child(card)
@@ -4530,6 +4532,11 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["⛓️ Vasall: " + game.nations[v].name, 1])
 		elif k == "province":
 			parts.append(["🏘️ Erhalte " + game.provinces[game.key_to_pid[v]].name, 1])
+		elif k == "colony_grant":
+			var cpid: int = Colonial.free_target(game, v if v is Array else [v])
+			parts.append(["🏕 Kolonie " + (game.provinces[cpid].name if cpid >= 0 else "(Gebiet schon vergeben)") + " + Region entdeckt", 1])
+		elif k == "discover":
+			parts.append(["🧭 Neue Küsten werden entdeckt", 1])
 		elif k == "isolate":
 			parts.append(["💔 %s verliert alle Verbündeten" % game.nations[v].name, 1])
 		elif k == "war":
@@ -4647,6 +4654,11 @@ func conditions_text(c: Dictionary) -> String:
 				lines.append(mark + "Noch kein %s" % game.buildings_def[v].name)
 			"coastal":
 				lines.append(mark + ("Besitzt eine Küstenprovinz" if v else "Keine Küste"))
+			"nation_flag":
+				for t in v:
+					lines.append(mark + "Ereignis bei %s eingetreten" % (game.nations[t].name if game.nations.has(t) else t))
+			"colony_free":
+				lines.append(mark + "Das Siedlungsgebiet ist noch frei")
 			"produces":
 				lines.append(mark + "Stellt %s %s her" % [game.goods_def[v].emoji, game.goods_def[v].name])
 			"goods_leader":
