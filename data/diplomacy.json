@@ -39,6 +39,14 @@
     [
       "VEN",
       "CYP"
+    ],
+    [
+      "MAM",
+      "HJZ"
+    ],
+    [
+      "ADA",
+      "YEM"
     ]
   ],
   "rivals": [
@@ -117,6 +125,18 @@
     [
       "MAM",
       "CYP"
+    ],
+    [
+      "QAR",
+      "TIM"
+    ],
+    [
+      "ETH",
+      "ADA"
+    ],
+    [
+      "SAF",
+      "QAR"
     ]
   ],
   "claims": {

@@ -9,6 +9,8 @@ const FAITHS := {
 	"protestant": {"name": "Protestantisch", "color": "9a5ac8"},
 	"orthodox": {"name": "Orthodox", "color": "6a9ae0"},
 	"sunni": {"name": "Sunnitisch", "color": "3fa860"},
+	"shia": {"name": "Schiitisch", "color": "2f7f6a"},
+	"coptic": {"name": "Koptisch", "color": "c46a9a"},
 	"native": {"name": "Naturglaube", "color": "b8865a"},
 }
 
