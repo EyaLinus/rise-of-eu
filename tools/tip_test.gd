@@ -35,7 +35,7 @@ func _init() -> void:
 	await create_timer(0.4).timeout
 	check(m.tips.is_open() and m.tips.tips[0].src == slot, "tip opens after hovering the gold slot")
 	# the icon counts too (whole slot is the hover area)
-	var icon: Control = slot.get_child(0)
+	var icon: Control = slot.find_children("*", "TextureRect", true, false)[0]
 	await _move(icon.get_global_rect().get_center())
 	await process_frame
 	check(m.tips.is_open() and m.tips.tips[0].src == slot, "icon of the slot keeps the tip")

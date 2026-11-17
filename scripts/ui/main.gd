@@ -75,7 +75,9 @@ const WINDOW_NAMES := {"window": "Fenster", "maximized": "Maximiert", "borderles
 
 var map: MapView
 var top_labels := {}
-var top_slots := {}  # top bar: icon + value + gain of one resource, carries its tooltip
+var top_bar: PanelContainer  # its carved beam and pennant fringe hang below; tabs and side panel follow its height
+var top_slots := {}
+var _plaque_pad := 8  # side padding of the top bar plaques, shrinks with the space (_fit_top)  # top bar: icon + value + gain of one resource, carries its tooltip
 var speed_label: Label
 var side_panel: PanelContainer
 var top_incs := {}  # small monthly-gain labels next to the adm/dip/mil points
@@ -260,6 +262,8 @@ func _setup_theme() -> void:
 func _build_hud() -> void:
 	hud.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # crisp pixel frames
 	var top := PanelContainer.new()
+	top_bar = top
+	top.resized.connect(_place_below_top)
 	top.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	top.offset_bottom = 64
 	top.add_theme_stylebox_override("panel", UiTheme.topbar())
@@ -281,12 +285,20 @@ func _build_hud() -> void:
 	strip.add_child(res)
 	for k in ["nation", "gold", "adm", "dip", "mil", "manpower", "army", "settlers", "ae"]:
 		# icon, value and monthly gain form one hover / long-press area (not only the number)
+		# each resource sits on its own recessed plaque, gold-rimmed while hovered
+		var plate := PanelContainer.new()
+		plate.add_theme_stylebox_override("panel", UiTheme.plaque())
+		plate.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		plate.mouse_filter = Control.MOUSE_FILTER_PASS  # tooltip, and a drag still reaches the strip
+		plate.tooltip_text = HUD_TIPS.get(k, "")
+		plate.mouse_entered.connect(func(): plate.add_theme_stylebox_override("panel", UiTheme.plaque(true, _plaque_pad)))
+		plate.mouse_exited.connect(func(): plate.add_theme_stylebox_override("panel", UiTheme.plaque(false, _plaque_pad)))
+		top_slots[k] = plate
+		res.add_child(plate)
 		var slot := HBoxContainer.new()
 		slot.add_theme_constant_override("separation", 4)
-		slot.mouse_filter = Control.MOUSE_FILTER_PASS  # tooltip, and a drag still reaches the strip
-		slot.tooltip_text = HUD_TIPS.get(k, "")
-		top_slots[k] = slot
-		res.add_child(slot)
+		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		plate.add_child(slot)
 		var tex := Icons.texture(k)
 		if tex != null:
 			var ir := _icon_rect(tex, 32)
@@ -351,7 +363,7 @@ func _build_hud() -> void:
 		if e[0] == "advice":
 			badge.position = Vector2(36, -8)  # the advisor's badge counts the open to-dos
 	get_viewport().size_changed.connect(_fit_left_tabs)
-	_fit_left_tabs.call_deferred()
+	_place_below_top.call_deferred()
 
 	var zoom := HBoxContainer.new()
 	zoom.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -1079,6 +1091,17 @@ func _check_long_press() -> void:
 
 ## Box hugs the text (max 420 px, wraps beyond), bottom left above the map mode strip, never under an open side panel.
 ## Two tab columns, more when the window is too short to fit them above the zoom buttons (140 % UI, 720 px).
+## The tab column and the side panel start under the top bar, which grows with the UI size and has a
+## pennant fringe (UiTheme.topbar expand margin) hanging below it.
+func _place_below_top() -> void:
+	if top_bar == null or left_tabs == null or side_panel == null:
+		return
+	var bottom: float = top_bar.size.y
+	left_tabs.position.y = bottom + 12.0
+	side_panel.offset_top = bottom + 4.0
+	_fit_left_tabs()
+
+
 func _fit_left_tabs() -> void:
 	if left_tabs == null or left_tabs.get_child_count() == 0:
 		return
@@ -1433,20 +1456,25 @@ func _fit_top() -> void:
 	if avail <= 0.0:
 		return
 	var base_sep := 10 if _big() else 14
-	var steps := [[base_sep, true, 20, 32], [6, true, 20, 32], [6, false, 20, 32], [4, false, 18, 28], [3, false, 16, 24], [2, false, 15, 20]]
+	# [separation, full nation name, font, icon size, plaque padding, monthly gains shown]
+	var steps := [[base_sep, true, 20, 32, 8, true], [6, true, 20, 32, 6, true], [6, false, 20, 32, 6, true], [4, false, 18, 28, 4, true],
+			[3, false, 16, 24, 3, true], [2, false, 15, 20, 2, true], [2, false, 15, 20, 1, false], [1, false, 14, 18, 1, false]]
 	for st in steps:
 		res.add_theme_constant_override("separation", st[0])
-		for slot in res.get_children():
-			for c in slot.get_children():
-				if c is TextureRect:
-					c.custom_minimum_size = Vector2(st[3], st[3])
-		top_labels.nation.visible = st[1]
+		for c in res.find_children("*", "TextureRect", true, false):
+			c.custom_minimum_size = Vector2(st[3], st[3])
+		# tight: the nation collapses to its flag (the plaque stays as a click / tooltip target)
+		top_labels.nation.text = nname(game.player) if st[1] else PixelEmoji.nation(game.player)
 		for k in top_labels:
 			if k != "date" and top_labels[k] is Label:
 				top_labels[k].add_theme_font_size_override("font_size", st[2])
 		for k in top_incs:
 			top_incs[k].add_theme_font_size_override("font_size", maxi(11, roundi(st[2] * 0.65)))
+			top_incs[k].visible = st[5]
+		_plaque_pad = st[4]
 		for slot in res.get_children():  # nested boxes: make sure no stale cached minimum size is read
+			slot.add_theme_stylebox_override("panel", UiTheme.plaque(false, _plaque_pad))
+			slot.get_child(0).update_minimum_size()
 			slot.update_minimum_size()
 		res.update_minimum_size()
 		if res.get_combined_minimum_size().x <= avail:
