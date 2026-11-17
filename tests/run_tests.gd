@@ -1258,6 +1258,38 @@ func test_urban() -> void:
 	for i in int(g.bal.urban_months) + 1:
 		Urb.tick(g, n)
 	check(p.urban and p.urban_months == 0, "the province became a city")
+	# development speeds the change up; countryside at urban_auto_dev becomes a city by itself
+	var fast := {"dev": int(g.bal.urban_min_dev) + 6}
+	check(Urb.change_months(g, true, fast) < int(g.bal.urban_months), "more development, faster city")
+	fast.dev = 99
+	check(Urb.change_months(g, true, fast) == int(g.bal.urban_months_min), "never faster than the minimum")
+	var q2 := -1
+	for q in g.provinces_of("FRA"):
+		if not g.provinces[q].urban and g.provinces[q].urban_months == 0 and g.provinces[q].core_months == 0:
+			q2 = q
+			break
+	if q2 >= 0:
+		var pq = g.provinces[q2]
+		var d0: int = pq.dev
+		pq.dev = int(g.bal.urban_auto_dev)
+		Urb.auto_grow(g)
+		check(pq.urban, "countryside at development %d grows into a city by itself" % int(g.bal.urban_auto_dev))
+		pq.urban = false
+		pq.dev = d0
+		Eco.refresh_local(g, pq)
+	# autobuild founds cities (best candidate first) and stops at the share cap
+	g.player = "FRA"
+	n.autobuild = true
+	n.autobuild_reserve = 0.0
+	n.gold = 100000.0
+	var cand: int = Urb.best_candidate(g, "FRA")
+	if cand >= 0 and Urb.city_share(g, "FRA") < float(g.bal.autobuild_urban_share):
+		check(Urb.autobuild(g, n) == cand and g.provinces[cand].urban_months > 0, "autobuild starts the best city")
+	g.bal.autobuild_urban_share = 0.0
+	check(Urb.autobuild(g, n) == -1, "autobuild respects the city share cap")
+	g.bal.autobuild_urban_share = 0.5
+	n.autobuild = false
+	n.gold = 10000.0
 	tax0 = Eco.tax(g, p)  # recompute at the same dev
 	p.urban = false
 	Eco.refresh_local(g, p)

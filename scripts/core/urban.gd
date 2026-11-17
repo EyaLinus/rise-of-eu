@@ -83,8 +83,15 @@ static func change_cost(g, p, to_urban: bool) -> float:
 	return round(float(g.bal.rural_cost) * m)
 
 
-static func change_months(g, to_urban: bool) -> int:
-	return int(g.bal.urban_months if to_urban else g.bal.rural_months)
+## Months a change takes; a more developed province becomes a city faster (urban_months_per_dev
+## fewer per point above urban_min_dev, never under urban_months_min).
+static func change_months(g, to_urban: bool, p = null) -> int:
+	if not to_urban:
+		return int(g.bal.rural_months)
+	var m: int = int(g.bal.urban_months)
+	if p != null:
+		m -= int(g.bal.get("urban_months_per_dev", 0)) * maxi(0, int(p.dev) - int(g.bal.urban_min_dev))
+	return maxi(int(g.bal.get("urban_months_min", m)), m)
 
 
 ## "" when `tag` may turn province `pid` into a city (to_urban) or back into countryside.
@@ -116,13 +123,80 @@ static func change(g, tag: String, pid: int, to_urban: bool) -> String:
 		return why
 	var p = g.provinces[pid]
 	g.nations[tag].gold -= change_cost(g, p, to_urban)
-	p.urban_months = change_months(g, to_urban)
+	p.urban_months = change_months(g, to_urban, p)
 	return ""
+
+
+## Best province of `tag` to become a city next (most developed, city goods and coasts preferred),
+## or -1. Only provinces that may change now (block_reason without the gold check).
+static func best_candidate(g, tag: String) -> int:
+	var best := -1
+	var best_v := -1.0
+	for pid in g.provinces_of(tag):
+		var p = g.provinces[pid]
+		if p.urban or p.urban_months > 0 or p.owner != tag or p.controller != tag or p.core_months > 0:
+			continue
+		if p.dev < int(g.bal.urban_min_dev):
+			continue
+		var v: float = p.dev + (4.0 if is_city_good(g, p.good) else 0.0) + (3.0 if p.coastal else 0.0)
+		if v > best_v:
+			best_v = v
+			best = pid
+	return best
+
+
+## Share of `tag`'s provinces that are cities or becoming one.
+static func city_share(g, tag: String) -> float:
+	var owned: Array = g.provinces_of(tag)
+	if owned.is_empty():
+		return 0.0
+	var c := 0
+	for pid in owned:
+		if g.provinces[pid].urban or g.provinces[pid].urban_months > 0:
+			c += 1
+	return float(c) / float(owned.size())
+
+
+## Player autobuild: starts the best city (one per month, before buildings) while the treasury stays
+## at or above the reserve and fewer than `autobuild_urban_share` of the provinces are cities.
+## Returns the province or -1.
+static func autobuild(g, n) -> int:
+	if not n.autobuild or g.is_at_war(n.tag):
+		return -1
+	if city_share(g, n.tag) >= float(g.bal.get("autobuild_urban_share", 0.5)):
+		return -1
+	var pid := best_candidate(g, n.tag)
+	if pid < 0:
+		return -1
+	var p = g.provinces[pid]
+	if n.gold - change_cost(g, p, true) < n.autobuild_reserve or change(g, n.tag, pid, true) != "":
+		return -1
+	g.log_msg("🤖 Autobau: %s wird zur Stadt (%d Monate)." % [p.name, p.urban_months], [n.tag])
+	return pid
+
+
+## Yearly: countryside that has grown to urban_auto_dev becomes a city by itself (people move in, no
+## gold needed), as long as the owner holds it in peace.
+static func auto_grow(g) -> void:
+	var need: int = int(g.bal.get("urban_auto_dev", 0))
+	if need <= 0:
+		return
+	for p in g.provinces:
+		if p.urban or p.urban_months > 0 or p.dev < need or p.owner == "NAT" or p.controller != p.owner or p.core_months > 0:
+			continue
+		var n = g.nations.get(p.owner)
+		if n == null or not n.alive or g.is_at_war(n.tag):
+			continue
+		p.urban = true
+		g.Economy.refresh_local(g, p)
+		if n.tag == g.player:
+			g.log_msg("🏙️ %s ist von selbst zur Stadt gewachsen (Entwicklung %d)." % [p.name, p.dev], [n.tag])
 
 
 ## Yearly: cities grow by themselves now and then (markets and harbors draw people), up to the soft cap,
 ## as long as the owner holds them in peace. Countryside only grows when the owner develops it.
 static func yearly(g) -> void:
+	auto_grow(g)
 	var cap: int = int(g.bal.dev_soft_cap)
 	for p in g.provinces:
 		if not p.urban or p.dev >= cap or p.controller != p.owner or p.siege > 0.0:

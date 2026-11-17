@@ -694,6 +694,8 @@ static func autobuild(g, n) -> int:
 	if not n.autobuild:
 		return 0
 	var started := 0
+	if g.Urban.autobuild(g, n) >= 0:  # a city first: it also brings a building slot
+		started += 1
 	for i in 2:
 		var best: Array = best_building(g, n, g.is_at_war(n.tag))
 		if best.is_empty() or n.gold - building_cost(g, n.tag, best[0], best[1]) < n.autobuild_reserve:

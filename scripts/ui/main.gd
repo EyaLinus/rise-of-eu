@@ -2429,7 +2429,7 @@ func _panel_province(pid: int) -> void:
 			var uc: int = int(Urb.change_cost(game, p, to_city))
 			acts.append(_btn(("🏙️ Stadt gründen %d 💰" % uc) if to_city else ("🌾 Zum Land %d 💰" % uc),
 					func(): _act(Urb.change(game, me, pid, to_city), "🏙️ Die Stadt wächst" if to_city else "🌾 Die Stadt wird aufgelöst"),
-					(("Baut die Provinz in %d Monaten zur Stadt aus: mehr Steuern, Handel und ein Bauplatz, weniger Mannschaften, etwas Unruhe. Lohnt sich bei Stadtgütern und am Markt." % int(game.bal.urban_months)) if to_city
+					(("Baut die Provinz in %d Monaten zur Stadt aus (je mehr Entwicklung, desto schneller): mehr Steuern, Handel und ein Bauplatz, weniger Mannschaften, etwas Unruhe. Lohnt sich bei Stadtgütern und am Markt. Ab Entwicklung %d wird Land von selbst zur Stadt, 🤖 Autobau gründet Städte automatisch." % [Urb.change_months(game, true, p), int(game.bal.urban_auto_dev)]) if to_city
 					else ("Macht die Stadt in %d Monaten wieder zu Land: mehr Mannschaften und Ruhe, weniger Steuern und Handel." % int(game.bal.rural_months)))
 					+ (("\n❌ " + ub) if ub != "" else ""), ub != ""))
 		side_box.add_child(_grid(devs, 3))
