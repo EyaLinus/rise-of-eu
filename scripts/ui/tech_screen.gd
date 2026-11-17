@@ -53,7 +53,7 @@ func build() -> void:
 	var lvl: int = n.tech[cat]
 	var expected: float = (g.year() - int(g.bal.start_year)) / float(g.bal.tech_years_per_level)
 	var ahead: float = maxf(0.0, lvl + 1 - expected)
-	var info := "%s · Stufe %d\nGrundpreis %d %s" % [Tech.age_name(g.year()), lvl, g.tech_cost(me, cat), Icons.emoji(cat)]
+	var info := "%s · Stufe %d · Grundpreis %d %s" % [Tech.age_name(g.year()), lvl, g.tech_cost(me, cat), Icons.emoji(cat)]
 	if ahead >= 1.0:
 		info += " (+%d %% voraus)" % roundi(ahead * float(g.bal.tech_ahead_penalty) * 100.0)
 	var il: Label = m._lbl(info, 15, Color(0.8, 0.82, 0.9))
@@ -67,12 +67,14 @@ func build() -> void:
 	var ways: Button = m._btn("⚖ %d" % n.age_picks.size(), _decisions, "Weichen der Zeitalter: deine großen Entscheidungen, ihre Boni und ihr Ausbau")
 	var sum: Button = m._btn("📈 Gesamt", _overview, "Gesamtwirkung deiner Technologien")
 	var plan: Button = m._btn("📜 Plan %d" % n.tech_queue.size(), _plan, "Forschungsplan: vorgemerkte Technologien werden automatisch erforscht")
-	m.side_box.add_child(m._row([il, goals, ways, plan, sum]))
+	# info on its own line: label + four buttons in one row were wider than the side panel (cut off on the right)
+	m.side_box.add_child(il)
+	m.side_box.add_child(m._row([goals, ways, plan, sum]))
 	if _can_deepen(g, me):
 		ways.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
 	for b in [goals, ways, plan, sum]:
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		b.size_flags_horizontal = Control.SIZE_SHRINK_END
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.clip_text = false
 		b.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 		b.add_theme_font_size_override("font_size", 15)
@@ -84,7 +86,7 @@ func build() -> void:
 	_specials(g, me, open_sp)
 	var grid := GridContainer.new()
 	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("h_separation", 4)
 	grid.add_theme_constant_override("v_separation", 6)
 	var cols := []
 	for b in g.tree.branches:
@@ -287,7 +289,7 @@ func _cell(g, me: String, t: Dictionary, special: bool) -> Button:
 	b.custom_minimum_size = Vector2(0, 22 + 20 * name_lines + 18 * t.effects.size() + 22
 			+ (24 if icons != "" else 0) + (10 if big else 0))
 	var v := VBoxContainer.new()
-	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 6)
+	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 3)
 	v.add_theme_constant_override("separation", 1)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(v)

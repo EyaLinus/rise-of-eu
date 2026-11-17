@@ -445,7 +445,8 @@ func _advisor(id: String) -> void:
 	var go: Button
 	var err := ""
 	if lvl < gv.max_skill():
-		box.add_child(m._lbl("Stufe %d für %d %s: Vorteile +%d %%, Nachteile bleiben" % [lvl + 1, gv.promote_cost(g, n, id), Icons.emoji(a.type), roundi(float(gv.cfg.get("advisor_skill_step", 0.5)) * 100.0)], 20))
+		var bad: String = "Nachteile entfallen" if lvl + 1 >= gv.max_skill() else "Nachteile bleiben (entfallen auf Stufe %d)" % gv.max_skill()
+		box.add_child(m._lbl("Stufe %d für %d %s: Vorteile +%d %%, %s" % [lvl + 1, gv.promote_cost(g, n, id), Icons.emoji(a.type), roundi(float(gv.cfg.get("advisor_skill_step", 0.5)) * 100.0), bad], 20))
 		box.add_child(TechScreen.effects_rich(gv.advisor_effects(id, lvl + 1), 18))
 		err = gv.promote_block(g, me, id)
 		go = m._btn("⭐ Fördern", func():
@@ -606,7 +607,7 @@ func _invest(id: String) -> void:
 	var box: VBoxContainer = m.modal_box
 	box.add_child(m._lbl("🏦 " + c.name, 26))
 	box.add_child(m._lbl(c.get("text", ""), 16, Color(0.85, 0.85, 0.75)))
-	box.add_child(m._lbl("Jede Stufe steigert die Vorteile um %d %%, die Nachteile bleiben gleich. Auflösen gibt kein Gold zurück." % roundi(float(gv.cfg.get("invest_step", 0.5)) * 100.0), 15, Color(0.72, 0.75, 0.82)))
+	box.add_child(m._lbl("Jede Stufe steigert die Vorteile um %d %%, die Nachteile bleiben gleich. Auf der höchsten Stufe (%d) entfallen die Nachteile. Auflösen gibt kein Gold zurück." % [roundi(float(gv.cfg.get("invest_step", 0.5)) * 100.0), gv.max_invest()], 15, Color(0.72, 0.75, 0.82)))
 	var preview := VBoxContainer.new()
 	var go: Button
 	if cur < gv.max_invest():

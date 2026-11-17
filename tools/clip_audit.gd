@@ -131,6 +131,14 @@ func _check(m, where: String) -> void:
 	if shots != "":
 		root.get_texture().get_image().save_png("%s/%s_%s.png" % [shots, where.replace("/", "_"), int(scale * 100)])
 	_walk(m, where)
+	# the side panel must stay on screen and keep its width (content wider than it pushes it over the map)
+	var sp: Control = m.side_panel
+	if sp.visible:
+		var vw: float = m.get_viewport().get_visible_rect().size.x
+		if sp.get_global_rect().end.x > vw + 1.0:
+			found["%s|side panel" % where] = "off screen to the right (%.0f > %.0f)" % [sp.get_global_rect().end.x, vw]
+		elif sp.size.x > -sp.offset_left + 1.0:  # allowed (it grows toward the map), just worth knowing
+			print("WIDE %s side panel %.0f instead of %.0f" % [where, sp.size.x, -sp.offset_left])
 
 
 func _walk(node: Node, where: String) -> void:

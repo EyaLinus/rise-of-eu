@@ -233,6 +233,18 @@ func test_recruit_limits() -> void:
 	var room := int(fl - have)
 	check(g.recruit("FRA", n.capital, room) == "", "recruit up to force limit")
 	check(g.recruit("FRA", n.capital, 1) != "", "force limit enforced")
+	# battle losses leave fractions: the HUD shows rounded regiments over whole-regiment limit and recruiting must agree
+	var g2 = new_game()
+	var n2 = g2.nations.FRA
+	n2.gold = 10000
+	n2.manpower = 1000
+	var army = g2.armies_of("FRA")[0]
+	army.regs += g2.force_cap("FRA") - g2.regs_counted("FRA") - 1  # one regiment short of the limit (as shown)
+	army.regs += 0.4 - fmod(g2.army_regs("FRA"), 1.0)  # e.g. 15.4 shown as 15
+	check(g2.regs_counted("FRA") == g2.force_cap("FRA") - 1 and g2.force_room("FRA") == 1, "one regiment of room")
+	check(g2.recruit("FRA", n2.capital, 2) != "", "two do not fit")
+	check(g2.recruit("FRA", n2.capital, 1) == "", "15/16 shown: one more regiment can be raised")
+	check(g2.force_room("FRA") == 0 and g2.recruit("FRA", n2.capital, 1) != "", "16/16: limit reached")
 
 
 func test_war_and_peace() -> void:
@@ -2346,10 +2358,13 @@ func test_company_invest() -> void:
 	check(absf(g.mod(n, "income") - inc - 0.15 * 1.0) < 0.001, "benefit +100 % at level 3 (+15 % more income)")
 	check(absf(g.mod(n, "ae_gen") - ae) < 0.001, "drawback unchanged")
 	check(g.govt.invest(g, "HAB", "hab_fugger", 6) != "", "max level 5")
+	check(g.govt.invest(g, "HAB", "hab_fugger", 5) == "", "invest to the top level")
+	check(absf(g.mod(n, "ae_gen") - ae + float(g.govt.comp_by_id.hab_fugger.effects.get("ae_gen", 0.0))) < 0.001, "top level drops the drawback")
+	check(g.govt.company_effects("hab_fugger", 4).has("ae_gen") and not g.govt.company_effects("hab_fugger", 5).has("ae_gen"), "drawback only gone at level 5")
 	var d: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
 	var g2 = new_game("HAB")
 	g2.from_dict(d)
-	check(g2.govt.invest_level(g2.nations.HAB, "hab_fugger") == 3, "investment level survives save/load")
+	check(g2.govt.invest_level(g2.nations.HAB, "hab_fugger") == 5, "investment level survives save/load")
 	check(absf(g2.mod(g2.nations.HAB, "income") - g.mod(n, "income")) < 0.0001, "scaled bonus rebuilt after load")
 	g.govt.dissolve_company(g, "HAB", "hab_fugger")
 	check(not n.gov.invest.has("hab_fugger"), "dissolving drops the investment")
@@ -3011,6 +3026,14 @@ func test_advisor_skill() -> void:
 	check(is_equal_approx(n.bonus.gov.get(k, 0.0) - base, float(a.effects[k]) * 0.5), "benefit +50 % at skill 2")
 	gv.promote(g, "FRA", a.id)
 	check(gv.promote_block(g, "FRA", a.id) != "", "skill 3 is the maximum")
+	# drawbacks stay up to skill 2 and are gone at the top skill
+	var with_bad := 0
+	for adv in gv.advisors:
+		for key in adv.effects:
+			if (float(adv.effects[key]) > 0.0) != Tech.LABELS.get(key, [key, false, true])[2]:
+				with_bad += 1
+				check(gv.advisor_effects(adv.id, 2).has(key) and not gv.advisor_effects(adv.id, 3).has(key), "%s: drawback %s gone only at skill 3" % [adv.id, key])
+	check(with_bad > 0, "some advisors have drawbacks")
 	var text := JSON.stringify(g.to_dict())
 	var g2 = new_game("FRA", 3)
 	g2.from_dict(JSON.parse_string(text))
