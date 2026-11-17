@@ -17,6 +17,7 @@ const Naval = preload("res://scripts/core/naval.gd")
 const FirstSteps = preload("res://scripts/core/first_steps.gd")
 const GovScreen = preload("res://scripts/ui/gov_screen.gd")
 const DebugScreen = preload("res://scripts/ui/debug_screen.gd")
+const Ledger = preload("res://scripts/core/ledger.gd")
 const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
 const SAVE_PATH := "user://save.json"  # the autosave, also what "Weiterspielen" loads
 const SAVE_META_PATH := "user://saves.json"  # nation, date and score per slot, so the slot list needs no full parse
@@ -47,6 +48,7 @@ var _last_autosave_ms := 0
 var panel_mode := ""
 var panel_arg = null
 var econ_tab := "overview"  # sub-tab of the economy panel
+var rank_key := "score"  # ranking panel: measure the realms are sorted by (Ledger.KEYS)
 var prov_tab := "info"  # sub-tab of an own province: info, build, army
 var section_open := {}  # collapsible panel sections the player opened or closed (key -> bool)
 var selected_army := -1
@@ -3789,18 +3791,29 @@ func _hre_reforms_box(me: String, chips: Array) -> void:
 
 func _panel_ranking() -> void:
 	side_title.text = "🏆 Rangliste"
+	# sort by any measure (ledger): score, development, income, army, ...
+	var keys := []
+	for k in Ledger.KEYS:
+		var kb := _btn(Ledger.KEYS[k][0], func(): rank_key = k; _refresh(), "Sortieren nach: " + Ledger.KEYS[k][1])
+		kb.add_theme_font_size_override("font_size", 14)
+		kb.clip_text = true
+		kb.custom_minimum_size.x = 40
+		if k == rank_key:
+			kb.modulate = Color(1.0, 0.9, 0.55)
+		keys.append(kb)
+	side_box.add_child(_grid(keys, 4))
 	var tags := []
-	for t in game.order:
-		if game.nations[t].alive:
-			tags.append(t)
-	tags.sort_custom(func(a, b): return game.score(a) > game.score(b))
+	var vals := {}
+	for r in Ledger.rows(game, rank_key):
+		tags.append(r[0])
+		vals[r[0]] = r[1]
 	var more: bool = section_open.get("rank_more", false)
 	var rows := []
 	for i in mini(20 if more else 10, tags.size()):
 		var t: String = tags[i]
 		var o = game.nations[t]
 		var rival: bool = t != game.player and (game.nations[game.player].rivals.has(t) or o.rivals.has(game.player))
-		var b := _nation_btn(t, " · %d%s" % [game.score(t), " 🎯" if rival else ""], _open_panel.bind("other", t) if t != game.player else _open_panel.bind("nation"), "%d. " % (i + 1))
+		var b := _nation_btn(t, " · %s%s" % [Ledger.fmt(rank_key, vals[t]), " 🎯" if rival else ""], _open_panel.bind("other", t) if t != game.player else _open_panel.bind("nation"), "%d. " % (i + 1))
 		b.tooltip_text = "%s: %d Punkte · 🏘️ %d Entwicklung · 🛡️ %.0f Regimenter%s%s" % [o.name, game.score(t), o.dev_total, game.army_regs(t), " · ⛓️ Vasall" if o.overlord != "" else "", " · 🎯 Rivale" if rival else ""]
 		b.clip_text = true
 		if t == game.player:

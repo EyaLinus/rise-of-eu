@@ -63,6 +63,7 @@ func _init() -> void:
 		"test_overseas_markets",
 		"test_market_dominance",
 		"test_debug_tools",
+		"test_ledger",
 		"test_more_goods_and_softer_costs",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
@@ -3573,3 +3574,13 @@ func test_more_goods_and_softer_costs() -> void:
 	g.nations.VEN.tech.mil = 20
 	check(g.regiment_cost("VEN") <= 2.0 * float(g.bal.regiment_cost) + 0.01, "regiments at mil tech 20 cost <= 2x")
 	check(1.0 + 40 * float(g.bal.building_cost_per_dev) <= 2.0, "building cost per dev <= 2x at dev 40")
+
+
+func test_ledger() -> void:
+	var L = load("res://scripts/core/ledger.gd")
+	var g = new_game("FRA")
+	for k in L.KEYS:
+		var rows: Array = L.rows(g, k)
+		check(rows.size() > 20 and float(rows[0][1]) >= float(rows[-1][1]), "ledger %s sorted, best first" % k)
+	check(L.rows(g, "provinces")[0][1] == float(g.provinces_of(L.rows(g, "provinces")[0][0]).size()), "province count")
+	check(L.fmt("income", 3.14159) == "3.1" and L.fmt("dev", 12.6) == "13", "ledger number format")
