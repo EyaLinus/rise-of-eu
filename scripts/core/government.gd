@@ -690,13 +690,13 @@ func refresh(n) -> void:
 	for src in gov_sources(n):
 		for k in src[1]:
 			b[k] = b.get(k, 0.0) + float(src[1][k])
-	n.bonus["gov"] = b
+	n.set_bonus("gov", b)
 	var bb := {}
 	for id in n.gov.get("budget", {}):
 		var e := budget_effects(id, int(n.gov.budget[id]))
 		for k in e:
 			bb[k] = bb.get(k, 0.0) + float(e[k])
-	n.bonus["budget"] = bb
+	n.set_bonus("budget", bb)
 
 
 # ---------------------------------------------------------------- state reforms (EU4-like tiers)
@@ -898,7 +898,7 @@ func refresh_empire(g) -> void:
 		var n = g.nations[tag]
 		var b := empire_effects(g, tag) if n.alive else {}
 		if b != n.bonus.get("empire", {}):
-			n.bonus["empire"] = b
+			n.set_bonus("empire", b)
 			g._update_cached(n)
 
 
@@ -1062,7 +1062,7 @@ func refresh_estates(n) -> void:
 		var eff: Dictionary = e[t]
 		for k in eff:
 			b[k] = b.get(k, 0.0) + float(eff[k])
-	n.bonus["estates"] = b
+	n.set_bonus("estates", b)
 
 
 ## Monthly drift toward the target (snapped to 0.01 so saves stay exact).

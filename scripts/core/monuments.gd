@@ -68,4 +68,4 @@ static func refresh(g, n) -> void:
 		var m: Dictionary = g.monument_defs.get(id, {})
 		for k in m.get("bonus", {}):
 			b[k] = b.get(k, 0.0) + float(m.bonus[k])
-	n.bonus["monuments"] = b
+	n.set_bonus("monuments", b)

@@ -167,8 +167,10 @@ static func station(g, tag: String, sea: String) -> String:
 ## Ships of a nation in each sea.
 static func presence(g, tag: String) -> Dictionary:
 	var n = g.nations[tag]
+	if n.ships <= 0.0:
+		return {}
 	var w := coast_weights(g, tag)
-	if n.ships <= 0.0 or w.is_empty():
+	if w.is_empty():
 		return {}
 	if n.fleet_sea != "" and w.has(n.fleet_sea):
 		return {n.fleet_sea: n.ships}
@@ -194,7 +196,9 @@ static func side_power(g, tags: Array, sea: String) -> float:
 	var s := 0.0
 	for t in tags:
 		if g.nations[t].alive:
-			s += float(g._fleet.get(t, {}).get(sea, 0.0)) * power_mult(g, t)
+			var ships: float = float(g._fleet.get(t, {}).get(sea, 0.0))
+			if ships != 0.0:  # (adding 0 * mult changes nothing, so skip the modifier lookups)
+				s += ships * power_mult(g, t)
 	return s
 
 
@@ -241,21 +245,21 @@ static func refresh(g) -> void:
 		if not n.alive:
 			continue
 		var bdev := 0.0
-		for pid in g.provinces_of(tag):
+		for pid in (g.provinces_of(tag) if not g.blockaded.is_empty() else []):
 			if g.blockaded.has(pid):
 				bdev += g.provinces[pid].dev * float(g.blockaded[pid])
 		var escort: bool = mission(g, tag) == "escort" and n.ships >= 1.0
 		if escort:
 			bdev *= float(g.bal.fleet_escort_blockade)
 		if bdev > 0.0 and n.dev_total > 0:
-			n.bonus["blockade"] = {"income": -float(g.bal.blockade_income) * bdev / float(n.dev_total)}
+			n.set_bonus("blockade", {"income": -float(g.bal.blockade_income) * bdev / float(n.dev_total)})
 		else:
-			n.bonus.erase("blockade")
+			n.clear_bonus("blockade")
 		# escorts pay off in peace: a share of the limit on guard duty gives trade income
 		if escort and not g.is_at_war(tag) and n.ships >= limit(g, tag) * 0.25:
-			n.bonus["escort"] = {"trade": float(g.bal.fleet_escort_trade)}
+			n.set_bonus("escort", {"trade": float(g.bal.fleet_escort_trade)})
 		else:
-			n.bonus.erase("escort")
+			n.clear_bonus("escort")
 
 
 ## May `tag`'s armies cross from a to b? Land steps always; straits not when the enemy rules that sea.
@@ -308,7 +312,8 @@ static func monthly(g) -> void:
 			if pa <= 0.0 or pd <= 0.0 or g.rng.randf() >= float(g.bal.naval_battle_chance):
 				continue
 			_fleet_battle(g, w, s, pa * g.rng.randf_range(0.8, 1.2), pd * g.rng.randf_range(0.8, 1.2))
-	refresh(g)
+	if not g.sea_fights.is_empty():  # only battles change the fleets since the refresh above
+		refresh(g)
 
 
 static func _fleet_battle(g, w, s: Dictionary, pa: float, pd: float) -> void:

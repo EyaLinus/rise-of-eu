@@ -96,7 +96,7 @@ static func form(g, tag: String, id: String) -> String:
 ## Name, colour and bonus of a formed realm (also after loading a save).
 static func apply_identity(g, n) -> void:
 	if n.formed == "" or not g.formable_defs.has(n.formed):
-		n.bonus.erase("formed")
+		n.clear_bonus("formed")
 		return
 	var f: Dictionary = g.formable_defs[n.formed]
 	n.name = f.name
@@ -104,7 +104,7 @@ static func apply_identity(g, n) -> void:
 	var b := {}
 	for k in f.get("bonus", {}):
 		b[k] = float(f.bonus[k])
-	n.bonus["formed"] = b
+	n.set_bonus("formed", b)
 
 
 ## Yearly: the AI proclaims a realm as soon as it can (the player decides in the realm panel).

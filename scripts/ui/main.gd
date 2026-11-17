@@ -25,7 +25,7 @@ const SAVE_META_PATH := "user://saves.json"  # nation, date and score per slot, 
 const SAVE_SLOTS := ["auto", "1", "2", "3"]
 const SETTINGS_PATH := "user://settings.json"
 const UI_SCALES := [0.85, 1.0, 1.2, 1.4]
-const SPEEDS := [0.0, 1.2, 0.6, 0.3, 0.12, 0.04]
+const SPEEDS := [0.0, 1.2, 0.6]  # pause, normal, fast (faster speeds were dropped: smooth months first)
 const HUD_TIPS := {
 	"nation": "Deine Nation (antippen für Details)", "gold": "Gold (Monatsbilanz inkl. Tribut)",
 	"adm": "Verwaltung: Technologie, Entwickeln, Reformen", "dip": "Diplomatie: Bündnisse, Ansprüche, Integration, Entwickeln",
@@ -798,6 +798,7 @@ func _read_save(path: String):
 func _save_game(slot: String = "auto") -> bool:
 	if game == null or game.game_over:
 		return false
+	game.finish_tick()  # never save half a month
 	# crash-safe: write a temp file, keep the last good save as .bak, then swap the new one in,
 	# so a crash or a full disk while saving never leaves only a broken save behind
 	var path := _slot_path(slot)
@@ -1074,29 +1075,55 @@ func _process(delta: float) -> void:
 		_last_refresh_ms = Time.get_ticks_msec()
 		if game != null and side_panel.visible and panel_mode != "peace" and not debug_screen.typing():
 			_refresh()
-	if game == null or modal.visible or speed == 0 or game.game_over:
+	if game == null or game.game_over:
 		return
-	acc += delta
-	var spm: float = SPEEDS[speed]
+	var spm := _month_secs()
+	var running: bool = not modal.visible and speed != 0
+	if running:
+		# never try to catch up: a slow device simply runs fewer months per second
+		acc = minf(acc + delta, spm * 2.0)
+	# a started month always runs to its end, a few steps per frame, also when paused or behind a modal
+	if game.ticking():
+		_run_month(acc >= spm)
+		return
+	if running and acc >= spm:
+		acc -= spm
+		if game.tick_begin():
+			_month_us = 0
+			_month_frames = 0
+			_run_month(false)
+
+
+const STEP_BUDGET_US := 5000  # simulation time per frame (a month is spread over as many frames as it needs)
+var _month_us := 0  # simulation time of the running month so far
+var _month_frames := 0  # frames it has run over
+
+
+## Seconds per month at the current speed (slow battles: never faster than speed 1).
+func _month_secs() -> float:
+	var spm: float = SPEEDS[maxi(speed, 1)]
 	if _battle_slowdown():
 		spm = maxf(spm, SPEEDS[1])
-	var steps := 0
-	# frame budget: slow devices run fewer months per second instead of stuttering, and never try to catch up
-	var t0 := Time.get_ticks_msec()
-	acc = minf(acc, spm * 2.0)
-	while acc >= spm and steps < 4 and (steps == 0 or Time.get_ticks_msec() - t0 < 12):
-		acc -= spm
-		var tick_t0 := Time.get_ticks_usec()
-		game.tick()
-		debug_screen.note_tick(Time.get_ticks_usec() - tick_t0)
-		steps += 1
-		if game.month % 12 == 0 and Time.get_ticks_msec() - _last_autosave_ms >= AUTOSAVE_MS:
-			_save_game()
-			_last_autosave_ms = Time.get_ticks_msec()
-		if not game.pending_events.is_empty() or not game.pending_peace.is_empty() or game.game_over:
-			break
-	if steps > 0:
-		_after_tick()
+	return spm
+
+
+## Runs steps of the running month for about STEP_BUDGET_US (twice that when the next month is already
+## due), then hands the finished month to the UI. Each step is one realm or one world system.
+func _run_month(behind: bool) -> void:
+	var t0 := Time.get_ticks_usec()
+	var budget: int = STEP_BUDGET_US * (2 if behind else 1)
+	var more := true
+	while more and Time.get_ticks_usec() - t0 < budget:
+		more = game.tick_step()
+	_month_us += Time.get_ticks_usec() - t0
+	_month_frames += 1
+	if more:
+		return
+	debug_screen.note_tick(_month_us, _month_frames)
+	if game.month % 12 == 0 and Time.get_ticks_msec() - _last_autosave_ms >= AUTOSAVE_MS:
+		_save_game()
+		_last_autosave_ms = Time.get_ticks_msec()
+	_after_tick()
 
 
 ## True while one of the player's armies fights and the "slow battles" setting is on.
@@ -1135,13 +1162,9 @@ func _after_tick() -> void:
 		_show_peace_offer(game.pending_peace[0])
 		return
 	if side_panel.visible and panel_mode != "peace" and not debug_screen.typing():
-		# never rebuild the panel under a slider that is being dragged
-		if _press_range == null and Time.get_ticks_msec() - _last_refresh_ms >= PANEL_REFRESH_MS:
-			_refresh_pending = false
-			_last_refresh_ms = Time.get_ticks_msec()
-			_refresh()
-		else:
-			_refresh_pending = true
+		# rebuilt at the start of the next frame (_process), not in this one: the month's last simulation
+		# steps already used this frame, and a panel rebuild costs 10-35 ms. Never under a dragged slider.
+		_refresh_pending = true
 
 
 const MODE_LEGENDS := [
@@ -1430,7 +1453,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			last_speed = speed
 			_set_speed(0)
-	elif k >= KEY_1 and k <= KEY_5 and not modal.visible:
+	elif k >= KEY_1 and k <= KEY_0 + SPEEDS.size() - 1 and not modal.visible:
 		_set_speed(k - KEY_0)
 	elif (k == KEY_EQUAL or k == KEY_PLUS or k == KEY_KP_ADD) and not modal.visible:
 		_set_speed(mini(SPEEDS.size() - 1, speed + 1))
