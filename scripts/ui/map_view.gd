@@ -274,8 +274,8 @@ func _layer_sig(l) -> Variant:
 			var c := province_color(p)
 			var hatch = _hatch_color(p)
 			return [map_mode, c, hatch, zoom if hatch != null else 0.0]
-		"terrain":  # rivers + landscape sprites: only the zoom level and war mode change them
-			return hash([map_mode == MODE_WAR, zoom])
+		"terrain":  # rivers + landscape sprites: only the zoom band (level of detail) and war mode change them
+			return [map_mode == MODE_WAR, _terrain_lod()]
 		"borders":
 			var parts := [map_mode, zoom, game.player]
 			for p in game.provinces:
@@ -520,6 +520,7 @@ func _draw() -> void:
 			gc.a = 0.9 * (1.0 - age)
 			_outline(f.pid, gc, 4.0)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	_draw_badges()
 	_draw_labels()
 	_draw_colonies()
 	_draw_seas()
@@ -694,32 +695,57 @@ func _draw_roads(ci: CanvasItem) -> void:
 ## (urban provinces always, countryside from `city_village_dev`), so development shows on the map.
 const CITY_VILLAGE_DEV := 8
 const CITY_BIG_DEV := 16
-## Major rivers (data/rivers.json, tools/art/rivers.py): an ink-blue line with a pale centre, drawn over
-## the province colours so the land reads like an old atlas. Loaded once; cheap (about 30 polylines).
+## Major rivers (tools/art/rivers.py), drawn over the province colours so the land reads like an old atlas.
+## Close up they are pixel art on the same grid as the terrain glyphs: the generator rasterises them
+## once into the 32 px tiles that hold river pixels, packed in one atlas texture (data/river_tiles.json),
+## so this is a few hundred rects from one texture (one batch). Zoomed out, where single pixels would
+## flicker, the same meandered courses (data/rivers.json) are thin smooth lines.
 var _rivers: Array = []
+var _river_tiles: Array = []  # [Rect2 on the map, Rect2 in the atlas]
+var _river_atlas: Texture2D
 var _rivers_loaded := false
-const RIVER_INK := Color(0.11, 0.24, 0.38, 0.8)
-const RIVER_SHINE := Color(0.5, 0.69, 0.77, 0.75)
+const RIVER_INK := Color(0.16, 0.3, 0.45, 0.85)
+const RIVER_PIXEL_ZOOM := 0.8  # from here on the pixel-art rivers
+
+
+## Level of detail of the "terrain" layer: 0 rivers as lines only, 1 + landscape sprites, 2 pixel rivers.
+func _terrain_lod() -> int:
+	return 2 if zoom >= RIVER_PIXEL_ZOOM else (1 if zoom >= 0.55 else 0)
+
+
+func _load_rivers() -> void:
+	_rivers_loaded = true
+	var f := FileAccess.open("res://data/rivers.json", FileAccess.READ)
+	if f != null:
+		var d = JSON.parse_string(f.get_as_text())
+		if d is Array:
+			for r in d:
+				var pts := PackedVector2Array()
+				for q in r.pts:
+					pts.append(Vector2(q[0], q[1]))
+				_rivers.append([pts, float(r.get("w", 2))])
+	const ATLAS := "res://assets/art/map/rivers_atlas.png"
+	var tf := FileAccess.open("res://data/river_tiles.json", FileAccess.READ)
+	if tf != null and ResourceLoader.exists(ATLAS):
+		var td = JSON.parse_string(tf.get_as_text())
+		if td is Dictionary:
+			_river_atlas = load(ATLAS)
+			var ts := float(td.get("tile", 32))
+			for t in td.get("tiles", []):
+				_river_tiles.append([Rect2(t[0], t[1], ts, ts), Rect2(t[2], t[3], ts, ts)])
+
 
 func _draw_rivers(ci: CanvasItem) -> void:
 	if not _rivers_loaded:
-		_rivers_loaded = true
-		var f := FileAccess.open("res://data/rivers.json", FileAccess.READ)
-		if f != null:
-			var d = JSON.parse_string(f.get_as_text())
-			if d is Array:
-				for r in d:
-					var pts := PackedVector2Array()
-					for q in r.pts:
-						pts.append(Vector2(q[0], q[1]))
-					_rivers.append([pts, float(r.get("w", 2))])
+		_load_rivers()
 	if map_mode == MODE_WAR:
 		return
+	if _terrain_lod() == 2 and _river_atlas != null:
+		for t in _river_tiles:
+			ci.draw_texture_rect_region(_river_atlas, t[0], t[1])
+		return
 	for r in _rivers:
-		var w: float = 1.2 + 0.7 * r[1]
-		ci.draw_polyline(r[0], RIVER_INK, w, true)
-		if zoom >= 0.55:
-			ci.draw_polyline(r[0], RIVER_SHINE, w * 0.35, true)
+		ci.draw_polyline(r[0], RIVER_INK, 1.0 + 0.6 * r[1], true)
 
 
 ## Small landscape sprites (tools/art/terrain_glyphs.py): woods, dunes or an oasis palm, reeds, hills.
@@ -745,10 +771,13 @@ func _glyphs_for(p) -> Array:
 		keys = keys.slice(0, 1)
 	var out := []
 	var oi := 0
+	var badge := Rect2(_badge_spot(p) - BADGE_MAP / 2.0, BADGE_MAP).grow(9.0)
 	for k in keys:
 		while oi < GLYPH_OFFSETS.size():
 			var at: Vector2 = p.center + GLYPH_OFFSETS[oi]
 			oi += 1
+			if badge.has_point(at):
+				continue
 			var inside := false
 			for poly in polys[p.id]:
 				if Geometry2D.is_point_in_polygon(at, poly):
@@ -797,6 +826,129 @@ func _draw_cities(ci: CanvasItem) -> void:
 		var pos: Vector2 = p.center + Vector2(-sz.x / 2.0, 6.0)
 		ci.draw_rect(Rect2(pos + Vector2(1, sz.y - 1), Vector2(sz.x, 2)), Color(0, 0, 0, 0.35))
 		ci.draw_texture_rect(tex, Rect2(pos, sz), false)
+
+
+## Province badges: a small dark plaque beside the province centre with its terrain (tools/art/terrain_glyphs.py,
+## tico_*) and its trade good (the good's pixel emoji). Drawn in screen space at a fixed size (16 px icons
+## times the label scale), so they stay crisp pixel art and small at any zoom, and only for provinces on
+## screen. Shown together with the province names (BADGE_ZOOM), in the goods map mode earlier; hidden in
+## the war mode. Grouped by texture (plaques, terrain icons, goods), so it is a few dozen batches.
+const BADGE_ZOOM := 1.1
+const BADGE_ZOOM_GOODS := 0.7
+const BADGE_MAP := Vector2(34, 17)  # the plaque's footprint in map px (for the fit test and the glyphs)
+const BADGE_SPOTS := [Vector2(40, 3), Vector2(-40, 3), Vector2(0, -40), Vector2(0, 42)]
+const BADGE_BACK := Color(0.106, 0.086, 0.133, 0.62)
+const BADGE_EDGE := Color(0.937, 0.894, 0.784, 0.35)
+var _badge_spots := {}  # pid -> plaque centre (map px)
+var _good_tex := {}  # good -> its pixel emoji texture (or null)
+
+
+func _badges_shown() -> bool:
+	return map_mode != MODE_WAR and zoom >= (BADGE_ZOOM_GOODS if map_mode == MODE_GOODS else BADGE_ZOOM)
+
+
+## Centre of the plaque: the first spot beside the centre (right, left, above, below) that fits inside
+## the province, so it keeps clear of the name, the city sprite and the army counters.
+func _badge_spot(p) -> Vector2:
+	if _badge_spots.has(p.id):
+		return _badge_spots[p.id]
+	var best: Vector2 = p.center + BADGE_SPOTS[0]
+	var found := false
+	for off in BADGE_SPOTS:
+		var c: Vector2 = p.center + off
+		var ok := true
+		for corner in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1), Vector2.ZERO]:
+			if not _in_province(p.id, c + corner * BADGE_MAP / 2.0):
+				ok = false
+				break
+		if ok:
+			best = c
+			found = true
+			break
+	if not found:  # small province: at least the plaque's centre inside it
+		for off in BADGE_SPOTS:
+			if _in_province(p.id, p.center + off * 0.75):
+				best = p.center + off * 0.75
+				break
+	_badge_spots[p.id] = best
+	return best
+
+
+func _in_province(pid: int, q: Vector2) -> bool:
+	for poly in polys[pid]:
+		if Geometry2D.is_point_in_polygon(q, poly):
+			return true
+	return false
+
+
+func _good_texture(good: String) -> Texture2D:
+	if _good_tex.has(good):
+		return _good_tex[good]
+	var tex: Texture2D = null
+	var gd: Dictionary = game.goods_def.get(good, {})
+	var e: String = gd.get("emoji", "")
+	if e != "":
+		var name: String = PixelEmoji.glyph_name(e.unicode_at(0))
+		var path := "res://assets/art/emoji/%s.png" % name
+		if name != "" and ResourceLoader.exists(path):
+			tex = load(path)
+	_good_tex[good] = tex
+	return tex
+
+
+## The part of an icon texture that holds pixels, cached (the plaque hugs the icons, no empty margins).
+var _used_rects := {}
+
+func _used_rect(tex: Texture2D) -> Rect2:
+	if not _used_rects.has(tex):
+		var r := Rect2(Vector2.ZERO, tex.get_size())
+		var img := tex.get_image()
+		if img != null:
+			if img.is_compressed():
+				img.decompress()
+			var u := img.get_used_rect()
+			if u.size.x > 0:
+				r = Rect2(u)
+		_used_rects[tex] = r
+	return _used_rects[tex]
+
+
+func _draw_badges() -> void:
+	if not _badges_shown():
+		return
+	var u := maxf(1.5, roundf(label_scale * 3.0) / 2.0)  # screen px per art pixel (half steps)
+	var view := Rect2(Vector2.ZERO, size).grow(60.0)
+	var by_tex := {}  # texture -> Array of [source rect, screen rect]
+	for p in game.provinces:
+		var c := to_screen(_badge_spot(p))
+		if not view.has_point(c) or not known(p.id):
+			continue
+		var parts := []
+		var w := u
+		var h := 0.0
+		for tex in [Icons.texture("tico_" + p.terrain), _good_texture(p.good)]:
+			if tex == null:
+				continue
+			var src := _used_rect(tex)
+			var sz: Vector2 = src.size * (16.0 / tex.get_width()) * u
+			parts.append([tex, src, sz])
+			w += sz.x + u
+			h = maxf(h, sz.y)
+		if parts.is_empty():
+			continue
+		var r := Rect2((c - Vector2(w, h + 2.0 * u) / 2.0).round(), Vector2(w, h + 2.0 * u).round())
+		draw_rect(r, BADGE_BACK)
+		draw_rect(r, BADGE_EDGE, false, 1.0)
+		var x := r.position.x + u
+		for part in parts:
+			var at: Vector2 = Vector2(x, r.position.y + u + (h - part[2].y) / 2.0).round()
+			if not by_tex.has(part[0]):
+				by_tex[part[0]] = []
+			by_tex[part[0]].append([part[1], Rect2(at, part[2])])
+			x += part[2].x + u
+	for tex in by_tex:
+		for q in by_tex[tex]:
+			draw_texture_rect_region(tex, q[1], q[0])
 
 
 ## Sea crossings: a dotted ferry line; red while an enemy fleet rules that sea for the player.
