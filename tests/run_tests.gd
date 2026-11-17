@@ -1580,6 +1580,7 @@ func test_buildings() -> void:
 	var p = g.provinces[pid]
 	var n = g.nations.FRA
 	n.gold = 10000.0
+	g.bal.city_growth_chance = 0.0  # random yearly city growth (Urban) would add development too
 	check(g.construct("FRA", g.key_to_pid["london"], "workshop") != "", "cannot build in foreign province")
 	check(g.construct("FRA", pid, "manufactory") != "", "manufactory needs a workshop")
 	var cost: float = Eco.building_cost(g, "FRA", pid, "workshop")
@@ -1591,7 +1592,7 @@ func test_buildings() -> void:
 	for i in 12:
 		g.tick()
 	check(Eco.level(p, "workshop") == 1 and p.constructing.is_empty(), "workshop finished after 12 months")
-	check(p.dev == dev0 + 1, "a finished building level adds development")
+	check(p.dev == dev0 + 1, "a finished building level adds development (%d -> %d)" % [dev0, p.dev])
 	check(Eco.production_value(g, p) > prod0, "workshop raises production")
 	check(Eco.building_cost(g, "FRA", pid, "workshop") > cost, "next level costs more")
 	# slots
