@@ -2,7 +2,7 @@ extends RefCounted
 ## Government (data/government.json), inspired by the Hearts of Iron politics screen:
 ## - political advisors (3 slots, hired with power of their type, national ones only in their lifetime)
 ## - investment companies (2 slots, +1 from tech; bought with gold, then invested into up to level 5:
-##   every level raises the benefits by 50 %, the drawbacks stay as they are)
+##   every level raises the benefits by 50 %, the drawbacks stay as they are until the top level drops them)
 ## - laws with buff/nerf trade-offs (changing one costs power and has a cooldown)
 ## - estates (nobility, clergy, burghers): satisfaction drifts monthly toward 50 + the estate_<id> modifiers
 ##   of laws, advisors, companies and techs; loyal estates give bonuses, angry ones penalties and crisis events
@@ -413,9 +413,10 @@ func advisor_skill(n, id: String) -> int:
 	return int(n.gov.get("adv_skill", {}).get(id, 1))
 
 
-## Effects of advisor `id` at `skill`: benefits grow by advisor_skill_step per level, drawbacks do not.
+## Effects of advisor `id` at `skill`: benefits grow by advisor_skill_step per level, drawbacks do not;
+## at the highest skill level the drawbacks are gone.
 func advisor_effects(id: String, skill: int) -> Dictionary:
-	return scaled_effects(adv_by_id.get(id, {}).get("effects", {}), 1.0 + float(cfg.get("advisor_skill_step", 0.5)) * (skill - 1))
+	return scaled_effects(adv_by_id.get(id, {}).get("effects", {}), 1.0 + float(cfg.get("advisor_skill_step", 0.5)) * (skill - 1), skill >= max_skill())
 
 
 ## Promoting to the next skill level costs advisor_cost × promote_mult × current level (75 → 113 → 225 at defaults).
@@ -538,19 +539,23 @@ func invest_level(n, id: String) -> int:
 	return int(n.gov.invest.get(id, 1))
 
 
-## Effects of company `id` at investment `level`: benefits grow by invest_step per level, drawbacks do not.
+## Effects of company `id` at investment `level`: benefits grow by invest_step per level, drawbacks do not;
+## at the highest investment level the drawbacks are gone.
 func company_effects(id: String, level: int) -> Dictionary:
 	var base: Dictionary = comp_by_id.get(id, {}).get("effects", {})
-	return scaled_effects(base, 1.0 + float(cfg.get("invest_step", 0.5)) * (level - 1))
+	return scaled_effects(base, 1.0 + float(cfg.get("invest_step", 0.5)) * (level - 1), level >= max_invest())
 
 
-## `base` with its benefits multiplied by `mult`; drawbacks stay as they are.
-func scaled_effects(base: Dictionary, mult: float) -> Dictionary:
+## `base` with its benefits multiplied by `mult`; drawbacks stay as they are, or are dropped with `no_drawbacks`.
+func scaled_effects(base: Dictionary, mult: float, no_drawbacks: bool = false) -> Dictionary:
 	var r := {}
 	for k in base:
 		var v := float(base[k])
 		var good: bool = (v > 0.0) == Tech.LABELS.get(k, [k, false, true])[2]
-		r[k] = v * mult if good else v
+		if good:
+			r[k] = v * mult
+		elif not no_drawbacks:
+			r[k] = v
 	return r
 
 

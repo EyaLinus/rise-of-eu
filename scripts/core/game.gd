@@ -507,6 +507,21 @@ func force_limit(tag: String) -> float:
 	return float(bal.base_force_limit) + n.dev_total * float(bal.force_limit_per_dev) + n.tech.mil / 2 + mod(n, "force_limit")
 
 
+## Whole regiments the force limit allows (the raw limit is fractional: dev × force_limit_per_dev, ½ per mil tech).
+func force_cap(tag: String) -> int:
+	return int(floor(force_limit(tag) + 0.01))
+
+
+## Regiments counted against the force limit, rounded like the HUD shows them (battle losses leave fractions).
+func regs_counted(tag: String) -> int:
+	return int(round(army_regs(tag)))
+
+
+## Regiments that can still be raised before the force limit is reached.
+func force_room(tag: String) -> int:
+	return maxi(0, force_cap(tag) - regs_counted(tag))
+
+
 func armies_of(tag: String) -> Array:
 	var r := []
 	for a in armies:
@@ -2261,8 +2276,9 @@ func recruit(tag: String, pid: int, count: int) -> String:
 		return "Zu wenig Gold (%d benötigt)." % cost
 	if n.manpower < count:
 		return "Zu wenig Mannschaften."
-	if army_regs(tag) + count > force_limit(tag) + 0.01:
-		return "Truppenlimit erreicht (%d)." % int(force_limit(tag))
+	if count > force_room(tag):
+		return "Truppenlimit erreicht (%d/%d)." % [regs_counted(tag), force_cap(tag)] if force_room(tag) == 0 else \
+				"Nur noch %d Regiment(er) bis zum Truppenlimit (%d/%d)." % [force_room(tag), regs_counted(tag), force_cap(tag)]
 	n.gold -= cost
 	n.manpower -= count
 	for a in armies_in(pid):
@@ -2294,10 +2310,9 @@ func hire_mercs(tag: String, pid: int) -> String:
 		return "Nur in eigenen, unbesetzten Provinzen."
 	if merc_ready_in(tag) > 0:
 		return "Neue Söldner erst in %d Monaten." % merc_ready_in(tag)
-	var room: int = int(force_limit(tag) + 0.01 - army_regs(tag))
-	var count: int = mini(int(bal.merc_regs), room)
+	var count: int = mini(int(bal.merc_regs), force_room(tag))
 	if count < 1:
-		return "Truppenlimit erreicht (%d)." % int(force_limit(tag))
+		return "Truppenlimit erreicht (%d/%d)." % [regs_counted(tag), force_cap(tag)]
 	var cost: float = merc_cost(tag) * count / float(bal.merc_regs)
 	if n.gold < cost:
 		return "Zu wenig Gold (%d benötigt)." % int(cost)

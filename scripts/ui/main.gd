@@ -73,6 +73,7 @@ var map: MapView
 var top_labels := {}
 var speed_label: Label
 var side_panel: PanelContainer
+var top_incs := {}  # small monthly-gain labels next to the adm/dip/mil points
 var side_title: Label
 var side_back: Button
 var panel_history: Array = []
@@ -273,8 +274,21 @@ func _build_hud() -> void:
 		var l := Label.new()
 		l.mouse_filter = Control.MOUSE_FILTER_PASS  # tooltip, and a drag still reaches the strip
 		l.tooltip_text = HUD_TIPS.get(k, "")
-		res.add_child(l)
 		top_labels[k] = l
+		if k in ["adm", "dip", "mil"]:  # small "+3" monthly gain right after the points
+			var pair := HBoxContainer.new()
+			pair.add_theme_constant_override("separation", 2)
+			pair.mouse_filter = Control.MOUSE_FILTER_PASS
+			var inc := Label.new()
+			inc.mouse_filter = Control.MOUSE_FILTER_PASS
+			inc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			inc.add_theme_color_override("font_color", Color(0.6, 0.9, 0.6))
+			pair.add_child(l)
+			pair.add_child(inc)
+			res.add_child(pair)
+			top_incs[k] = inc
+		else:
+			res.add_child(l)
 	top_labels.nation.gui_input.connect(func(e): if _is_click(e): _open_panel("nation"))
 	top_labels["date"] = Label.new()
 	hb.add_child(top_labels.date)
@@ -357,6 +371,8 @@ func _build_hud() -> void:
 	side_panel.offset_top = 68
 	side_panel.offset_right = -6
 	side_panel.offset_bottom = -6
+	# content wider than the panel widens it toward the map (left), never past the right screen edge
+	side_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	hud.add_child(side_panel)
 	var vb := VBoxContainer.new()
 	side_panel.add_child(vb)
@@ -434,7 +450,24 @@ func _build_modal() -> void:
 	modal_box.add_theme_constant_override("separation", 10)
 	sc.add_child(modal_box)
 	modal.visible = false
-	modal_box.resized.connect(func(): sc.custom_minimum_size.y = minf(modal_box.size.y, size.y - 60))
+	modal_box.resized.connect(_fit_modal)
+	# a window resize or UI-size change while a popup is open must shrink it too, or its end (and the
+	# close button) sits below the screen edge where no scrolling reaches it
+	get_viewport().size_changed.connect(_fit_modal.call_deferred)
+
+
+## Popup height: its content, at most the screen minus a margin (then it scrolls). Width shrinks on narrow screens.
+func _fit_modal() -> void:
+	if modal_box == null:
+		return
+	var sc := modal_box.get_parent() as ScrollContainer
+	var pc := sc.get_parent() as PanelContainer
+	var vp: Vector2 = get_viewport_rect().size
+	var pad: Vector2 = pc.get_theme_stylebox("panel").get_minimum_size() if pc.has_theme_stylebox("panel") else Vector2.ZERO
+	pc.custom_minimum_size.x = minf(640.0, vp.x - 16.0)
+	sc.custom_minimum_size.x = maxf(200.0, pc.custom_minimum_size.x - 20.0)
+	sc.custom_minimum_size.y = maxf(0.0, minf(modal_box.get_combined_minimum_size().y, vp.y - 32.0 - pad.y))
+	pc.reset_size()  # drop the old (taller) size, CenterContainer re-centres it
 
 
 # ---------------------------------------------------------------- helpers
@@ -1051,7 +1084,7 @@ func _fit_left_tabs() -> void:
 
 func _place_toast() -> void:
 	var f: Font = toast.get_theme_font("font")
-	var panel_w: float = -side_panel.offset_left if side_panel.visible else 0.0
+	var panel_w: float = side_panel.size.x if side_panel.visible else 0.0
 	var room: float = get_viewport_rect().size.x - panel_w - 24.0
 	var w: float = minf(minf(420.0, room), f.get_string_size(toast.text, HORIZONTAL_ALIGNMENT_LEFT, -1, toast.get_theme_font_size("font_size")).x + 24.0)
 	# right of the tab column, above the map mode strip (keeps clear of the tabs at 140 % UI size)
@@ -1341,7 +1374,7 @@ func _update_top() -> void:
 	top_labels.dip.text = Icons.prefix("dip") + "%d" % n.dip
 	top_labels.mil.text = Icons.prefix("mil") + "%d" % n.mil
 	top_labels.manpower.text = Icons.prefix("manpower") + short_num(n.manpower)
-	top_labels.army.text = Icons.prefix("army") + "%.0f/%.0f" % [game.army_regs(game.player), game.force_limit(game.player)]
+	top_labels.army.text = Icons.prefix("army") + "%d/%d" % [game.regs_counted(game.player), game.force_cap(game.player)]
 	top_labels.ae.text = Icons.prefix("ae") + "%d" % n.ae
 	top_labels.ae.add_theme_color_override("font_color", Color.TOMATO if n.ae >= game.coalition_threshold(game.player) * 0.7 else Color.WHITE)
 	top_labels.gold.add_theme_color_override("font_color", Color.TOMATO if n.gold < 0 else Color.WHITE)
@@ -1352,7 +1385,12 @@ func _update_top() -> void:
 			n.gold, net, n.income, n.tax_income, n.prod_income, n.trade_income, n.expenses, ("\nTribut %+.2f" % trib) if trib != 0.0 else ""]
 	var cap := int(game.bal.power_cap)
 	for k in ["adm", "dip", "mil"]:
-		top_labels[k].tooltip_text = "%s\n%+.1f pro Monat, Obergrenze %d" % [HUD_TIPS[k], game.monthly_power(n, k), cap]
+		var gain: float = game.monthly_power(n, k)
+		top_labels[k].tooltip_text = "%s\n%+.1f pro Monat, Obergrenze %d" % [HUD_TIPS[k], gain, cap]
+		var inc: Label = top_incs[k]
+		inc.text = "%+.0f" % gain if absf(gain - roundf(gain)) < 0.05 else "%+.1f" % gain
+		inc.tooltip_text = top_labels[k].tooltip_text
+		inc.add_theme_color_override("font_color", Color(0.6, 0.9, 0.6) if gain >= 0.0 else Color.TOMATO)
 	top_labels.manpower.tooltip_text = "Mannschaften %.0f / %.0f\nFüllen sich jeden Monat auf; Gutshöfe und Kasernen erhöhen das Maximum." % [n.manpower, n.max_manpower]
 	top_labels.army.tooltip_text = "Regimenter / Truppenlimit\nMehr Regimenter als das Limit kannst du nicht ausheben. Kasernen, Technik und Ränge erhöhen es."
 	top_labels.ae.tooltip_text = "Aggressive Expansion %d (Koalitionsgrenze %d)\nSinkt langsam; hohe Werte machen Nachbarn feindlich." % [n.ae, int(game.coalition_threshold(game.player))]
@@ -1380,6 +1418,8 @@ func _fit_top() -> void:
 		for k in top_labels:
 			if k != "date" and top_labels[k] is Label:
 				top_labels[k].add_theme_font_size_override("font_size", st[2])
+		for k in top_incs:
+			top_incs[k].add_theme_font_size_override("font_size", maxi(11, roundi(st[2] * 0.65)))
 		if res.get_combined_minimum_size().x <= avail:
 			return
 
@@ -1521,6 +1561,7 @@ func _notification(what: int) -> void:
 func _open_modal() -> void:
 	_clear(modal_box)
 	modal.visible = true
+	_fit_modal.call_deferred()  # same-height content fires no resized signal
 
 
 func _close_modal() -> void:
@@ -2401,15 +2442,16 @@ func _province_army(p) -> void:
 	var Un = game.Units
 	var tm: Dictionary = Un.template_mix(game, me, n.recruit_tmpl)
 	var c := int(game.regiment_cost(me) * Un.cost_mult(game, me, tm))
-	side_box.add_child(_lbl("👥 Mannschaften %.0f · 🛡️ %.0f / %.0f Regimenter" % [n.manpower, game.army_regs(me), game.force_limit(me)], 16, Color(0.75, 0.8, 0.85)))
+	side_box.add_child(_lbl("👥 Mannschaften %.0f · 🛡️ %d / %d Regimenter" % [n.manpower, game.regs_counted(me), game.force_cap(me)], 16, Color(0.75, 0.8, 0.85)))
 	side_box.add_child(_row([
 		_btn("📜 %s · %s" % [Un.template_name(game, me, n.recruit_tmpl), Un.mix_text(game, Un.template_mix(game, me, n.recruit_tmpl) if n.recruit_tmpl >= 0 else Un.standard_mix(game, me))],
 			func(): n.recruit_tmpl = (n.recruit_tmpl + 2) % (n.templates.size() + 1) - 1; _refresh(),
 			"Vorlage für neue Regimenter (tippen wechselt). Standard folgt deiner Militärtechnik. Teurere Mischungen kosten mehr Gold und Unterhalt."),
 		_btn("⚙️ Vorlagen", _show_templates, "Eigene Armeevorlagen anlegen und bearbeiten.")]))
+	var many: int = clampi(game.force_room(me), 2, 5)  # "+5" shrinks to what still fits under the limit
 	side_box.add_child(_row([
 		_btn("⚔️ +1 Reg. (%d💰)" % c, func(): _act(game.recruit(me, pid, 1), "⚔️ Rekrutiert")),
-		_btn("⚔️ +5 (%d💰)" % (c * 5), func(): _act(game.recruit(me, pid, 5), "⚔️ Rekrutiert"))]))
+		_btn("⚔️ +%d (%d💰)" % [many, c * many], func(): _act(game.recruit(me, pid, many), "⚔️ Rekrutiert"))]))
 	var wait: int = game.merc_ready_in(me)
 	side_box.add_child(_btn("💰 Söldner: %d Reg. (%d💰)%s" % [int(game.bal.merc_regs), int(game.merc_cost(me)), (" · in %d Mon." % wait) if wait > 0 else ""],
 			func(): _act(game.hire_mercs(me, pid), "💰 Söldner angeworben"),
@@ -3058,7 +3100,7 @@ func _panel_nation() -> void:
 		_chip("📜+%.0f 🕊️+%.0f ⚔️+%.0f" % [game.monthly_power(n, "adm"), game.monthly_power(n, "dip"), game.monthly_power(n, "mil")], "Macht pro Monat."),
 		_chip("💰 %+.1f / Monat" % (n.income - n.expenses), "Einnahmen %.1f, Ausgaben %.1f." % [n.income, n.expenses], "good" if n.income >= n.expenses else "bad"),
 		_chip("🏘️ %d · %d Prov." % [n.dev_total, game.provinces_of(me).size()], "Gesamtentwicklung und Zahl der Provinzen."),
-		_chip("🛡️ %.0f · 👥 %s/%s" % [game.force_limit(me), short_num(n.manpower), short_num(n.max_manpower)], "Truppenlimit und Mannschaften (aktuell / maximal)."),
+		_chip("🛡️ %d · 👥 %s/%s" % [game.force_cap(me), short_num(n.manpower), short_num(n.max_manpower)], "Truppenlimit und Mannschaften (aktuell / maximal)."),
 		_chip("⭐ %d · 🏆 %d" % [n.prestige, game.score(me)], "Prestige und Punkte (Rangliste)."),
 		_chip("😩 Müdigkeit %.1f" % n.we, "Kriegsmüdigkeit (höchstens %d): erhöht Unruhe, Gegner nehmen Frieden leichter an." % int(game.bal.we_max), "bad" if n.we >= 5.0 else ""),
 		_chip("😠 AE %d / %d" % [n.ae, thr], "Aggressive Expansion; ab %d drohen Koalitionen.\nKoalition gegen dich: %s" % [int(thr), ", ".join(co) if not co.is_empty() else "keine"], "bad" if not co.is_empty() or n.ae >= thr else ""),

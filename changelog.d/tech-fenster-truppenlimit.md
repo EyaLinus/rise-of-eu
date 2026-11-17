@@ -1,0 +1,5 @@
+- **Technologie-Fenster passt wieder:** Bei großer UI-Skalierung ragte das Fenster rechts aus dem Bild. Die Kopfzeile ist jetzt kompakter, und ein Seitenfenster, dessen Inhalt breiter ist, wächst nach links über die Karte statt über den rechten Rand.
+- **Punkte-Einkommen in der Leiste:** Neben Verwaltung, Diplomatie und Militär steht jetzt klein, wie viele Punkte pro Monat dazukommen (z. B. 150 +4).
+- **Truppenlimit-Fehler behoben:** Bei z. B. 15/16 Regimentern hieß es oft „Truppenlimit erreicht“, weil intern Bruchteile (Schlachtverluste, ein Limit von 15,6) anders gerundet wurden als angezeigt. Jetzt zählt genau das, was die Leiste zeigt; „+5“ hebt nur so viele aus, wie noch passen.
+- **Höchste Förderstufe ohne Nachteile:** Berater auf der höchsten Stufe (3) und Kompanien auf der höchsten Ausbaustufe (5) verlieren ihre Nachteile.
+- **Popups bleiben scrollbar:** Wurde das Fenster kleiner oder die UI-Größe geändert, während ein Auswahlfenster (z. B. Gesetze) offen war, ragte es unten aus dem Bild; das Ende samt „Schließen“ war nicht mehr erreichbar. Popups passen sich jetzt jeder Größenänderung an und werden auf schmalen Bildschirmen auch schmaler.
