@@ -855,7 +855,8 @@ func _after_game_loaded() -> void:
 	map.reset_dev_seen()
 	map.check_dev_changes()
 	hud.visible = true
-	speed = 0
+	speed = 0  # every game (new or loaded) starts paused; Space and ➕ resume at speed 1
+	last_speed = 1
 	selected_army = -1
 	map.selected_army = -1
 	map.selected_pid = -1
@@ -875,7 +876,7 @@ func _show_intro() -> void:
 	modal_box.add_child(_lbl("%s, %s" % [nname(game.player), game.date_string()], 30))
 	modal_box.add_child(_lbl(n.idea, 18, Color(0.8, 0.85, 0.7)))
 	modal_box.add_child(_lbl("So spielst du:\n• Zeit läuft mit ▶/➕ oben rechts, ⏸ pausiert.\n• Tippe auf eine Provinz für Infos und Aktionen (Entwickeln, Rekrutieren, Krieg).\n• Tippe auf eine Armee (Kreis mit Zahl) und dann auf ein Ziel, um sie zu bewegen. 🤖 lässt sie automatisch kämpfen.\n• 📜 Admin, 🕊️ Diplomatie und ⚔️ Militär sammeln sich monatlich: für Technologie, Entwicklung, Bündnisse und Kriegsgründe.\n• 😠 Aggressive Expansion steigt bei Eroberungen. Ab %d bilden Nachbarn Koalitionen gegen dich.\n• ✊ Frisch eroberte Provinzen sind unruhig, Kriegsmüdigkeit verstärkt das. Garnisonen und Unterdrückung helfen.\n• Am PC: Leertaste = Pause, 1–5 = Tempo, Esc = Panel schließen." % int(game.coalition_threshold(game.player)), 17))
-	modal_box.add_child(_btn("Los geht's ▶", func(): _close_modal(); _set_speed(2)))
+	modal_box.add_child(_btn("Los geht's ▶", func(): _close_modal()))
 
 
 ## ScrollContainers that scroll by dragging anywhere on them, also when the finger starts on a button.
