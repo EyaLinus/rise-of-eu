@@ -63,6 +63,7 @@ func _init() -> void:
 		"test_cape_route",
 		"test_overseas_markets",
 		"test_market_dominance",
+		"test_more_goods_and_softer_costs",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		if not only.is_empty() and not only.has(t):
@@ -3601,3 +3602,28 @@ func test_units_and_templates() -> void:
 	# a battle is slow: one round a month
 	check(int(g.bal.battle_rounds_per_month) == 1, "one battle round per month")
 	var _w = W
+## v1.0 goods update: 13 more goods with leader bonuses, and costs that rise less with development / military tech.
+func test_more_goods_and_softer_costs() -> void:
+	var g = new_game("VEN", 3)
+	check(g.goods_def.size() >= 29, "at least 29 goods")
+	for k in ["silk", "spices", "cotton", "glass", "paper", "horses", "olive_oil", "amber", "naval_supplies", "ivory", "dyes", "coffee", "incense"]:
+		check(g.goods_def.has(k) and not g.goods_def[k].bonus.is_empty(), "good %s with a leader bonus" % k)
+		check(g.prices.has(k), "good %s has a price" % k)
+	check(g.provinces[g.key_to_pid["venice"]].good == "glass", "Venice makes glass")
+	check(g.provinces[g.key_to_pid["bursa"]].good == "silk", "Bursa makes silk")
+	# every good on the map is produced somewhere, and a sole big producer becomes leader with its bonus
+	var s: Dictionary = g.Economy.supply(g)
+	check(s.get("glass", 0.0) > 0.0 and s.get("silk", 0.0) > 0.0, "new goods are produced")
+	g.goods_leader["silk"] = "VEN"
+	g.Economy.apply_goods_leaders(g)
+	var cap0: float = g.mod(g.nations.VEN, "diplo_cap")
+	check(cap0 >= 1.0, "silk leader gets +1 diplomatic capacity")
+	# a year of prices with zero-supply goods (coffee/incense before their region) stays finite
+	for i in 12:
+		g.tick()
+	for k in g.prices:
+		check(is_finite(g.prices[k]) and g.prices[k] > 0.0, "price of %s finite" % k)
+	# softer cost growth: regiments at mil tech 20 cost at most 2x, buildings in a dev-40 province at most 2x of dev 0
+	g.nations.VEN.tech.mil = 20
+	check(g.regiment_cost("VEN") <= 2.0 * float(g.bal.regiment_cost) + 0.01, "regiments at mil tech 20 cost <= 2x")
+	check(1.0 + 40 * float(g.bal.building_cost_per_dev) <= 2.0, "building cost per dev <= 2x at dev 40")

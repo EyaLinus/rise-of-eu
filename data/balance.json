@@ -212,7 +212,7 @@
   "goods_leader_share": 0.2,
   "building_slots_max": 7,
   "dev_per_building_slot": 6,
-  "building_cost_per_dev": 0.04,
+  "building_cost_per_dev": 0.025,
   "building_max_level": 5,
   "dev_per_building_level": 6,
   "max_merchants": 5,
@@ -259,7 +259,7 @@
       "ai_vs_player": 1.3
     }
   },
-  "army_cost_per_mil_tech": 0.08,
+  "army_cost_per_mil_tech": 0.05,
   "ai_max_marriages": 2,
   "ai_marriage_chance": 0.15,
   "ai_max_guarantees": 1,
@@ -395,7 +395,11 @@
     "salt",
     "iron",
     "copper",
-    "silver"
+    "silver",
+    "silk",
+    "glass",
+    "paper",
+    "dyes"
   ],
   "explore_dip_tech": 7,
   "explore_cost": 60.0,
