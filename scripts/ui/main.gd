@@ -16,6 +16,8 @@ const Warfare = preload("res://scripts/core/warfare.gd")
 const Naval = preload("res://scripts/core/naval.gd")
 const FirstSteps = preload("res://scripts/core/first_steps.gd")
 const GovScreen = preload("res://scripts/ui/gov_screen.gd")
+const DebugScreen = preload("res://scripts/ui/debug_screen.gd")
+const Ledger = preload("res://scripts/core/ledger.gd")
 const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
 const SAVE_PATH := "user://save.json"  # the autosave, also what "Weiterspielen" loads
 const SAVE_META_PATH := "user://saves.json"  # nation, date and score per slot, so the slot list needs no full parse
@@ -46,6 +48,7 @@ var _last_autosave_ms := 0
 var panel_mode := ""
 var panel_arg = null
 var econ_tab := "overview"  # sub-tab of the economy panel
+var rank_key := "score"  # ranking panel: measure the realms are sorted by (Ledger.KEYS)
 var prov_tab := "info"  # sub-tab of an own province: info, build, army
 var section_open := {}  # collapsible panel sections the player opened or closed (key -> bool)
 var selected_army := -1
@@ -102,10 +105,12 @@ const MUSIC_STEPS := [0.0, 0.25, 0.5, 0.75, 1.0]
 var last_battles := 0
 var tech_screen := TechScreen.new(self)
 var gov_screen := GovScreen.new(self)
+var debug_screen := DebugScreen.new(self)  # debug mode, performance overlay, crash watch
 
 
 func _ready() -> void:
 	_load_settings()
+	debug_screen.start_session()
 	_setup_theme()
 	for k in ["click", "event", "war", "peace", "battle", "success"]:
 		var path := "res://assets/sfx/%s.wav" % k
@@ -132,6 +137,7 @@ func _ready() -> void:
 	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hud)
 	_build_hud()
+	debug_screen.build_overlay(hud)
 	_build_modal()
 	hud.visible = false
 	get_tree().set_auto_accept_quit(false)
@@ -763,13 +769,14 @@ func _has_manual_save() -> bool:
 
 
 func _load_game(slot: String = "auto") -> void:
-	var f := FileAccess.open(_slot_path(slot), FileAccess.READ)
-	if f == null:
-		_toast("❌ Kein Spielstand gefunden.")
-		return
-	var d = JSON.parse_string(f.get_as_text())
+	var path := _slot_path(slot)
+	var d = _read_save(path)
+	if d == null and FileAccess.file_exists(path + ".bak"):
+		d = _read_save(path + ".bak")  # the save before the last one (crash while saving)
+		if d != null:
+			_toast("⚠️ Spielstand beschädigt: der vorherige wurde geladen.")
 	if d == null:
-		_toast("❌ Spielstand beschädigt.")
+		_toast("❌ Spielstand beschädigt." if FileAccess.file_exists(path) else "❌ Kein Spielstand gefunden.")
 		return
 	game = Game.new()
 	game.setup(data, 1, d.player)
@@ -778,15 +785,33 @@ func _load_game(slot: String = "auto") -> void:
 	_close_modal()
 
 
+## Parsed save file, or null when it is missing or broken.
+func _read_save(path: String):
+	if not FileAccess.file_exists(path):
+		return null
+	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
+	return d if d is Dictionary and d.has("player") else null
+
+
 ## Writes the running game into a slot ("auto" = the yearly autosave) and notes what is in it.
 func _save_game(slot: String = "auto") -> bool:
 	if game == null or game.game_over:
 		return false
-	var f := FileAccess.open(_slot_path(slot), FileAccess.WRITE)
+	# crash-safe: write a temp file, keep the last good save as .bak, then swap the new one in,
+	# so a crash or a full disk while saving never leaves only a broken save behind
+	var path := _slot_path(slot)
+	var f := FileAccess.open(path + ".tmp", FileAccess.WRITE)
 	if f == null:
 		return false
 	f.store_string(JSON.stringify(game.to_dict()))
 	f.close()
+	if f.get_error() != OK:
+		return false
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path + ".bak")
+		DirAccess.rename_absolute(path, path + ".bak")
+	if DirAccess.rename_absolute(path + ".tmp", path) != OK:
+		return false
 	var meta := _save_meta()
 	meta[slot] = {"name": game.nations[game.player].name, "date": game.date_string(), "score": game.score(game.player),
 			"difficulty": game.difficulty}
@@ -1034,6 +1059,7 @@ func _place_toast() -> void:
 
 func _process(delta: float) -> void:
 	_check_long_press()
+	debug_screen.process()
 	if toast_time > 0.0:
 		_place_toast()
 		toast_time -= delta
@@ -1044,7 +1070,7 @@ func _process(delta: float) -> void:
 	if _refresh_pending and _press_range == null and Time.get_ticks_msec() - _last_refresh_ms >= PANEL_REFRESH_MS:
 		_refresh_pending = false
 		_last_refresh_ms = Time.get_ticks_msec()
-		if game != null and side_panel.visible and panel_mode != "peace":
+		if game != null and side_panel.visible and panel_mode != "peace" and not debug_screen.typing():
 			_refresh()
 	if game == null or modal.visible or speed == 0 or game.game_over:
 		return
@@ -1058,7 +1084,9 @@ func _process(delta: float) -> void:
 	acc = minf(acc, spm * 2.0)
 	while acc >= spm and steps < 4 and (steps == 0 or Time.get_ticks_msec() - t0 < 12):
 		acc -= spm
+		var tick_t0 := Time.get_ticks_usec()
 		game.tick()
+		debug_screen.note_tick(Time.get_ticks_usec() - tick_t0)
 		steps += 1
 		if game.month % 12 == 0 and Time.get_ticks_msec() - _last_autosave_ms >= AUTOSAVE_MS:
 			_save_game()
@@ -1104,7 +1132,7 @@ func _after_tick() -> void:
 	if not game.pending_peace.is_empty():
 		_show_peace_offer(game.pending_peace[0])
 		return
-	if side_panel.visible and panel_mode != "peace":
+	if side_panel.visible and panel_mode != "peace" and not debug_screen.typing():
 		# never rebuild the panel under a slider that is being dragged
 		if _press_range == null and Time.get_ticks_msec() - _last_refresh_ms >= PANEL_REFRESH_MS:
 			_refresh_pending = false
@@ -1423,6 +1451,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_next_army()
 	elif (k == KEY_S or (k == KEY_F and event.ctrl_pressed)) and not modal.visible:
 		_show_search()
+	elif k == KEY_F12 and debug_screen.enabled():
+		if side_panel.visible and panel_mode == "debug":
+			_close_panel()
+		else:
+			debug_screen.open()
 	elif k == KEY_F5:
 		_act("" if _save_game() else "Speichern fehlgeschlagen", "💾 Gespeichert")
 	elif (k == KEY_F1 or k == KEY_H) and not modal.visible:
@@ -1441,7 +1474,13 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		_save_game()
 		get_tree().quit()
+	elif what == NOTIFICATION_EXIT_TREE:
+		debug_screen.end_session()  # clean quit (window closed, menu "Beenden")
+	elif what == NOTIFICATION_APPLICATION_RESUMED:
+		debug_screen.resume_session()
 	elif what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		if what == NOTIFICATION_APPLICATION_PAUSED:
+			debug_screen.end_session(true)  # Android may kill a paused app: that is no crash
 		_save_game()
 	elif what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		if modal.visible and game != null and game.pending_events.is_empty() and game.pending_peace.is_empty():
@@ -1479,6 +1518,8 @@ func _show_menu() -> void:
 	]
 	if _has_keyboard():
 		acts.append(_btn("⌨️ Tastenkürzel", _show_shortcuts, "Alle Tasten auf einen Blick (F1)"))
+	if debug_screen.enabled():
+		acts.append(_btn("🐞 Debug", func(): _close_modal(); debug_screen.open(), "Leistung, Spielzustand, Absturzinfo, Cheats (am PC: F12)"))
 	acts.append(_btn("🏠 Hauptmenü", func(): _save_game(); game = null; _show_start_menu(), "Speichert und kehrt zum Startmenü zurück."))
 	if OS.get_name() != "Android" and OS.get_name() != "Web":
 		acts.append(_btn("🚪 Beenden", func(): _save_game(); get_tree().quit(), "Speichert und beendet das Spiel."))
@@ -1628,6 +1669,10 @@ func _show_settings() -> void:
 			settings.big_ui = not settings.get("big_ui", false)
 			_save_settings()
 			_show_settings(), "Größere Bedienelemente für Touchscreens. Die Leisten ändern sich nach einem Neustart."))
+	opts.append(_btn("🐞 Debug-Modus: %s" % ("an" if settings.get("debug", false) else "aus"), func():
+		settings.debug = not settings.get("debug", false)
+		_save_settings()
+		_show_settings(), "Leistungsanzeige über der Karte, Debug-Fenster (F12 oder im Menü) mit Speicher, Spielzustand, Absturzinfo und Test-Cheats."))
 	opts.append(_btn("⚔️ Schlachten langsam: %s" % ("an" if settings.get("slow_battles", true) else "aus"), func():
 		settings.slow_battles = not settings.get("slow_battles", true)
 		_save_settings()
@@ -1643,7 +1688,7 @@ const SHORTCUTS := [
 	["Pfeile", "Karte verschieben"], ["Bild ↑ ↓", "Zoom (auch Mausrad)"], ["Tab", "nächster Kartenmodus"],
 	["V", "Kartenmodi + Legende"], ["N", "Nation"], ["E", "Wirtschaft"], ["T", "Technologie"], ["G", "Regierung"],
 	["D", "Diplomatie"], ["K", "Kriege"], ["F", "Flotte / Marine"], ["M", "Missionen"], ["L", "Chronik"], ["R", "Ratgeber"],
-	["S / Strg+F", "Provinz oder Nation suchen"], ["A", "nächste Armee (untätige zuerst)"], ["F5", "Schnellspeichern"], ["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F1", "diese Übersicht"],
+	["S / Strg+F", "Provinz oder Nation suchen"], ["A", "nächste Armee (untätige zuerst)"], ["F5", "Schnellspeichern"], ["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F1", "diese Übersicht"], ["F12", "Debug-Fenster (Debug-Modus)"],
 ]
 
 
@@ -2047,6 +2092,8 @@ func _refresh() -> void:
 			_panel_modifiers()
 		"advice":
 			_panel_advice()
+		"debug":
+			debug_screen.build()
 	side_scroll.set_deferred("scroll_vertical", scroll)
 	_fit_title.call_deferred()
 
@@ -3872,18 +3919,29 @@ func _hre_reforms_box(me: String, chips: Array) -> void:
 
 func _panel_ranking() -> void:
 	side_title.text = "🏆 Rangliste"
+	# sort by any measure (ledger): score, development, income, army, ...
+	var keys := []
+	for k in Ledger.KEYS:
+		var kb := _btn(Ledger.KEYS[k][0], func(): rank_key = k; _refresh(), "Sortieren nach: " + Ledger.KEYS[k][1])
+		kb.add_theme_font_size_override("font_size", 14)
+		kb.clip_text = true
+		kb.custom_minimum_size.x = 40
+		if k == rank_key:
+			kb.modulate = Color(1.0, 0.9, 0.55)
+		keys.append(kb)
+	side_box.add_child(_grid(keys, 4))
 	var tags := []
-	for t in game.order:
-		if game.nations[t].alive:
-			tags.append(t)
-	tags.sort_custom(func(a, b): return game.score(a) > game.score(b))
+	var vals := {}
+	for r in Ledger.rows(game, rank_key):
+		tags.append(r[0])
+		vals[r[0]] = r[1]
 	var more: bool = section_open.get("rank_more", false)
 	var rows := []
 	for i in mini(20 if more else 10, tags.size()):
 		var t: String = tags[i]
 		var o = game.nations[t]
 		var rival: bool = t != game.player and (game.nations[game.player].rivals.has(t) or o.rivals.has(game.player))
-		var b := _nation_btn(t, " · %d%s" % [game.score(t), " 🎯" if rival else ""], _open_panel.bind("other", t) if t != game.player else _open_panel.bind("nation"), "%d. " % (i + 1))
+		var b := _nation_btn(t, " · %s%s" % [Ledger.fmt(rank_key, vals[t]), " 🎯" if rival else ""], _open_panel.bind("other", t) if t != game.player else _open_panel.bind("nation"), "%d. " % (i + 1))
 		b.tooltip_text = "%s: %d Punkte · 🏘️ %d Entwicklung · 🛡️ %.0f Regimenter%s%s" % [o.name, game.score(t), o.dev_total, game.army_regs(t), " · ⛓️ Vasall" if o.overlord != "" else "", " · 🎯 Rivale" if rival else ""]
 		b.clip_text = true
 		if t == game.player:
