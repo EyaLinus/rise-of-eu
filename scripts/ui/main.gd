@@ -1076,6 +1076,8 @@ func _process(delta: float) -> void:
 		return
 	acc += delta
 	var spm: float = SPEEDS[speed]
+	if _battle_slowdown():
+		spm = maxf(spm, SPEEDS[1])
 	var steps := 0
 	# frame budget: slow devices run fewer months per second instead of stuttering, and never try to catch up
 	var t0 := Time.get_ticks_msec()
@@ -1093,6 +1095,17 @@ func _process(delta: float) -> void:
 			break
 	if steps > 0:
 		_after_tick()
+
+
+## True while one of the player's armies fights and the "slow battles" setting is on.
+func _battle_slowdown() -> bool:
+	if not settings.get("slow_battles", true) or game == null or game.player == "":
+		return false
+	for b in game.battles:
+		for a in b.att + b.def:
+			if a.owner == game.player:
+				return true
+	return false
 
 
 func _after_tick() -> void:
@@ -1318,7 +1331,7 @@ func _update_top() -> void:
 	top_labels.manpower.tooltip_text = "Mannschaften %.0f / %.0f\nFüllen sich jeden Monat auf; Gutshöfe und Kasernen erhöhen das Maximum." % [n.manpower, n.max_manpower]
 	top_labels.army.tooltip_text = "Regimenter / Truppenlimit\nMehr Regimenter als das Limit kannst du nicht ausheben. Kasernen, Technik und Ränge erhöhen es."
 	top_labels.ae.tooltip_text = "Aggressive Expansion %d (Koalitionsgrenze %d)\nSinkt langsam; hohe Werte machen Nachbarn feindlich." % [n.ae, int(game.coalition_threshold(game.player))]
-	speed_label.text = "⏸" if speed == 0 else "▶".repeat(speed)
+	speed_label.text = "⏸" if speed == 0 else ("⚔️▶" if speed > 1 and _battle_slowdown() else "▶".repeat(speed))
 	_fit_top()
 	_update_badges()
 
@@ -1660,6 +1673,10 @@ func _show_settings() -> void:
 		settings.debug = not settings.get("debug", false)
 		_save_settings()
 		_show_settings(), "Leistungsanzeige über der Karte, Debug-Fenster (F12 oder im Menü) mit Speicher, Spielzustand, Absturzinfo und Test-Cheats."))
+	opts.append(_btn("⚔️ Schlachten langsam: %s" % ("an" if settings.get("slow_battles", true) else "aus"), func():
+		settings.slow_battles = not settings.get("slow_battles", true)
+		_save_settings()
+		_show_settings(), "Solange eine eigene Schlacht läuft, läuft das Spiel höchstens im langsamsten Tempo, damit du jede Runde verfolgen kannst."))
 	if opts.size() % 2 == 1:
 		opts.append(Control.new())
 	modal_box.add_child(_grid(opts))
@@ -2202,6 +2219,9 @@ func _panel_province(pid: int) -> void:
 	if tab == "army":
 		_province_army(p)
 		return
+	var fight_here = Warfare.battle_at(game, pid)
+	if fight_here != null:
+		_battle_report(fight_here)
 	var gd: Dictionary = game.goods_def[p.good]
 	var price: float = game.prices[p.good]
 	# facts as a two-column grid of small cells, each with its explanation (hover / long press)
@@ -2352,9 +2372,16 @@ func _panel_province(pid: int) -> void:
 func _province_army(p) -> void:
 	var me: String = game.player
 	var pid: int = p.id
-	var c := int(game.regiment_cost(me))
 	var n = game.nations[me]
+	var Un = game.Units
+	var tm: Dictionary = Un.template_mix(game, me, n.recruit_tmpl)
+	var c := int(game.regiment_cost(me) * Un.cost_mult(game, me, tm))
 	side_box.add_child(_lbl("👥 Mannschaften %.0f · 🛡️ %.0f / %.0f Regimenter" % [n.manpower, game.army_regs(me), game.force_limit(me)], 16, Color(0.75, 0.8, 0.85)))
+	side_box.add_child(_row([
+		_btn("📜 %s · %s" % [Un.template_name(game, me, n.recruit_tmpl), Un.mix_text(game, Un.template_mix(game, me, n.recruit_tmpl) if n.recruit_tmpl >= 0 else Un.standard_mix(game, me))],
+			func(): n.recruit_tmpl = (n.recruit_tmpl + 2) % (n.templates.size() + 1) - 1; _refresh(),
+			"Vorlage für neue Regimenter (tippen wechselt). Standard folgt deiner Militärtechnik. Teurere Mischungen kosten mehr Gold und Unterhalt."),
+		_btn("⚙️ Vorlagen", _show_templates, "Eigene Armeevorlagen anlegen und bearbeiten.")]))
 	side_box.add_child(_row([
 		_btn("⚔️ +1 Reg. (%d💰)" % c, func(): _act(game.recruit(me, pid, 1), "⚔️ Rekrutiert")),
 		_btn("⚔️ +5 (%d💰)" % (c * 5), func(): _act(game.recruit(me, pid, 5), "⚔️ Rekrutiert"))]))
@@ -2739,11 +2766,12 @@ func _panel_army(id: int) -> void:
 		_chip(("⭐ General %d" % a.general) if a.general > 0 else "⭐ Kein General",
 				("+%d %% Kampfkraft." % int(a.general * float(game.bal.general_bonus) * 100)) if a.general > 0 else "Ohne General kämpft die Armee ohne Bonus.", "gold" if a.general > 0 else ""),
 	]
+	chips.append(_unit_chip(a))
 	var fight = Warfare.battle_of(game, a)
 	if fight != null:
 		var mine_att: bool = fight.att.has(a)
 		chips.append(_chip("⚔️ Schlacht · %s" % Warfare.phase(fight),
-				"Runde %d bei %s (%s). Kampfmoral: wir %d %%, Feind %d %%. Wessen Kampfmoral zuerst bricht, verliert und wird verfolgt. Zwei Runden pro Monat; eigene Armeen, die herankommen, greifen mit ein. Aus einer laufenden Schlacht kann man nicht abmarschieren." % [
+				"Runde %d bei %s (%s). Kampfmoral: wir %d %%, Feind %d %%. Wessen Kampfmoral zuerst bricht, verliert und wird verfolgt. Eine Runde pro Monat; eigene Armeen, die herankommen, greifen mit ein. Aus einer laufenden Schlacht kann man nicht abmarschieren." % [
 				fight.round + 1, game.provinces[fight.pid].name, Warfare.terrain_name(game, fight.pid),
 				int(maxf(0.0, fight.morale_att if mine_att else fight.morale_def) * 100), int(maxf(0.0, fight.morale_def if mine_att else fight.morale_att) * 100)], "bad"))
 	if a.target >= 0:
@@ -2754,6 +2782,8 @@ func _panel_army(id: int) -> void:
 		chips.append(_chip("Modus: " + _stance_name(a), "Wer die Armee führt."))
 		chips.append(Control.new())
 	side_box.add_child(_grid(chips))
+	if fight != null:
+		_battle_report(fight)
 	if a.owner != game.player:
 		return
 	if selected_army == a.id and sea_order:
@@ -2785,6 +2815,7 @@ func _panel_army(id: int) -> void:
 	if a.general == 0:
 		acts.append(_btn("⭐ General %d⚔️" % int(game.bal.general_cost), func(): _act(game.hire_general(a.owner, a.id), "⭐ Ein General übernimmt das Kommando"),
 				"Militär-Macht einsetzen: ein General mit 1 bis 3 Sternen (bessere Militärtechnik, bessere Offiziere). Jeder Stern +%d %% Kampfkraft. Generäle können in Schlachten fallen, nach Niederlagen eher." % int(float(game.bal.general_bonus) * 100)))
+	_refit_buttons(a)
 	if a.power < pm - 0.001:
 		acts.append(_btn("🔥 Drill %d⚔️" % int(game.drill_cost(a)), func(): _act(game.drill_army(a.owner, a.id), "🔥 Die Truppen sind gedrillt"),
 				"Militär-Macht einsetzen: die Moral der Armee sofort auf %d %% bringen. Nur auf eigenem oder verbündetem Gebiet." % int(round(pm * 100))))
@@ -2797,6 +2828,103 @@ func _panel_army(id: int) -> void:
 	if acts.size() % 2 == 1:
 		acts.append(Control.new())
 	side_box.add_child(_grid(acts))
+
+
+## Unit mix of an army as a chip; the tooltip explains the types and the nation's unique unit.
+func _unit_chip(a) -> PanelContainer:
+	var Un = game.Units
+	var m: Dictionary = Un.mix_of(game, a)
+	var lines := []
+	for t in Un.TYPES:
+		var d: Dictionary = Un.type_def(game, t)
+		lines.append("%s: Feuer %.1f · Nahkampf %.1f · Verfolgung %.1f · Kosten ×%.1f" % [Un.type_name(game, t),
+				Un.stat(game, a.owner, t, "fire"), Un.stat(game, a.owner, t, "shock"), Un.stat(game, a.owner, t, "pursuit"), float(d.get("cost", 1.0))])
+	var u: Dictionary = Un.unique(game, a.owner)
+	var head: String = Un.mix_text(game, m)
+	if not u.is_empty():
+		head += " ⭐"
+		lines.append("⭐ %s (%s): %s" % [u.name, Un.type_def(game, u.type).get("name", u.type), u.text])
+	lines.append("Die ersten %d Runden einer Schlacht sind Feuergefecht, danach Nahkampf. Kavallerie verliert in Wald, Hügeln, Gebirge und Sumpf an Wucht. Artillerie beschleunigt Belagerungen und braucht Militärtechnik %d." % [Un.FIRE_ROUNDS, int(game.units_def.get("art_tech", 3))])
+	lines.append("Vorlage: " + Un.template_name(game, a.owner, a.tmpl) + ("" if not a.mix.is_empty() else " (folgt der Militärtechnik)"))
+	return _chip(head, "\n".join(lines), "gold" if not u.is_empty() else "")
+
+
+## Refit buttons: one per template the army does not already use (player armies only).
+func _refit_buttons(a) -> void:
+	var Un = game.Units
+	var n = game.nations[a.owner]
+	if n.templates.is_empty():
+		return
+	var bs := []
+	for i in range(-1, n.templates.size()):
+		if i == a.tmpl:
+			continue
+		var idx: int = i
+		var why: String = Un.refit_block_reason(game, a, idx)
+		bs.append(_btn("🔨 %s %d💰" % [Un.template_name(game, a.owner, idx), int(ceil(Un.refit_cost(game, a, idx)))],
+				func(): _act(Un.refit(game, a, idx), "🔨 Die Armee ist umgerüstet"),
+				"Umrüsten auf %s (%s). Kostet Gold und %d %% Moral, nur auf eigenem oder verbündetem Gebiet.%s" % [Un.template_name(game, a.owner, idx),
+				Un.mix_text(game, Un.template_mix(game, a.owner, idx) if idx >= 0 else Un.standard_mix(game, a.owner)), int(float(game.bal.refit_power_loss) * 100), ("\n" + why) if why != "" else ""],
+				why != ""))
+	side_box.add_child(_grid(bs, 3))
+
+
+## Army template editor: presets to add, per template cavalry and artillery shares in 10 % steps.
+func _show_templates() -> void:
+	_set_speed(0)
+	_open_modal()
+	var me: String = game.player
+	var n = game.nations[me]
+	var Un = game.Units
+	modal_box.add_child(_lbl("📜 Armeevorlagen", 30))
+	modal_box.add_child(_lbl("Lege fest, wie deine Armeen gemischt sind. Infanterie füllt den Rest. Standard folgt deiner Militärtechnik (jetzt %s). Neue Regimenter nutzen die im Militär-Reiter gewählte Vorlage, bestehende Armeen lassen sich umrüsten." % Un.mix_text(game, Un.standard_mix(game, me)), 15, Color(0.75, 0.78, 0.85)))
+	var u: Dictionary = Un.unique(game, me)
+	if not u.is_empty():
+		modal_box.add_child(_lbl("⭐ Eigene Einheit: %s (%s) – %s" % [u.name, Un.type_name(game, u.type), u.text], 16, Color(1.0, 0.85, 0.45)))
+	for i in n.templates.size():
+		var idx: int = i
+		var t: Dictionary = n.templates[i]
+		modal_box.add_child(_lbl("%s · %s · Kosten ×%.2f" % [t.name, Un.mix_text(game, Un.template_mix(game, me, idx)), Un.cost_mult(game, me, Un.template_mix(game, me, idx))], 18, Color(0.95, 0.9, 0.7)))
+		var row := []
+		for ty in ["cav", "art"]:
+			var tt: String = ty
+			var em: String = Un.type_def(game, ty).get("emoji", ty)
+			row.append(_btn(em + " ➖", func(): Un.adjust_template(game, me, idx, tt, -0.1); _show_templates()))
+			row.append(_btn(em + " ➕", func(): Un.adjust_template(game, me, idx, tt, 0.1); _show_templates(),
+					"" if ty != "art" or Un.art_ok(game, me) else "Artillerie braucht Militärtechnik %d." % int(game.units_def.get("art_tech", 3)), ty == "art" and not Un.art_ok(game, me)))
+		row.append(_btn("✖", func(): Un.remove_template(game, me, idx); _show_templates(), "Vorlage löschen"))
+		modal_box.add_child(_grid(row, 5))
+	if n.templates.size() < Un.MAX_TEMPLATES:
+		var adds := []
+		for pr in Un.PRESETS:
+			var nm: String = pr[0]
+			var mx: Dictionary = pr[1]
+			adds.append(_btn("➕ " + nm, func(): _act(Un.add_template(game, me, nm, mx)); _show_templates(), Un.mix_text(game, Un.clean(game, me, mx))))
+		modal_box.add_child(_grid(adds, 2))
+	modal_box.add_child(_btn("◀ Zurück", _close_modal))
+
+
+## Running battle: both sides with flag, regiments and battle morale, then every round so far.
+func _battle_report(b) -> void:
+	side_box.add_child(_lbl("⚔️ Schlacht bei %s · Runde %d · %s" % [game.provinces[b.pid].name, b.round + 1, Warfare.phase(b)], 18, Color(1.0, 0.75, 0.5)))
+	for i in 2:
+		var arms: Array = b.att if i == 0 else b.def
+		if arms.is_empty():
+			continue
+		var tag: String = arms[0].owner
+		var mor: float = clampf(b.morale_att if i == 0 else b.morale_def, 0.0, 1.0)
+		var lost: float = b.lost_att if i == 0 else b.lost_def
+		var hold: String = " · 🏰 hält das Gelände" if Warfare.holds(game, arms, b.pid) else ""
+		side_box.add_child(_lbl("%s %s: %.1f Reg. · Kampfmoral %d %% · verloren %.1f%s" % [PixelEmoji.nation(tag, game.nations[tag].emoji),
+				game.nations[tag].name + (" + %d" % (arms.size() - 1) if arms.size() > 1 else ""), Warfare.side_regs(arms), int(mor * 100), lost, hold],
+				15, game.nations[tag].color.lightened(0.35)))
+	var lines: Array = []
+	for e in b.log:
+		lines.append("R%d %s: -%.1f / -%.1f · Moral %d %% / %d %%" % [int(e[0]) + 1, Warfare.phase_of(game, int(e[0])),
+				float(e[1]), float(e[2]), int(float(e[3]) * 100), int(float(e[4]) * 100)])
+	if lines.is_empty():
+		lines.append("Die Heere stellen sich auf – die erste Runde folgt im nächsten Monat.")
+	side_box.add_child(_lbl("\n".join(lines.slice(maxi(0, lines.size() - 8))), 14, Color(0.8, 0.82, 0.86)))
 
 
 ## Uncolonized native land: what it holds and the colony buttons.

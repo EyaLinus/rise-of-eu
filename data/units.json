@@ -1,0 +1,382 @@
+{
+ "types": {
+  "inf": {
+   "name": "Infanterie",
+   "emoji": "🛡️",
+   "fire": 1.0,
+   "shock": 1.0,
+   "pursuit": 0.5,
+   "cost": 1.0,
+   "text": "Rückgrat jeder Armee: solide in Feuergefecht und Nahkampf, günstig."
+  },
+  "cav": {
+   "name": "Kavallerie",
+   "emoji": "🐎",
+   "fire": 0.4,
+   "shock": 1.7,
+   "pursuit": 2.0,
+   "cost": 1.5,
+   "rough": 0.6,
+   "text": "Stark im Nahkampf und bei der Verfolgung, schwach im Feuergefecht. In Wald, Hügeln, Gebirge und Sumpf nur %d %% Wucht."
+  },
+  "art": {
+   "name": "Artillerie",
+   "emoji": "💣",
+   "fire": 2.4,
+   "shock": 0.35,
+   "pursuit": 0.0,
+   "cost": 2.0,
+   "siege": 1.5,
+   "text": "Gewaltig im Feuergefecht (erste zwei Runden), schwach im Nahkampf, beschleunigt Belagerungen. Teuer, braucht Militärtechnik %d."
+  }
+ },
+ "era_mix": [
+  [
+   0,
+   {
+    "inf": 0.75,
+    "cav": 0.25,
+    "art": 0.0
+   }
+  ],
+  [
+   3,
+   {
+    "inf": 0.7,
+    "cav": 0.22,
+    "art": 0.08
+   }
+  ],
+  [
+   6,
+   {
+    "inf": 0.65,
+    "cav": 0.2,
+    "art": 0.15
+   }
+  ],
+  [
+   10,
+   {
+    "inf": 0.6,
+    "cav": 0.18,
+    "art": 0.22
+   }
+  ]
+ ],
+ "max_share": {
+  "cav": 0.6,
+  "art": 0.5
+ },
+ "art_tech": 3,
+ "unique": {
+  "TUR": {
+   "name": "Janitscharen",
+   "type": "inf",
+   "bonus": {
+    "fire": 0.15,
+    "shock": 0.2
+   },
+   "text": "Die Elite-Infanterie des Sultans."
+  },
+  "POL": {
+   "name": "Flügelhusaren",
+   "type": "cav",
+   "bonus": {
+    "shock": 0.3,
+    "pursuit": 0.2
+   },
+   "text": "Gepanzerte Lanzenreiter mit Federflügeln."
+  },
+  "SPA": {
+   "name": "Tercios",
+   "type": "inf",
+   "bonus": {
+    "fire": 0.15,
+    "shock": 0.15
+   },
+   "text": "Pikeniere und Arkebusiere in festen Gevierthaufen."
+  },
+  "FRA": {
+   "name": "Gendarmes",
+   "type": "cav",
+   "bonus": {
+    "shock": 0.25
+   },
+   "text": "Schwere Ordonnanzreiterei des Königs."
+  },
+  "ENG": {
+   "name": "Langbogenschützen",
+   "type": "inf",
+   "bonus": {
+    "fire": 0.35
+   },
+   "text": "Ihre Pfeilhagel entscheiden das Feuergefecht."
+  },
+  "HAB": {
+   "name": "Landsknechte",
+   "type": "inf",
+   "bonus": {
+    "shock": 0.2,
+    "fire": 0.05
+   },
+   "text": "Söldner mit Langspieß und Zweihänder."
+  },
+  "BOH": {
+   "name": "Wagenburg",
+   "type": "inf",
+   "bonus": {
+    "fire": 0.25
+   },
+   "text": "Hussitische Kriegswagen mit Handbüchsen."
+  },
+  "RUS": {
+   "name": "Strelitzen",
+   "type": "inf",
+   "bonus": {
+    "fire": 0.25
+   },
+   "text": "Musketiere des Zaren."
+  },
+  "NAP": {
+   "name": "Condottieri",
+   "type": "inf",
+   "bonus": {
+    "shock": 0.15,
+    "pursuit": 0.2
+   },
+   "text": "Erfahrene Söldnerhauptleute Italiens."
+  },
+  "BUR": {
+   "name": "Ordonnanzartillerie",
+   "type": "art",
+   "bonus": {
+    "fire": 0.2
+   },
+   "text": "Die beste Artillerie ihrer Zeit."
+  },
+  "SWI": {
+   "name": "Reisläufer",
+   "type": "inf",
+   "bonus": {
+    "shock": 0.3
+   },
+   "text": "Gefürchtete Schweizer Gewalthaufen."
+  },
+  "SCO": {
+   "name": "Highlander",
+   "type": "inf",
+   "bonus": {
+    "shock": 0.25
+   },
+   "text": "Der Sturmangriff der Clans."
+  },
+  "VEN": {
+   "name": "Stradioti",
+   "type": "cav",
+   "bonus": {
+    "fire": 0.3,
+    "pursuit": 0.3
+   },
+   "text": "Leichte Reiter vom Balkan."
+  },
+  "HUN": {
+   "name": "Schwarze Armee",
+   "type": "inf",
+   "bonus": {
+    "fire": 0.15,
+    "shock": 0.15
+   },
+   "text": "Das stehende Heer des Königs."
+  },
+  "MAM": {
+   "name": "Mamluken",
+   "type": "cav",
+   "bonus": {
+    "shock": 0.3,
+    "fire": 0.2
+   },
+   "text": "Sklavenkrieger, von Kindheit an im Sattel."
+  },
+  "CRI": {
+   "name": "Tatarenreiter",
+   "type": "cav",
+   "bonus": {
+    "fire": 0.4,
+    "pursuit": 0.4
+   },
+   "text": "Blitzschnelle Steppenreiter."
+  },
+  "KAZ": {
+   "name": "Steppenbogenschützen",
+   "type": "cav",
+   "bonus": {
+    "fire": 0.5
+   },
+   "text": "Berittene Bogenschützen der Horde."
+  },
+  "QAR": {
+   "name": "Turkmenische Reiter",
+   "type": "cav",
+   "bonus": {
+    "fire": 0.35,
+    "pursuit": 0.2
+   },
+   "text": "Reiter der Schwarzen Hammel."
+  },
+  "AKK": {
+   "name": "Turkmenische Reiter",
+   "type": "cav",
+   "bonus": {
+    "fire": 0.35,
+    "pursuit": 0.2
+   },
+   "text": "Reiter der Weißen Hammel."
+  },
+  "TEU": {
+   "name": "Ordensritter",
+   "type": "cav",
+   "bonus": {
+    "shock": 0.25
+   },
+   "text": "Die Ritter des Deutschen Ordens."
+  },
+  "LIT": {
+   "name": "Litauische Reiterei",
+   "type": "cav",
+   "bonus": {
+    "fire": 0.2,
+    "pursuit": 0.25
+   },
+   "text": "Leichte Reiter der Wälder und Sümpfe."
+  },
+  "BYZ": {
+   "name": "Warägergarde",
+   "type": "inf",
+   "bonus": {
+    "shock": 0.25
+   },
+   "text": "Die letzte Leibwache des Kaisers."
+  },
+  "KNI": {
+   "name": "Johanniter",
+   "type": "inf",
+   "bonus": {
+    "shock": 0.2,
+    "fire": 0.1
+   },
+   "text": "Die Ritter von Rhodos."
+  },
+  "GEN": {
+   "name": "Genueser Armbrustschützen",
+   "type": "inf",
+   "bonus": {
+    "fire": 0.35
+   },
+   "text": "Gesuchte Schützen auf allen Schlachtfeldern."
+  },
+  "ARA": {
+   "name": "Almogàvares",
+   "type": "inf",
+   "bonus": {
+    "shock": 0.2,
+    "pursuit": 0.2
+   },
+   "text": "Leichtes Fußvolk der Grenzkriege."
+  },
+  "GEO": {
+   "name": "Aznauri",
+   "type": "cav",
+   "bonus": {
+    "shock": 0.2
+   },
+   "text": "Der Kriegeradel Georgiens."
+  },
+  "MOR": {
+   "name": "Berberreiter",
+   "type": "cav",
+   "bonus": {
+    "fire": 0.2,
+    "pursuit": 0.3
+   },
+   "text": "Wendige Reiter des Maghreb."
+  },
+  "TLE": {
+   "name": "Berberreiter",
+   "type": "cav",
+   "bonus": {
+    "fire": 0.2,
+    "pursuit": 0.3
+   },
+   "text": "Wendige Reiter des Maghreb."
+  },
+  "TUN": {
+   "name": "Berberreiter",
+   "type": "cav",
+   "bonus": {
+    "fire": 0.2,
+    "pursuit": 0.3
+   },
+   "text": "Wendige Reiter des Maghreb."
+  },
+  "SON": {
+   "name": "Tuareg-Kamelreiter",
+   "type": "cav",
+   "bonus": {
+    "fire": 0.2,
+    "pursuit": 0.3
+   },
+   "text": "Herren der Sahara."
+  },
+  "AZT": {
+   "name": "Jaguarkrieger",
+   "type": "inf",
+   "bonus": {
+    "shock": 0.3
+   },
+   "text": "Die Elitekrieger Tenochtitlans."
+  },
+  "SER": {
+   "name": "Panzerreiter",
+   "type": "cav",
+   "bonus": {
+    "shock": 0.2
+   },
+   "text": "Der serbische Adel zu Pferd."
+  },
+  "DAN": {
+   "name": "Kalmarer Landwehr",
+   "type": "inf",
+   "bonus": {
+    "fire": 0.1,
+    "shock": 0.1
+   },
+   "text": "Bauernaufgebot aus drei Kronen."
+  },
+  "SAV": {
+   "name": "Savoyer Pikeniere",
+   "type": "inf",
+   "bonus": {
+    "shock": 0.15
+   },
+   "text": "Alpenfußvolk."
+  },
+  "POR": {
+   "name": "Arkebusiere",
+   "type": "inf",
+   "bonus": {
+    "fire": 0.2
+   },
+   "text": "Frühe Feuerwaffen von der Küste."
+  },
+  "BRA": {
+   "name": "Märkische Reiter",
+   "type": "cav",
+   "bonus": {
+    "shock": 0.15,
+    "pursuit": 0.15
+   },
+   "text": "Reiter der Mark."
+  }
+ }
+}

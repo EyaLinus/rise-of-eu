@@ -203,6 +203,10 @@ add("📋", "clipboard", layer(["...gaaag...", "OOOgddgOOO.", "OPPPPPPPPO.", "OP
 add("🐞", "bug", layer(["...k..k.....", "....kk......", "...kkkk.....", "..RRRkRRR...", ".RRkRkRkRR..", ".RRRRkRRRR..",
                        "RkRRRkRRRkR.", "RRRRRkRRRRE.", ".RRkRkRkRE..", ".RRRRkRRRE..", "..EERkREE...", "....EEE....."], 2, 2))
 
+# ---- unit types (scripts/core/units.gd): artillery; cavalry reuses the horse (goods), infantry the army shield
+add("💣", "cannon", layer([".aaaaaaaaag.", "aggggggggggd", "addddddddddd", "..OOH.......", ".OHoOH......",
+                          ".OoHoH......", "..OHH.......", "............"], 2, 4))
+
 if __name__ == "__main__":
     os.makedirs(SRC, exist_ok=True)
     os.makedirs(OUT, exist_ok=True)
