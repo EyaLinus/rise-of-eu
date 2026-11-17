@@ -438,6 +438,8 @@ func _draw_world(ci: CanvasItem) -> void:
 			cc.a = 0.6 if map_mode != MODE_WAR else 0.9
 			for poly in polys[p.id]:
 				_draw_hatch(ci, poly, bboxes[p.id], cc)
+	_draw_rivers(ci)
+	_draw_terrain_glyphs(ci)
 	_draw_borders(ci)
 	_draw_roads(ci)
 	_draw_cities(ci)
@@ -569,6 +571,85 @@ func _draw_roads(ci: CanvasItem) -> void:
 ## (urban provinces always, countryside from `city_village_dev`), so development shows on the map.
 const CITY_VILLAGE_DEV := 8
 const CITY_BIG_DEV := 16
+## Major rivers (data/rivers.json, tools/art/rivers.py): an ink-blue line with a pale centre, drawn over
+## the province colours so the land reads like an old atlas. Loaded once; cheap (about 30 polylines).
+var _rivers: Array = []
+var _rivers_loaded := false
+const RIVER_INK := Color(0.11, 0.24, 0.38, 0.8)
+const RIVER_SHINE := Color(0.5, 0.69, 0.77, 0.75)
+
+func _draw_rivers(ci: CanvasItem) -> void:
+	if not _rivers_loaded:
+		_rivers_loaded = true
+		var f := FileAccess.open("res://data/rivers.json", FileAccess.READ)
+		if f != null:
+			var d = JSON.parse_string(f.get_as_text())
+			if d is Array:
+				for r in d:
+					var pts := PackedVector2Array()
+					for q in r.pts:
+						pts.append(Vector2(q[0], q[1]))
+					_rivers.append([pts, float(r.get("w", 2))])
+	if map_mode == MODE_WAR:
+		return
+	for r in _rivers:
+		var w: float = 1.2 + 0.7 * r[1]
+		ci.draw_polyline(r[0], RIVER_INK, w, true)
+		if zoom >= 0.55:
+			ci.draw_polyline(r[0], RIVER_SHINE, w * 0.35, true)
+
+
+## Small landscape sprites (tools/art/terrain_glyphs.py): woods, dunes or an oasis palm, reeds, hills.
+## Placed once per province at fixed spots inside its outline, away from the centre (city, labels).
+var _glyph_spots := {}  # pid -> Array of [texture key, world position]
+const GLYPH_OFFSETS := [Vector2(-30, -20), Vector2(26, -22), Vector2(-32, 14), Vector2(28, 16), Vector2(0, -30)]
+
+func _glyphs_for(p) -> Array:
+	if _glyph_spots.has(p.id):
+		return _glyph_spots[p.id]
+	var keys: Array = []
+	match p.terrain:
+		"forest":
+			keys = ["terr_forest", "terr_forest"]
+		"desert":
+			keys = ["terr_oasis" if p.dev >= 5 else "terr_dunes", "terr_dunes"]
+		"marsh":
+			keys = ["terr_marsh"]
+		"hills":
+			keys = ["terr_hills"]
+	var bb: Rect2 = bboxes[p.id]
+	if bb.size.x * bb.size.y < 9000.0:
+		keys = keys.slice(0, 1)
+	var out := []
+	var oi := 0
+	for k in keys:
+		while oi < GLYPH_OFFSETS.size():
+			var at: Vector2 = p.center + GLYPH_OFFSETS[oi]
+			oi += 1
+			var inside := false
+			for poly in polys[p.id]:
+				if Geometry2D.is_point_in_polygon(at, poly):
+					inside = true
+					break
+			if inside:
+				out.append([k, at])
+				break
+	_glyph_spots[p.id] = out
+	return out
+
+
+func _draw_terrain_glyphs(ci: CanvasItem) -> void:
+	if zoom < 0.55 or map_mode == MODE_WAR:
+		return
+	for p in game.provinces:
+		for g in _glyphs_for(p):
+			var tex := Icons.texture(g[0])
+			if tex == null:
+				continue
+			var sz: Vector2 = tex.get_size() * 0.5
+			ci.draw_texture_rect(tex, Rect2(g[1] - sz / 2.0, sz), false, Color(1, 1, 1, 0.9))
+
+
 func _draw_cities(ci: CanvasItem) -> void:
 	if zoom < 0.55 or map_mode == MODE_WAR:
 		return

@@ -3,3 +3,4 @@
 - Neue Glaubensrichtungen: schiitisch (Safawiden, Masandaran) und koptisch (Äthiopien, Alwa).
 - Neue Meere: Rotes Meer, Golf von Aden, Arabisches Meer und Persischer Golf; neue Märkte Aden und Hormus. Der Suezkanal ist (wie 1444) noch Land.
 - Persien gründen: auch Timuriden, Safawiden und Masandaran können es, braucht jetzt 9 von 12 Provinzen (inkl. Bagdad, Isfahan, Fars).
+- Mehr Details auf der Karte: die großen Flüsse (Donau, Rhein, Wolga, Nil, Euphrat, Tigris, Niger, Mississippi …) und kleine Landschaftsbilder für Wälder, Wüsten mit Oasen, Sümpfe und Hügel.
