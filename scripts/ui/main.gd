@@ -4001,6 +4001,24 @@ func _advice() -> Array:
 	if worst >= 0:
 		add.call("✊ Aufstand droht: %s%s" % [game.provinces[worst].name, (" (+%d weitere)" % (restless - 1)) if restless > 1 else ""],
 				"Unruhe %.1f. Unterdrücken (⚔️), eine Armee hinschicken oder die Ursachen beseitigen (Tooltip der Unruhe-Kachel)." % worst_u, "bad", "province", worst)
+	# own provinces under siege (the one closest to falling first) and provinces held by the enemy
+	var sieged := -1
+	var sieged_n := 0
+	var occupied := []
+	for pid in game.provinces_of(me):
+		var sp = game.provinces[pid]
+		if sp.controller != me:
+			occupied.append(pid)
+		elif sp.siege > 0.0:
+			sieged_n += 1
+			if sieged < 0 or sp.siege > game.provinces[sieged].siege:
+				sieged = pid
+	if sieged >= 0:
+		add.call("🏰 Belagert: %s (%d %%)%s" % [game.provinces[sieged].name, int(game.provinces[sieged].siege), (" (+%d weitere)" % (sieged_n - 1)) if sieged_n > 1 else ""],
+				"Feindliche Truppen belagern deine Provinz. Bei 100 % fällt sie. Eine Armee hinschicken bricht die Belagerung ab.", "bad", "province", sieged)
+	if not occupied.is_empty():
+		add.call("🏳️ Vom Feind besetzt: %s%s" % [game.provinces[occupied[0]].name, (" (+%d weitere)" % (occupied.size() - 1)) if occupied.size() > 1 else ""],
+				"Besetzte Provinzen zahlen dir nichts und zählen für den Gegner beim Kriegsziel. Zurückerobern, indem du sie selbst belagerst.", "bad", "province", occupied[0])
 	# armies over the supply limit lose regiments every month at war (Warfare.attrition)
 	var starving := []
 	for a in game.armies_of(me):

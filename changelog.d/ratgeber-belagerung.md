@@ -1,0 +1,1 @@
+- **Ratgeber meldet Belagerungen:** Wird eine deiner Provinzen belagert, zeigt der Ratgeber sie mit Fortschritt (die gefährdetste zuerst); vom Feind besetzte Provinzen stehen gleich darunter. Ein Klick springt hin.
