@@ -1,0 +1,1 @@
+- Performance: ein Spielmonat rechnet rund 30 % schneller (Modifikator-Cache, Vasallen-/Embargo-Index, Ereignis-Index, Marine nur bei Bedarf). Der Spielverlauf bleibt unverändert.
