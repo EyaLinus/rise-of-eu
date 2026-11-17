@@ -1,1 +1,0 @@
-- **Spielstart pausiert:** Neue Spiele und geladene Spielstände starten pausiert auf Tempo 1. Leertaste oder ➕ setzt mit Tempo 1 fort.

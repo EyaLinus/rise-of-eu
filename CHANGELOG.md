@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.0.1 – 2026-11-17
+- **Dynamische Nachfrage:** Die Nachfrage nach Gütern wächst jetzt mit der Weltwirtschaft. Bisher fielen ab etwa 1520 fast alle Güter auf den Mindestpreis von 60 %; jetzt hat jedes Gut wieder einen eigenen Preis: Was schneller produziert wird als der Rest der Welt, wird billiger, knappe Güter werden teurer. Das allgemeine Preisniveau sinkt über die Partie sanft (70 % → 52 %), damit die Einnahmen nicht explodieren.
+- Weniger Grafikspeicher: die Kartentexturen sind jetzt GPU-komprimiert und mit Mipmaps (95 MB → 31 MB), herausgezoomt flimmert das Terrain nicht mehr. Kann Abstürze auf Handys mit wenig Grafikspeicher verhindern.
+- Performance: ein Spielmonat rechnet rund 30 % schneller (Modifikator-Cache, Vasallen-/Embargo-Index, Ereignis-Index, Marine nur bei Bedarf). Der Spielverlauf bleibt unverändert.
+- Flüssigeres Spiel: ein Spielmonat wird über mehrere Bilder verteilt berechnet, statt das Bild bei jedem Monat (und vor allem zum Jahreswechsel) kurz einzufrieren.
+- Nur noch zwei Geschwindigkeiten (normal und schnell); die drei schnelleren Stufen sind entfallen.
+- **Ratgeber meldet Belagerungen:** Wird eine deiner Provinzen belagert, zeigt der Ratgeber sie mit Fortschritt (die gefährdetste zuerst); vom Feind besetzte Provinzen stehen gleich darunter. Ein Klick springt hin.
+- **Ganz Afrika auf der Karte:** Die Karte reicht jetzt bis zum Kap der Guten Hoffnung. 72 neue Provinzen: Sahel und Sudan (Fessan, Aïr, Bornu, Kanem, Wadai, Darfur, Kordofan), die Somaliküste, die Swahiliküste von Malindi bis Sofala, die Großen Seen, Kongo und Zentralafrika, das südliche Afrika und Madagaskar. Der Victoria-, Tanganjika- und Malawisee sind ausgeschnitten, dazu Kongo, Sambesi, Limpopo, Oranje, Weißer Nil und weitere Flüsse sowie Drakensberge, Kilimandscharo und Madagaskars Hochland.
+- **Neue Reiche:** Kano (die Hausa-Stadt, bisher Niemandsland), Bornu, Darfur, Ajuran, Malindi, Mombasa, Kilwa, Kitara, Kongo, Ndongo und Mutapa, mit eigenen Flaggen. Der Rest ist freies Land für Siedler.
+- **Seeweg um Afrika:** Südatlantik, Kap, Straße von Mosambik, Swahiliküste und Indischer Ozean müssen von Europa aus erst erkundet werden (Golf von Guinea, dann weiter nach Süden). Händler aus Jemen, Adal, Hormus und Persien kennen die Swahiliküste dank des Monsuns schon von Anfang an.
+- **Kolonien nur mit Seeweg:** Siedler erreichen eine fremde Küste nur noch, wenn die eigenen Schiffe über bekannte Meere dorthin kommen; Expeditionen starten nur von Meeren, die die eigene Flotte erreicht (kein Sprung von Lissabon ins Arabische Meer).
+- **Güter und Märkte:** Gold aus Mutapa und Sofala, Elfenbein, Kupfer aus Katanga, Salz aus der Sahara, Kaffee aus Kaffa, Gewürze aus Sansibar; neue Marktplätze Bornu, Kilwa und Kongo. Der Ostindien-Handelsposten „Sofala“ heißt jetzt „Malediven“, weil Sofala eine echte Provinz ist.
+- **Entscheidungen in der Chronik:** Jede Antwort auf ein Ereignis steht jetzt mit Titel und gewählter Option in der Chronik (📜), damit man später nachlesen kann, was man entschieden hat.
+- **Mehr Geschichte für die neuen Nationen:** 30 Ereignisse für Portugal (Sagres, Kap der Guten Hoffnung, Zucker von den Inseln), Venedig (Arsenal, Rat der Zehn, Caterina Cornaro), Ungarn (Heilige Krone, Corviniana, Tokajer), die Mamluken (Pilgerkarawane, Feuerwaffen), Qara Qoyunlu (Weiße Hammel, Tigris-Hochwasser) und Äthiopien (Lalibela, Kebra Nagast, die Oromo). Jede spielbare Nation hat jetzt mindestens zehn eigene Ereignisse; bei Sklaverei und Vertreibung gibt es immer eine menschliche Wahl.
+- **Ratgeber warnt vor Hunger:** Stehen eigene Armeen über dem Versorgungslimit, meldet der 💡 Ratgeber das Feldlager mit Last und Limit und springt per Antippen hin.
+- **Spielstart pausiert:** Neue Spiele und geladene Spielstände starten pausiert auf Tempo 1. Leertaste oder ➕ setzt mit Tempo 1 fort.
+- **Geschichten zu den neuen Gütern:** 13 Ereignisse für Seide, Gewürze, Baumwolle, Glas, Papier, Pferde, Olivenöl, Bernstein, Schiffsbedarf, Elfenbein, Farbstoffe, Kaffee und Weihrauch (für Reiche, die das Gut herstellen), dazu zwei skurrile Hofgeschichten.
+
 ## v1.0.0 – 2026-11-17
 - **Sechs neue spielbare Nationen:** Portugal, Venedig, Ungarn, die Mamluken, Qara Qoyunlu und Äthiopien. Jede mit eigenen Missionen (8 bis 11), Ereignissen, drei Nationaltechnologien, historischen Beratern und einer Handelskompanie.
 - Neue Ereignisse mit schwierigen Entscheidungen, z. B. Portugal und der Menschenhandel an der Guineaküste, Venedigs Galeerenruderer oder Raubzüge in den Kaukasus, jeweils mit einer menschlicheren Alternative.

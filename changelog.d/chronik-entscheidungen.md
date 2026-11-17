@@ -1,1 +1,0 @@
-- **Entscheidungen in der Chronik:** Jede Antwort auf ein Ereignis steht jetzt mit Titel und gewählter Option in der Chronik (📜), damit man später nachlesen kann, was man entschieden hat.
