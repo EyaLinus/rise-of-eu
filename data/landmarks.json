@@ -1,0 +1,2421 @@
+{
+ "westminster": {
+  "name": "Westminster Abbey",
+  "prov": "london",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 2,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Krönungskirche der englischen Könige."
+ },
+ "tower_london": {
+  "name": "Tower of London",
+  "prov": "london",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 1.0,
+   "prestige": 0.1
+  },
+  "text": "Burg, Kerker und Schatzkammer der Krone.",
+  "bound": "ENG"
+ },
+ "portsmouth": {
+  "name": "Königliche Werft Portsmouth",
+  "prov": "wessex",
+  "kind": "port",
+  "emoji": "⚓",
+  "start": 0,
+  "local": {
+   "trade_power": 0.25,
+   "trade_flat": 1.0
+  },
+  "nation": {
+   "trade": 0.01,
+   "naval": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Trockendock und Werft der königlichen Flotte.",
+  "bound": "ENG",
+  "tech": [
+   "dip",
+   5
+  ],
+  "cost": 1.2
+ },
+ "oxford": {
+  "name": "Universität Oxford",
+  "prov": "midlands",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 1,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Älteste Universität der englischsprachigen Welt."
+ },
+ "york_minster": {
+  "name": "York Minster",
+  "prov": "york",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Gotische Kathedrale des Nordens."
+ },
+ "edinburgh": {
+  "name": "Edinburgh Castle",
+  "prov": "lothian",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Die Burg auf dem Vulkanfelsen über Edinburgh."
+ },
+ "trinity_dublin": {
+  "name": "Trinity College",
+  "prov": "pale",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 0,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Kolleg in Dublin, gegründet 1592.",
+  "tech": [
+   "adm",
+   7
+  ]
+ },
+ "notre_dame": {
+  "name": "Notre-Dame de Paris",
+  "prov": "paris",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 2,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Die Kathedrale auf der Île de la Cité."
+ },
+ "louvre": {
+  "name": "Louvre",
+  "prov": "paris",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 1,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Festung, dann Residenz der französischen Könige.",
+  "bound": "FRA"
+ },
+ "versailles": {
+  "name": "Schloss Versailles",
+  "prov": "paris",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 0,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.6,
+   "dip": 0.1,
+   "estate_adel": 1.0
+  },
+  "text": "Der Hof des Sonnenkönigs, Vorbild für ganz Europa.",
+  "bound": "FRA",
+  "tech": [
+   "adm",
+   13
+  ],
+  "cost": 1.6
+ },
+ "chartres": {
+  "name": "Kathedrale von Chartres",
+  "prov": "orleans",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Glasfenster, die ganz Europa bewundert."
+ },
+ "mont_st_michel": {
+  "name": "Mont-Saint-Michel",
+  "prov": "normandy",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0,
+   "force_limit": 0.25
+  },
+  "text": "Kloster und Festung im Wattenmeer."
+ },
+ "avignon": {
+  "name": "Papstpalast Avignon",
+  "prov": "provence",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 1,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1,
+   "estate_klerus": 1.0
+  },
+  "text": "Sitz der Päpste im 14. Jahrhundert."
+ },
+ "carcassonne": {
+  "name": "Carcassonne",
+  "prov": "languedoc",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Doppelter Mauerring über der Aude."
+ },
+ "bordeaux_port": {
+  "name": "Hafen von Bordeaux",
+  "prov": "bordeaux",
+  "kind": "port",
+  "emoji": "⚓",
+  "start": 1,
+  "local": {
+   "trade_power": 0.25,
+   "trade_flat": 1.0
+  },
+  "nation": {
+   "trade": 0.01,
+   "naval": 0.02,
+   "prestige": 0.1
+  },
+  "text": "Weinhandel mit ganz Nordeuropa."
+ },
+ "lyon_fairs": {
+  "name": "Messen von Lyon",
+  "prov": "lyon",
+  "kind": "market",
+  "emoji": "🏦",
+  "start": 1,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.01,
+   "prestige": 0.1
+  },
+  "text": "Seide, Bücher und Wechselbriefe."
+ },
+ "sevilla_port": {
+  "name": "Hafen von Sevilla",
+  "prov": "sevilla",
+  "kind": "port",
+  "emoji": "⚓",
+  "start": 0,
+  "local": {
+   "trade_power": 0.25,
+   "trade_flat": 1.0
+  },
+  "nation": {
+   "trade": 0.02,
+   "naval": 0.02,
+   "prestige": 0.1,
+   "colony_cost": -0.05
+  },
+  "text": "Casa de Contratación: alle Schiffe aus der Neuen Welt laufen hier ein.",
+  "bound": "SPA",
+  "tech": [
+   "dip",
+   6
+  ],
+  "cost": 1.3
+ },
+ "giralda": {
+  "name": "Kathedrale von Sevilla",
+  "prov": "sevilla",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Größte gotische Kirche der Welt mit der Giralda."
+ },
+ "escorial": {
+  "name": "El Escorial",
+  "prov": "toledo",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 0,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.5,
+   "dip": 0.1,
+   "estate_klerus": 1.0
+  },
+  "text": "Kloster, Palast und Grablege Philipps II.",
+  "bound": "SPA",
+  "tech": [
+   "adm",
+   10
+  ],
+  "cost": 1.5
+ },
+ "toledo_cathedral": {
+  "name": "Kathedrale von Toledo",
+  "prov": "toledo",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Sitz des Primas von Spanien."
+ },
+ "santiago": {
+  "name": "Santiago de Compostela",
+  "prov": "galicia",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 2,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Ziel des Jakobswegs."
+ },
+ "burgos_cathedral": {
+  "name": "Kathedrale von Burgos",
+  "prov": "burgos",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Gotik aus Kastiliens Wollhandel."
+ },
+ "salamanca": {
+  "name": "Universität Salamanca",
+  "prov": "leon",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 1,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Hier wird über das Völkerrecht der Neuen Welt gestritten."
+ },
+ "alhambra": {
+  "name": "Alhambra",
+  "prov": "granada",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 2,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Palaststadt der Nasriden."
+ },
+ "llotja": {
+  "name": "Llotja de Mar",
+  "prov": "barcelona",
+  "kind": "market",
+  "emoji": "🏦",
+  "start": 1,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.01,
+   "prestige": 0.1,
+   "naval": 0.02
+  },
+  "text": "Seehandelsbörse und Konsulat des Meeres."
+ },
+ "lonja_seda": {
+  "name": "Seidenbörse Valencia",
+  "prov": "valencia",
+  "kind": "market",
+  "emoji": "🏦",
+  "start": 0,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.01,
+   "prestige": 0.1
+  },
+  "text": "Prunkvolle Börse der Seidenhändler (1482).",
+  "tech": [
+   "dip",
+   3
+  ]
+ },
+ "aljaferia": {
+  "name": "Aljafería",
+  "prov": "zaragoza",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 1,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Maurischer Palast der Könige von Aragón."
+ },
+ "casa_india": {
+  "name": "Casa da Índia & Torre de Belém",
+  "prov": "lisbon",
+  "kind": "port",
+  "emoji": "⚓",
+  "start": 0,
+  "local": {
+   "trade_power": 0.25,
+   "trade_flat": 1.0
+  },
+  "nation": {
+   "trade": 0.025,
+   "naval": 0.02,
+   "prestige": 0.1,
+   "colony_cost": -0.05
+  },
+  "text": "Gewürzhandel und Krone kontrollieren jede Fahrt nach Indien.",
+  "bound": "POR",
+  "tech": [
+   "dip",
+   4
+  ],
+  "cost": 1.3
+ },
+ "jeronimos": {
+  "name": "Hieronymitenkloster",
+  "prov": "lisbon",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 0,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.25,
+   "estate_klerus": 1.0
+  },
+  "text": "Manuelinische Pracht aus dem Pfefferhandel.",
+  "bound": "POR",
+  "tech": [
+   "adm",
+   6
+  ],
+  "cost": 1.2
+ },
+ "sagres": {
+  "name": "Seefahrerschule Sagres",
+  "prov": "algarve",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 0,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1,
+   "naval": 0.03
+  },
+  "text": "Kartographen und Kapitäne Heinrichs des Seefahrers.",
+  "bound": "POR",
+  "tech": [
+   "dip",
+   3
+  ]
+ },
+ "coimbra": {
+  "name": "Universität Coimbra",
+  "prov": "porto",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 1,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Gelehrte für Krone und Kirche."
+ },
+ "prague_castle": {
+  "name": "Prager Burg",
+  "prov": "prague",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 2,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Größte Burganlage Europas über der Moldau.",
+  "bound": "BOH"
+ },
+ "charles_bridge": {
+  "name": "Karlsbrücke",
+  "prov": "prague",
+  "kind": "market",
+  "emoji": "🏦",
+  "start": 1,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.01,
+   "prestige": 0.1
+  },
+  "text": "Steinbrücke mit Handel und Zoll."
+ },
+ "carolinum": {
+  "name": "Karlsuniversität",
+  "prov": "prague",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 1,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Älteste Universität Mitteleuropas."
+ },
+ "karlstein": {
+  "name": "Burg Karlštejn",
+  "prov": "pilsen",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.2
+  },
+  "text": "Hier liegen die Reichskleinodien.",
+  "bound": "BOH"
+ },
+ "kutna_hora": {
+  "name": "Silberstadt Kuttenberg",
+  "prov": "moravia",
+  "kind": "market",
+  "emoji": "🏦",
+  "start": 1,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.01,
+   "prestige": 0.1
+  },
+  "text": "Silberbergbau und Münzstätte."
+ },
+ "stephansdom": {
+  "name": "Stephansdom",
+  "prov": "wien",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Das Wahrzeichen Wiens."
+ },
+ "hofburg": {
+  "name": "Hofburg",
+  "prov": "wien",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 1,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.15
+  },
+  "text": "Residenz der Habsburger.",
+  "bound": "HAB"
+ },
+ "schoenbrunn": {
+  "name": "Schloss Schönbrunn",
+  "prov": "wien",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 0,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.55,
+   "dip": 0.1
+  },
+  "text": "Das habsburgische Versailles.",
+  "bound": "HAB",
+  "tech": [
+   "adm",
+   12
+  ],
+  "cost": 1.5
+ },
+ "goldenes_dachl": {
+  "name": "Goldenes Dachl",
+  "prov": "tirol",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 1,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Prunkerker Maximilians in Innsbruck.",
+  "cost": 0.8
+ },
+ "graz_arsenal": {
+  "name": "Landeszeughaus Graz",
+  "prov": "steiermark",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 0,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 1.0,
+   "prestige": 0.1
+  },
+  "text": "Waffen für die Abwehr der Osmanen.",
+  "bound": "HAB",
+  "tech": [
+   "mil",
+   6
+  ]
+ },
+ "kremlin": {
+  "name": "Moskauer Kreml",
+  "prov": "moscow",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 2,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.25
+  },
+  "text": "Burg, Kirchen und Paläste der Zaren.",
+  "bound": "RUS"
+ },
+ "st_basil": {
+  "name": "Basilius-Kathedrale",
+  "prov": "moscow",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 0,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.25,
+   "estate_klerus": 1.0
+  },
+  "text": "Gebaut zum Sieg über Kasan (1561).",
+  "bound": "RUS",
+  "tech": [
+   "adm",
+   7
+  ],
+  "cost": 1.3
+ },
+ "trinity_lavra": {
+  "name": "Dreifaltigkeitskloster",
+  "prov": "vladimir",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Geistiges Herz der russischen Kirche."
+ },
+ "sophia_novgorod": {
+  "name": "Sophienkathedrale Nowgorod",
+  "prov": "novgorod",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Kirche der freien Handelsrepublik."
+ },
+ "peterhof_hansa": {
+  "name": "Peterhof (Hansekontor)",
+  "prov": "novgorod",
+  "kind": "market",
+  "emoji": "🏦",
+  "start": 1,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.01,
+   "prestige": 0.1
+  },
+  "text": "Pelze und Wachs gegen Tuch und Salz."
+ },
+ "kiev_lavra": {
+  "name": "Kiewer Höhlenkloster",
+  "prov": "kiev",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 2,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Mutterkloster der Rus."
+ },
+ "smolensk": {
+  "name": "Festung Smolensk",
+  "prov": "smolensk",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 0,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Der Schlüssel zwischen Moskau und Litauen.",
+  "tech": [
+   "mil",
+   5
+  ]
+ },
+ "castel_nuovo": {
+  "name": "Castel Nuovo",
+  "prov": "napoli",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Triumphbogen Alfons' von Aragón.",
+  "bound": "NAP"
+ },
+ "caserta": {
+  "name": "Königspalast Caserta",
+  "prov": "napoli",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 0,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.5,
+   "dip": 0.1
+  },
+  "text": "Größter Palast des Barock.",
+  "bound": "NAP",
+  "tech": [
+   "adm",
+   14
+  ],
+  "cost": 1.5
+ },
+ "monte_cassino": {
+  "name": "Montecassino",
+  "prov": "abruzzo",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Mutterkloster der Benediktiner."
+ },
+ "san_nicola": {
+  "name": "Basilika San Nicola",
+  "prov": "apulia",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Pilgerziel in Bari."
+ },
+ "palermo_palace": {
+  "name": "Normannenpalast Palermo",
+  "prov": "sicily",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 1,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Mosaiken aus Byzanz, Arabien und dem Norden."
+ },
+ "st_peter": {
+  "name": "Petersdom",
+  "prov": "rome",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.35,
+   "estate_klerus": 1.0
+  },
+  "text": "Neubau ab 1506: die größte Kirche der Christenheit.",
+  "tech": [
+   "adm",
+   6
+  ],
+  "cost": 1.6
+ },
+ "colosseum": {
+  "name": "Kolosseum",
+  "prov": "rome",
+  "kind": "temple",
+  "emoji": "🗿",
+  "start": 2,
+  "local": {
+   "unrest": -0.3,
+   "tax": 0.05
+  },
+  "nation": {
+   "prestige": 0.25
+  },
+  "text": "Ruine des alten Rom, Ziel aller Reisenden."
+ },
+ "florence_duomo": {
+  "name": "Dom von Florenz",
+  "prov": "florence",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 2,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Brunelleschis Kuppel."
+ },
+ "medici_bank": {
+  "name": "Bank der Medici",
+  "prov": "florence",
+  "kind": "market",
+  "emoji": "🏦",
+  "start": 1,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.02,
+   "prestige": 0.1
+  },
+  "text": "Wechsel und Kredite für Päpste und Könige."
+ },
+ "siena_duomo": {
+  "name": "Dom von Siena",
+  "prov": "siena",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Gestreifter Marmor über der Stadt."
+ },
+ "bologna_univ": {
+  "name": "Universität Bologna",
+  "prov": "bologna",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 2,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Älteste Universität Europas."
+ },
+ "milan_duomo": {
+  "name": "Mailänder Dom",
+  "prov": "milan",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Seit 1386 im Bau."
+ },
+ "san_giorgio": {
+  "name": "Banco di San Giorgio",
+  "prov": "genoa",
+  "kind": "market",
+  "emoji": "🏦",
+  "start": 2,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.02,
+   "prestige": 0.1
+  },
+  "text": "Die Bank, die Genua regiert."
+ },
+ "doge_palace": {
+  "name": "Dogenpalast",
+  "prov": "venice",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 2,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Regierungssitz der Serenissima.",
+  "bound": "VEN"
+ },
+ "arsenale": {
+  "name": "Arsenal von Venedig",
+  "prov": "venice",
+  "kind": "port",
+  "emoji": "⚓",
+  "start": 2,
+  "local": {
+   "trade_power": 0.25,
+   "trade_flat": 1.0
+  },
+  "nation": {
+   "trade": 0.01,
+   "naval": 0.06,
+   "prestige": 0.1
+  },
+  "text": "Eine Galeere am Tag.",
+  "bound": "VEN"
+ },
+ "san_marco": {
+  "name": "Markusdom",
+  "prov": "venice",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Goldene Mosaiken und Beute aus Byzanz."
+ },
+ "padua_univ": {
+  "name": "Universität Padua",
+  "prov": "verona",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 1,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Anatomie und Astronomie."
+ },
+ "candia": {
+  "name": "Festung Candia",
+  "prov": "crete",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Venedigs Bollwerk im Ägäischen Meer."
+ },
+ "wawel": {
+  "name": "Wawel",
+  "prov": "krakow",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 2,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Burg und Krönungskathedrale der polnischen Könige.",
+  "bound": "POL"
+ },
+ "jagiellonian": {
+  "name": "Jagiellonen-Universität",
+  "prov": "krakow",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 1,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Hier studiert Kopernikus."
+ },
+ "wieliczka": {
+  "name": "Salzbergwerk Wieliczka",
+  "prov": "krakow",
+  "kind": "market",
+  "emoji": "🏦",
+  "start": 1,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.01,
+   "prestige": 0.1
+  },
+  "text": "Das weiße Gold der Krone."
+ },
+ "warsaw_castle": {
+  "name": "Königsschloss Warschau",
+  "prov": "warsaw",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 0,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.15
+  },
+  "text": "Neue Hauptstadt der Republik beider Nationen.",
+  "bound": "POL",
+  "tech": [
+   "adm",
+   6
+  ],
+  "cost": 1.2
+ },
+ "lwow_cathedral": {
+  "name": "Kathedrale von Lemberg",
+  "prov": "lwow",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Drei Konfessionen in einer Stadt."
+ },
+ "marienburg": {
+  "name": "Marienburg",
+  "prov": "marienburg",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 2,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Größte Backsteinburg der Welt."
+ },
+ "vilnius_castle": {
+  "name": "Burg Vilnius",
+  "prov": "vilnius",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Sitz der Großfürsten von Litauen."
+ },
+ "buda_castle": {
+  "name": "Burg Buda",
+  "prov": "buda",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 2,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Renaissancehof von Matthias Corvinus.",
+  "bound": "HUN"
+ },
+ "corviniana": {
+  "name": "Bibliotheca Corviniana",
+  "prov": "buda",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 0,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.02,
+   "adm": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Eine der größten Bibliotheken Europas.",
+  "bound": "HUN",
+  "tech": [
+   "adm",
+   4
+  ]
+ },
+ "pressburg_dom": {
+  "name": "Martinsdom Pressburg",
+  "prov": "pressburg",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Krönungskirche der ungarischen Könige."
+ },
+ "temesvar": {
+  "name": "Festung Temeswar",
+  "prov": "temes",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Grenzfestung gegen die Osmanen.",
+  "bound": "HUN"
+ },
+ "kassa_dom": {
+  "name": "Elisabethdom Kaschau",
+  "prov": "kassa",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Gotik am Handelsweg nach Polen."
+ },
+ "fortified_churches": {
+  "name": "Kirchenburgen Siebenbürgens",
+  "prov": "transylvania",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Die Dörfer verteidigen sich selbst.",
+  "cost": 0.8
+ },
+ "cologne_dom": {
+  "name": "Kölner Dom",
+  "prov": "cologne",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Unvollendet, aber schon riesig."
+ },
+ "kaiserburg": {
+  "name": "Kaiserburg Nürnberg",
+  "prov": "nuremberg",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Hier halten die Kaiser Hof."
+ },
+ "frauenkirche": {
+  "name": "Frauenkirche München",
+  "prov": "munich",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 0,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Zwei Türme mit welschen Hauben (1488).",
+  "tech": [
+   "adm",
+   3
+  ],
+  "cost": 0.8
+ },
+ "heidelberg": {
+  "name": "Universität Heidelberg",
+  "prov": "palatinate",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 1,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Älteste Universität im Reich."
+ },
+ "leipzig_univ": {
+  "name": "Universität Leipzig",
+  "prov": "leipzig",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 1,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Gelehrte und Buchdrucker."
+ },
+ "zwinger": {
+  "name": "Zwinger",
+  "prov": "dresden",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 0,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Barocke Festkulisse der Kurfürsten.",
+  "tech": [
+   "adm",
+   12
+  ],
+  "cost": 1.3
+ },
+ "berlin_palace": {
+  "name": "Berliner Schloss",
+  "prov": "berlin",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 0,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Residenz der Hohenzollern.",
+  "tech": [
+   "adm",
+   8
+  ],
+  "cost": 1.2
+ },
+ "hamburg_port": {
+  "name": "Hamburger Hafen",
+  "prov": "hamburg",
+  "kind": "port",
+  "emoji": "⚓",
+  "start": 1,
+  "local": {
+   "trade_power": 0.25,
+   "trade_flat": 1.0
+  },
+  "nation": {
+   "trade": 0.01,
+   "naval": 0.02,
+   "prestige": 0.1
+  },
+  "text": "Tor der Hanse zur Nordsee."
+ },
+ "kronborg": {
+  "name": "Schloss Kronborg",
+  "prov": "copenhagen",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 0,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1,
+   "trade": 0.02
+  },
+  "text": "Hier zahlt jedes Schiff den Sundzoll.",
+  "tech": [
+   "mil",
+   5
+  ],
+  "cost": 1.2
+ },
+ "tre_kronor": {
+  "name": "Schloss Tre Kronor",
+  "prov": "stockholm",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 1,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Burg der schwedischen Könige."
+ },
+ "bryggen": {
+  "name": "Bryggen",
+  "prov": "bergen",
+  "kind": "market",
+  "emoji": "🏦",
+  "start": 1,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.01,
+   "prestige": 0.1
+  },
+  "text": "Deutsche Brücke, Stockfisch für Europa."
+ },
+ "riga_hansa": {
+  "name": "Hansestadt Riga",
+  "prov": "riga",
+  "kind": "market",
+  "emoji": "🏦",
+  "start": 1,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.01,
+   "prestige": 0.1
+  },
+  "text": "Getreide und Holz aus dem Osten."
+ },
+ "bruges": {
+  "name": "Börse von Brügge",
+  "prov": "flanders",
+  "kind": "market",
+  "emoji": "🏦",
+  "start": 2,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.01,
+   "prestige": 0.1
+  },
+  "text": "Die erste Börse der Welt."
+ },
+ "dijon_palace": {
+  "name": "Herzogspalast Dijon",
+  "prov": "dijon",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 1,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Prunkvollster Hof des Abendlandes.",
+  "bound": "BUR"
+ },
+ "beaune": {
+  "name": "Hospiz von Beaune",
+  "prov": "dijon",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Hôtel-Dieu mit buntem Ziegeldach (1443).",
+  "cost": 0.8
+ },
+ "antwerp_bourse": {
+  "name": "Börse Antwerpen",
+  "prov": "brabant",
+  "kind": "market",
+  "emoji": "🏦",
+  "start": 0,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.02,
+   "prestige": 0.1
+  },
+  "text": "Handelsplatz der ganzen Welt (1531).",
+  "bound": "BUR",
+  "tech": [
+   "dip",
+   6
+  ],
+  "cost": 1.3
+ },
+ "leuven": {
+  "name": "Universität Löwen",
+  "prov": "brabant",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 1,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Humanisten wie Erasmus."
+ },
+ "amsterdam_port": {
+  "name": "Hafen von Amsterdam",
+  "prov": "holland",
+  "kind": "port",
+  "emoji": "⚓",
+  "start": 0,
+  "local": {
+   "trade_power": 0.25,
+   "trade_flat": 1.0
+  },
+  "nation": {
+   "trade": 0.01,
+   "naval": 0.02,
+   "prestige": 0.1
+  },
+  "text": "Ostindienfahrer und Getreidespeicher.",
+  "tech": [
+   "dip",
+   5
+  ],
+  "cost": 1.2
+ },
+ "hagia_sophia": {
+  "name": "Hagia Sophia",
+  "prov": "constantinople",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 2,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.3,
+   "estate_klerus": 1.0
+  },
+  "text": "Tausend Jahre die größte Kirche der Welt."
+ },
+ "topkapi": {
+  "name": "Topkapı-Palast",
+  "prov": "constantinople",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 0,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.5,
+   "dip": 0.1
+  },
+  "text": "Sitz des Sultans am Bosporus (1459).",
+  "bound": "TUR",
+  "tech": [
+   "adm",
+   3
+  ],
+  "cost": 1.3
+ },
+ "suleymaniye": {
+  "name": "Süleymaniye-Moschee",
+  "prov": "constantinople",
+  "kind": "mosque",
+  "emoji": "🕌",
+  "start": 0,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.3,
+   "estate_klerus": 1.0
+  },
+  "text": "Sinans Meisterwerk für Süleyman.",
+  "bound": "TUR",
+  "tech": [
+   "adm",
+   9
+  ],
+  "cost": 1.4
+ },
+ "selimiye": {
+  "name": "Selimiye-Moschee",
+  "prov": "edirne",
+  "kind": "mosque",
+  "emoji": "🕌",
+  "start": 0,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.25,
+   "estate_klerus": 1.0
+  },
+  "text": "Sinans größte Kuppel.",
+  "bound": "TUR",
+  "tech": [
+   "adm",
+   11
+  ],
+  "cost": 1.3
+ },
+ "bursa_mosque": {
+  "name": "Große Moschee Bursa",
+  "prov": "bursa",
+  "kind": "mosque",
+  "emoji": "🕌",
+  "start": 2,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Zwanzig Kuppeln der ersten Hauptstadt."
+ },
+ "mevlana": {
+  "name": "Mevlana-Kloster",
+  "prov": "konya",
+  "kind": "mosque",
+  "emoji": "🕌",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Grab Rumis, Ziel der tanzenden Derwische."
+ },
+ "mystras": {
+  "name": "Mystras",
+  "prov": "morea",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 1,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Letzte Blüte von Byzanz."
+ },
+ "rhodes": {
+  "name": "Großmeisterpalast Rhodos",
+  "prov": "rhodes",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 2,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Bollwerk der Johanniter."
+ },
+ "blue_mosque_tabriz": {
+  "name": "Blaue Moschee Täbris",
+  "prov": "tabriz",
+  "kind": "mosque",
+  "emoji": "🕌",
+  "start": 0,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.25,
+   "estate_klerus": 1.0
+  },
+  "text": "Gestiftet von Dschahan Schah (1465).",
+  "bound": "QAR",
+  "tech": [
+   "adm",
+   3
+  ]
+ },
+ "tabriz_bazaar": {
+  "name": "Basar von Täbris",
+  "prov": "tabriz",
+  "kind": "market",
+  "emoji": "🏦",
+  "start": 2,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.01,
+   "prestige": 0.1
+  },
+  "text": "Größter überdachter Basar der Welt."
+ },
+ "van_fortress": {
+  "name": "Festung Van",
+  "prov": "van",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Uralte Felsenburg am See."
+ },
+ "baghdad_bazaar": {
+  "name": "Basare von Bagdad",
+  "prov": "baghdad",
+  "kind": "market",
+  "emoji": "🏦",
+  "start": 1,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.01,
+   "prestige": 0.1
+  },
+  "text": "Handel zwischen Indien und dem Mittelmeer."
+ },
+ "naqsh_jahan": {
+  "name": "Platz Naqsch-e Dschahan",
+  "prov": "isfahan",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 0,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "„Abbild der Welt“ der Safawiden.",
+  "tech": [
+   "adm",
+   12
+  ],
+  "cost": 1.5
+ },
+ "hormuz_port": {
+  "name": "Hafen von Hormus",
+  "prov": "hormuz",
+  "kind": "port",
+  "emoji": "⚓",
+  "start": 2,
+  "local": {
+   "trade_power": 0.25,
+   "trade_flat": 1.0
+  },
+  "nation": {
+   "trade": 0.01,
+   "naval": 0.02,
+   "prestige": 0.1
+  },
+  "text": "Perlen, Pferde und Gewürze."
+ },
+ "al_azhar": {
+  "name": "Al-Azhar",
+  "prov": "cairo",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 2,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1,
+   "estate_klerus": 1.0
+  },
+  "text": "Älteste Hochschule der islamischen Welt."
+ },
+ "cairo_citadel": {
+  "name": "Zitadelle von Kairo",
+  "prov": "cairo",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Sitz der Mamlukensultane.",
+  "bound": "MAM"
+ },
+ "pyramids": {
+  "name": "Pyramiden von Gizeh",
+  "prov": "cairo",
+  "kind": "temple",
+  "emoji": "🗿",
+  "start": 3,
+  "local": {
+   "unrest": -0.3,
+   "tax": 0.05
+  },
+  "nation": {
+   "prestige": 0.25
+  },
+  "text": "Das letzte erhaltene Weltwunder der Antike."
+ },
+ "alexandria_port": {
+  "name": "Hafen von Alexandria",
+  "prov": "alexandria",
+  "kind": "port",
+  "emoji": "⚓",
+  "start": 1,
+  "local": {
+   "trade_power": 0.25,
+   "trade_flat": 1.0
+  },
+  "nation": {
+   "trade": 0.01,
+   "naval": 0.02,
+   "prestige": 0.1
+  },
+  "text": "Pfeffer für Venedig und Genua."
+ },
+ "dome_rock": {
+  "name": "Felsendom",
+  "prov": "jerusalem",
+  "kind": "mosque",
+  "emoji": "🕌",
+  "start": 2,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Goldene Kuppel über Jerusalem."
+ },
+ "holy_sepulchre": {
+  "name": "Grabeskirche",
+  "prov": "jerusalem",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 2,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Ziel der christlichen Pilger."
+ },
+ "umayyad": {
+  "name": "Umayyaden-Moschee",
+  "prov": "damascus",
+  "kind": "mosque",
+  "emoji": "🕌",
+  "start": 2,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Eine der ältesten Großmoscheen."
+ },
+ "aleppo_citadel": {
+  "name": "Zitadelle von Aleppo",
+  "prov": "aleppo",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Auf dem Burgberg mitten in der Stadt."
+ },
+ "masjid_haram": {
+  "name": "Heilige Moschee",
+  "prov": "mecca",
+  "kind": "mosque",
+  "emoji": "🕌",
+  "start": 3,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.25,
+   "estate_klerus": 1.0
+  },
+  "text": "Die Kaaba, Ziel der Hadsch."
+ },
+ "prophet_mosque": {
+  "name": "Prophetenmoschee",
+  "prov": "medina",
+  "kind": "mosque",
+  "emoji": "🕌",
+  "start": 2,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Grab des Propheten."
+ },
+ "aden_port": {
+  "name": "Hafen von Aden",
+  "prov": "aden",
+  "kind": "port",
+  "emoji": "⚓",
+  "start": 1,
+  "local": {
+   "trade_power": 0.25,
+   "trade_flat": 1.0
+  },
+  "nation": {
+   "trade": 0.01,
+   "naval": 0.02,
+   "prestige": 0.1
+  },
+  "text": "Zwischen Indien und dem Roten Meer."
+ },
+ "lalibela": {
+  "name": "Felsenkirchen von Lalibela",
+  "prov": "amhara",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 2,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.25,
+   "estate_klerus": 1.0
+  },
+  "text": "Ein neues Jerusalem aus dem Fels.",
+  "bound": "ETH"
+ },
+ "aksum": {
+  "name": "Maria-Zion-Kathedrale Aksum",
+  "prov": "tigray",
+  "kind": "church",
+  "emoji": "⛪",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Hier ruht die Bundeslade, sagt man."
+ },
+ "gondar": {
+  "name": "Fasil Ghebbi",
+  "prov": "begemder",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 0,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.45,
+   "dip": 0.1
+  },
+  "text": "Burgstadt der Kaiser in Gondar.",
+  "bound": "ETH",
+  "tech": [
+   "adm",
+   8
+  ],
+  "cost": 1.2
+ },
+ "harar_jugol": {
+  "name": "Mauern von Harar",
+  "prov": "harar",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Stadt der Heiligen und des Kaffees."
+ },
+ "zitouna": {
+  "name": "Zitouna-Moschee",
+  "prov": "tunis",
+  "kind": "mosque",
+  "emoji": "🕌",
+  "start": 2,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Gelehrsamkeit in Tunis."
+ },
+ "kairouan_mosque": {
+  "name": "Große Moschee Kairouan",
+  "prov": "kairouan",
+  "kind": "mosque",
+  "emoji": "🕌",
+  "start": 2,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Vierte heilige Stadt des Islam."
+ },
+ "qarawiyyin": {
+  "name": "Al-Qarawiyyin",
+  "prov": "fez",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 2,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Seit 859 eine Hochschule."
+ },
+ "koutoubia": {
+  "name": "Koutoubia-Moschee",
+  "prov": "marrakesh",
+  "kind": "mosque",
+  "emoji": "🕌",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Ihr Minarett grüßt die Karawanen."
+ },
+ "tlemcen_mosque": {
+  "name": "Große Moschee Tlemcen",
+  "prov": "tlemcen",
+  "kind": "mosque",
+  "emoji": "🕌",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Perle des Maghreb."
+ },
+ "sankore": {
+  "name": "Sankore-Universität",
+  "prov": "timbuktu",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 2,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Handschriften aus ganz Afrika."
+ },
+ "djenne": {
+  "name": "Große Moschee Djenné",
+  "prov": "djenne",
+  "kind": "mosque",
+  "emoji": "🕌",
+  "start": 1,
+  "local": {
+   "unrest": -0.4
+  },
+  "nation": {
+   "prestige": 0.15,
+   "estate_klerus": 1.0
+  },
+  "text": "Größter Lehmbau der Welt."
+ },
+ "askia_tomb": {
+  "name": "Grab der Askia",
+  "prov": "gao",
+  "kind": "temple",
+  "emoji": "🗿",
+  "start": 0,
+  "local": {
+   "unrest": -0.3,
+   "tax": 0.05
+  },
+  "nation": {
+   "prestige": 0.25
+  },
+  "text": "Lehmpyramide des Songhai-Herrschers (1495).",
+  "tech": [
+   "adm",
+   4
+  ]
+ },
+ "benin_walls": {
+  "name": "Mauern von Benin",
+  "prov": "benin",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Erdwälle länger als die Chinesische Mauer."
+ },
+ "mbanza_kongo": {
+  "name": "Mbanza Kongo",
+  "prov": "kongo",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 1,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Königsstadt am Kongo."
+ },
+ "great_zimbabwe": {
+  "name": "Great Zimbabwe",
+  "prov": "zimbabwe",
+  "kind": "temple",
+  "emoji": "🗿",
+  "start": 2,
+  "local": {
+   "unrest": -0.3,
+   "tax": 0.05
+  },
+  "nation": {
+   "prestige": 0.25
+  },
+  "text": "Steinerne Stadt der Goldhändler."
+ },
+ "kilwa_port": {
+  "name": "Hafen von Kilwa",
+  "prov": "kilwa",
+  "kind": "port",
+  "emoji": "⚓",
+  "start": 1,
+  "local": {
+   "trade_power": 0.25,
+   "trade_flat": 1.0
+  },
+  "nation": {
+   "trade": 0.01,
+   "naval": 0.02,
+   "prestige": 0.1
+  },
+  "text": "Gold aus Sofala für die Swahiliküste."
+ },
+ "fort_jesus": {
+  "name": "Fort Jesus",
+  "prov": "mombasa",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 0,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Portugiesische Festung (1593).",
+  "tech": [
+   "mil",
+   7
+  ]
+ },
+ "templo_mayor": {
+  "name": "Templo Mayor",
+  "prov": "tenochtitlan",
+  "kind": "temple",
+  "emoji": "🗿",
+  "start": 2,
+  "local": {
+   "unrest": -0.3,
+   "tax": 0.05
+  },
+  "nation": {
+   "prestige": 0.25
+  },
+  "text": "Doppelpyramide im Herzen Tenochtitlans."
+ },
+ "chichen_itza": {
+  "name": "Chichén Itzá",
+  "prov": "yucatan",
+  "kind": "temple",
+  "emoji": "🗿",
+  "start": 1,
+  "local": {
+   "unrest": -0.3,
+   "tax": 0.05
+  },
+  "nation": {
+   "prestige": 0.25
+  },
+  "text": "Die Pyramide des Kukulcán."
+ },
+ "cahokia": {
+  "name": "Monks Mound",
+  "prov": "cahokia",
+  "kind": "temple",
+  "emoji": "🗿",
+  "start": 1,
+  "local": {
+   "unrest": -0.3,
+   "tax": 0.05
+  },
+  "nation": {
+   "prestige": 0.25
+  },
+  "text": "Der größte Erdhügel Nordamerikas."
+ },
+ "el_morro": {
+  "name": "Castillo del Morro",
+  "prov": "havana",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 0,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1,
+   "naval": 0.02
+  },
+  "text": "Schützt die Silberflotte in Havanna.",
+  "tech": [
+   "mil",
+   6
+  ]
+ }
+}

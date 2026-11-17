@@ -72,6 +72,7 @@ func _init() -> void:
 		"test_playable_flavour",
 		"test_more_goods_and_softer_costs",
 		"test_supply_and_ai_stacks",
+		"test_landmarks",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		if not only.is_empty() and not only.has(t):
@@ -3984,3 +3985,80 @@ func test_alert_bar() -> void:
 	check(tip.contains("Warum: W") and tip.contains("Was tun: T"), "tooltip says why and what to do")
 	for e in ["💸", "💀", "📉", "✊", "🏰", "🏳️", "🌾", "⚠️", "👥", "🕊️", "🎯", "👑", "🤝", "🔬", "🎓", "⚖️", "⚔️", "🏬", "🧭", "⛵", "📜", "🏕", "🏙️", "🏗️", "⛪"]:
 		check(AB.glyph_texture(e) != null, "alert icon %s has a pixel glyph" % e)
+
+
+func test_landmarks() -> void:
+	var g = new_game("SPA", 11)
+	var L = g.Landmarks
+	check(g.lm_defs.size() >= 100, "landmark definitions load (%d)" % g.lm_defs.size())
+	# every playable realm has at least one landmark of its own history or in its land
+	for tag in g.nations:
+		var n = g.nations[tag]
+		if not n.playable:
+			continue
+		var own := false
+		for id in g.lm_defs:
+			if g.lm_defs[id].get("bound", "") == tag or L.owner(g, id) == tag:
+				own = true
+		check(own, "%s has a landmark" % tag)
+	check(L.level(g, "notre_dame") == 2 and L.level(g, "sevilla_port") == 0, "start levels from the data")
+	var sev: int = g.key_to_pid["sevilla"]
+	check(L.at(g, sev).has("sevilla_port"), "province index")
+	# local effects reach the province, realm effects the owner
+	var par = g.provinces[g.key_to_pid["paris"]]
+	check(g.Economy.local(g, par, "unrest") < 0.0, "Notre-Dame calms Paris")
+	g.tick()
+	check(g.mod(g.nations.FRA, "prestige") > 0.0 and g.nations.FRA._bonus.has("landmarks"), "French landmarks give prestige")
+	# bound: only Spain may build the Port of Seville; it needs the tech and gold
+	var n = g.nations.SPA
+	n.gold = 10000.0
+	n.tech.dip = 0
+	check(L.block_reason(g, "SPA", "sevilla_port").begins_with("Braucht"), "the port needs diplomacy tech")
+	n.tech.dip = 30
+	check(L.block_reason(g, "FRA", "sevilla_port") != "", "France cannot build in Seville")
+	var c: float = L.cost(g, "SPA", "sevilla_port")
+	check(c > 0.0 and L.cost(g, "SPA", "sevilla_port") < 1000.0, "level 1 is a medium price (%d)" % int(c))
+	var dev0: int = g.provinces[sev].dev
+	var gold0: float = n.gold
+	check(L.invest(g, "SPA", "sevilla_port") == "", "Spain founds the port")
+	check(absf(gold0 - n.gold - c) < 0.01 and L.building(g, "sevilla_port"), "paid and under construction")
+	check(L.invest(g, "SPA", "sevilla_port") != "", "one level at a time")
+	for i in int(g.bal.landmark_months[0]):
+		L.monthly(g)
+	check(L.level(g, "sevilla_port") == 1 and not L.building(g, "sevilla_port"), "level 1 done")
+	check(g.provinces[sev].dev == dev0 + int(g.bal.landmark_dev), "a level adds development")
+	check(g.Economy.local(g, g.provinces[sev], "trade_power") > 0.0, "the port adds trade power")
+	check(g.mod(n, "colony_cost") < 0.0, "Seville makes colonies cheaper for Spain")
+	var c2: float = L.cost(g, "SPA", "sevilla_port")
+	check(c2 > c, "level 2 costs more")
+	# a foreign owner keeps the local effects but only half the realm bonus
+	var full: Dictionary = L.nation_effects(g, "sevilla_port", "SPA")
+	var half: Dictionary = L.nation_effects(g, "sevilla_port", "POR")
+	check(absf(half.trade - full.trade * float(g.bal.landmark_foreign_mult)) < 0.0001, "foreign owner: half bonus")
+	# losing the province stops a running level
+	L.invest(g, "SPA", "sevilla_port")
+	g.provinces[sev].owner = "POR"
+	L.monthly(g)
+	check(not L.building(g, "sevilla_port"), "the work stops when the province is lost")
+	g.provinces[sev].owner = "SPA"
+	# save / load keeps levels and running works
+	n.tech.adm = 30
+	check(L.invest(g, "SPA", "giralda") == "", "Seville cathedral level 2")
+	var g2 = Game.new()
+	g2.setup(data, 11, "SPA")
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(L.level(g2, "sevilla_port") == 1 and L.building(g2, "giralda"), "save keeps landmarks")
+	# reward effect and condition
+	var lv: int = L.count_levels(g, "SPA")
+	check(L.free_level(g, "SPA") and L.count_levels(g, "SPA") == lv + 1, "free level reward")
+	# the AI raises landmarks with a full treasury
+	var ai = g.nations.FRA
+	ai.gold = 100000.0
+	for k in ["adm", "dip", "mil"]:
+		ai.tech[k] = 30
+	for i in 12:
+		L.monthly(g)
+	var any := false
+	for id in L.of(g, "FRA"):
+		any = any or L.building(g, id)
+	check(any, "a rich AI invests in its landmarks")

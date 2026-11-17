@@ -298,6 +298,7 @@ func _layer_sig(l) -> Variant:
 			var parts := [map_mode, zoom]
 			for p in game.provinces:
 				parts.append([p.urban, p.dev >= CITY_VILLAGE_DEV, p.dev >= CITY_BIG_DEV, p.buildings.get("harbor", 0) > 0, p.buildings.get("fortress", 0) > 0])
+			parts.append(game.lm_ver)
 			return hash(parts)
 		"sea":
 			return hash([zoom, game.player, game.sea_blocked.get(game.player, {})])
@@ -826,6 +827,34 @@ func _draw_cities(ci: CanvasItem) -> void:
 		var pos: Vector2 = p.center + Vector2(-sz.x / 2.0, 6.0)
 		ci.draw_rect(Rect2(pos + Vector2(1, sz.y - 1), Vector2(sz.x, 2)), Color(0, 0, 0, 0.35))
 		ci.draw_texture_rect(tex, Rect2(pos, sz), false)
+	_draw_landmarks(ci)
+
+
+## Historical landmarks (scripts/core/landmarks.gd): the highest built one of a province as a small
+## sprite right of the settlement, with one gold pip per level underneath.
+const LM_PIP := Color(0.973, 0.871, 0.494)
+const LM_PIP_EDGE := Color(0.106, 0.086, 0.133, 0.85)
+
+
+func _draw_landmarks(ci: CanvasItem) -> void:
+	for pid in game.lm_at:
+		var id: String = game.Landmarks.shown(game, pid)
+		if id == "":
+			continue
+		var tex := Icons.texture("lm_" + str(game.lm_defs[id].kind))
+		if tex == null:
+			continue
+		var p = game.provinces[pid]
+		var sz: Vector2 = tex.get_size() * 0.625  # 12 grid px drawn as 15 map px, about a town
+		var pos: Vector2 = p.center + Vector2(6.0, 12.0 - sz.y)  # right of the settlement, same baseline
+		ci.draw_rect(Rect2(pos + Vector2(1, sz.y - 1), Vector2(sz.x, 2)), Color(0, 0, 0, 0.35))
+		ci.draw_texture_rect(tex, Rect2(pos, sz), false)
+		var lvl: int = game.Landmarks.level(game, id)
+		var x0: float = pos.x + sz.x * 0.5 - (lvl * 2.5 - 0.5) * 0.5
+		for i in lvl:
+			var r := Rect2(Vector2(x0 + i * 2.5, pos.y + sz.y + 0.8), Vector2(2, 2))
+			ci.draw_rect(r.grow(0.4), LM_PIP_EDGE)
+			ci.draw_rect(r, LM_PIP)
 
 
 ## Province badges: a small dark plaque beside the province centre with its terrain (tools/art/terrain_glyphs.py,

@@ -69,6 +69,10 @@ static func refresh_local(g, p) -> void:
 	var ue: Dictionary = g.Urban.local_effects(g, p)
 	for k in ue:
 		c[k] = c.get(k, 0.0) + float(ue[k])
+	if g.lm_at.has(p.id):
+		var le: Dictionary = g.Landmarks.local_effects(g, p)
+		for k in le:
+			c[k] = c.get(k, 0.0) + float(le[k])
 	p.loc = c
 
 

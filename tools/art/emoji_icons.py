@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from pixlib import blank, layer, stack, outline, write  # noqa: E402
 import hud_icons  # noqa: E402
 import ui_icons  # noqa: E402
+import landmark_icons  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 SRC = os.path.join(ROOT, "assets", "src", "pixel", "emoji")
@@ -206,6 +207,10 @@ add("🐞", "bug", layer(["...k..k.....", "....kk......", "...kkkk.....", "..RRR
 # ---- unit types (scripts/core/units.gd): artillery; cavalry reuses the horse (goods), infantry the army shield
 add("💣", "cannon", layer([".aaaaaaaaag.", "aggggggggggd", "addddddddddd", "..OOH.......", ".OHoOH......",
                           ".OoHoH......", "..OHH.......", "............"], 2, 4))
+
+# ---- historical landmarks (scripts/core/landmarks.gd): same grids as the map sprites
+add("🕌", "mosque", layer(landmark_icons.MOSQUE, 2, 2))
+add("🗿", "ancient_temple", layer(landmark_icons.TEMPLE, 2, 2))
 
 if __name__ == "__main__":
     os.makedirs(SRC, exist_ok=True)
