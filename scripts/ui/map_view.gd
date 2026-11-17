@@ -38,8 +38,12 @@ var background: Array = []
 var terrain: Texture2D
 var terrain_half: Texture2D
 var _terrain_rect: TextureRect
-var _world: Node2D  # map_world_layer.gd
+var _world: Node2D  # container of the world layer pieces (map_world_layer.gd)
 var _world_zoom := -1.0
+const WorldLayer = preload("res://scripts/ui/map_world_layer.gd")
+var _layers: Array = []  # every piece of the world layer, in draw order
+var _prov_layers: Array = []  # pid -> its fill piece
+var world_redraws := 0  # pieces redrawn by the last refresh (debug, tests)
 ## nation labels: [tag, world anchor, province count], rebuilt with the world layer
 var _realm_labels: Array = []
 var _sea_rect: ColorRect
@@ -125,10 +129,20 @@ func setup(g, map_data: Dictionary) -> void:
 	_setup_terrain()
 	if _world == null:
 		_world = Node2D.new()
-		_world.set_script(preload("res://scripts/ui/map_world_layer.gd"))
-		_world.map = self
 		_world.show_behind_parent = true
 		add_child(_world)
+	if _prov_layers.size() != polys.size():
+		for l in _layers:
+			l.free()
+		_layers.clear()
+		_prov_layers.clear()
+		_add_layer("bg")
+		for pid in polys.size():
+			_prov_layers.append(_add_layer("prov", pid))
+		for k in ["terrain", "borders", "roads", "cities", "sea"]:
+			_add_layer(k)
+		if _fog_sprite != null:
+			_world.move_child(_fog_sprite, -1)
 	_setup_fog()
 	_sync_terrain()
 	refresh()
@@ -204,12 +218,108 @@ func known(pid: int) -> bool:
 	return game == null or Colonial.knows(game, game.player, pid)
 
 
-## Redraws everything, including the world layer. Call this (not queue_redraw) after the game state,
-## the map mode or the selection changed; queue_redraw() alone only redraws the screen-space overlay.
+func _add_layer(kind: String, pid: int = -1) -> Node2D:
+	var l := Node2D.new()
+	l.set_script(WorldLayer)
+	l.map = self
+	l.kind = kind
+	l.pid = pid
+	_world.add_child(l)
+	_layers.append(l)
+	return l
+
+
+## Redraws everything, including the whole world layer. Call this (not queue_redraw) after the game
+## state, the map mode or the selection changed; queue_redraw() alone only redraws the screen-space overlay.
 func refresh() -> void:
-	if _world != null:
-		_world.queue_redraw()
+	_refresh_world(true)
 	queue_redraw()
+
+
+## Monthly tick: armies and labels are redrawn, of the costly world layer (hundreds of polygons,
+## borders, roads) only the pieces that show something new. Most months that is a handful of provinces.
+func refresh_after_tick() -> void:
+	_refresh_world(false)
+	queue_redraw()
+
+
+func _refresh_world(force: bool) -> void:
+	if _world == null or game == null:
+		return
+	_build_mode_data()
+	world_redraws = 0
+	for l in _layers:
+		var sig = _layer_sig(l)
+		if force or typeof(sig) != typeof(l.sig) or sig != l.sig:
+			if l.kind == "borders":
+				_build_realm_labels()
+			l.sig = sig
+			l.queue_redraw()
+			world_redraws += 1
+	_update_fog()
+
+
+## What a piece of the world layer shows, as a value to compare with next month's.
+func _layer_sig(l) -> Variant:
+	match l.kind:
+		"prov":
+			var p = game.provinces[l.pid]
+			var c := province_color(p)
+			var hatch = _hatch_color(p)
+			return [map_mode, c, hatch, zoom if hatch != null else 0.0]
+		"terrain":  # rivers + landscape sprites: only the zoom level and war mode change them
+			return hash([map_mode == MODE_WAR, zoom])
+		"borders":
+			var parts := [map_mode, zoom, game.player]
+			for p in game.provinces:
+				parts.append(p.owner)
+			if map_mode == MODE_WAR:
+				parts.append(_war_side.duplicate())
+			var alive := 0
+			for tag in game.order:
+				if game.nations[tag].alive:
+					alive += 1
+			parts.append(alive)
+			return hash(parts)
+		"roads":
+			var parts := [map_mode, zoom]
+			for p in game.provinces:
+				if int(p.buildings.get("road", 0)) > 0:
+					parts.append([p.id, p.buildings.road, p.owner, p.controller])
+			return hash(parts)
+		"cities":
+			var parts := [map_mode, zoom]
+			for p in game.provinces:
+				parts.append([p.urban, p.dev >= CITY_VILLAGE_DEV, p.dev >= CITY_BIG_DEV, p.buildings.get("harbor", 0) > 0, p.buildings.get("fortress", 0) > 0])
+			return hash(parts)
+		"sea":
+			return hash([zoom, game.player, game.sea_blocked.get(game.player, {})])
+	return 0  # "bg" never changes
+
+
+## Stripes over a province: another faith (faith mode), a colony being founded, an occupier. null = none.
+func _hatch_color(p) -> Variant:
+	if map_mode == MODE_FAITH:
+		var own: String = game.nations[p.owner].religion
+		if p.religion != own:
+			return Color(Faith.FAITHS[own].color)
+	elif p.colonist != "" and known(p.id):
+		var sc: Color = game.nations[p.colonist].color
+		sc.a = 0.8
+		return sc
+	elif p.controller != p.owner:
+		var cc: Color = _occupier_color(p.controller)
+		cc.a = 0.6 if map_mode != MODE_WAR else 0.9
+		return cc
+	return null
+
+
+func _build_realm_labels() -> void:
+	_realm_labels.clear()
+	for tag in game.order:
+		var owned: Array = game.provinces_of(tag)
+		if game.nations[tag].alive and owned.size() >= 2:
+			_realm_labels.append([tag, _realm_center(tag, owned), owned.size()])
 
 
 ## Terrain lives in child nodes drawn behind this one, so it can use linear filtering while the
@@ -241,9 +351,9 @@ func _sync_terrain() -> void:
 	if _world != null:
 		_world.position = offset
 		_world.scale = Vector2(zoom, zoom)
-		if zoom != _world_zoom:  # line widths and zoom thresholds depend on it
+		if zoom != _world_zoom:  # line widths and zoom thresholds depend on it (plain fills do not)
 			_world_zoom = zoom
-			_world.queue_redraw()
+			_refresh_world(false)
 	if _terrain_rect == null:
 		return
 	var tex := terrain_half if zoom < 0.7 and terrain_half != null else terrain
@@ -407,49 +517,37 @@ func _build_mode_data() -> void:
 			_hre_role[game.emperor] = "emperor"
 
 
-## Draws the whole world (no view culling, so panning never needs a redraw) onto the world layer.
-func _draw_world(ci: CanvasItem) -> void:
+## Draws one piece of the world (no view culling, so panning never needs a redraw).
+func _draw_layer(ci) -> void:
 	if game == null:
 		return
-	_build_mode_data()
-	if _terrain_rect == null:
-		for bg in background:
-			ci.draw_colored_polygon(bg, WASTE)
-	var textured := _terrain_rect != null
-	for p in game.provinces:
-		var c := province_color(p)
-		if textured:
-			c.a = FILL_ALPHA if map_mode < 2 else 0.86
-		for poly in polys[p.id]:
-			ci.draw_colored_polygon(poly, c)
-		if map_mode == MODE_FAITH:
-			var own: String = game.nations[p.owner].religion
-			if p.religion != own:
-				var fc := Color(Faith.FAITHS[own].color)
+	match ci.kind:
+		"bg":
+			if _terrain_rect == null:
+				for bg in background:
+					ci.draw_colored_polygon(bg, WASTE)
+		"prov":
+			var p = game.provinces[ci.pid]
+			var c := province_color(p)
+			if _terrain_rect != null:
+				c.a = FILL_ALPHA if map_mode < 2 else 0.86
+			for poly in polys[p.id]:
+				ci.draw_colored_polygon(poly, c)
+			var hatch = _hatch_color(p)
+			if hatch != null:
 				for poly in polys[p.id]:
-					_draw_hatch(ci, poly, bboxes[p.id], fc)
-		elif p.colonist != "" and known(p.id):
-			var sc: Color = game.nations[p.colonist].color
-			sc.a = 0.8
-			for poly in polys[p.id]:
-				_draw_hatch(ci, poly, bboxes[p.id], sc)
-		elif p.controller != p.owner:
-			var cc: Color = _occupier_color(p.controller)
-			cc.a = 0.6 if map_mode != MODE_WAR else 0.9
-			for poly in polys[p.id]:
-				_draw_hatch(ci, poly, bboxes[p.id], cc)
-	_draw_rivers(ci)
-	_draw_terrain_glyphs(ci)
-	_draw_borders(ci)
-	_draw_roads(ci)
-	_draw_cities(ci)
-	_realm_labels.clear()
-	for tag in game.order:
-		var owned: Array = game.provinces_of(tag)
-		if game.nations[tag].alive and owned.size() >= 2:
-			_realm_labels.append([tag, _realm_center(tag, owned), owned.size()])
-	_draw_sea_routes(ci)
-	_update_fog()
+					_draw_hatch(ci, poly, bboxes[p.id], hatch)
+		"terrain":
+			_draw_rivers(ci)
+			_draw_terrain_glyphs(ci)
+		"borders":
+			_draw_borders(ci)
+		"roads":
+			_draw_roads(ci)
+		"cities":
+			_draw_cities(ci)
+		"sea":
+			_draw_sea_routes(ci)
 
 
 ## Roads look like an old paper map: they bend through the shared border ("gate") between two
@@ -1123,25 +1221,50 @@ func _realm_center(tag: String, owned: Array) -> Vector2:
 	return best
 
 
+const STACK_SHOWN := 3  # army counters drawn per province; the rest fold into a "+N" badge
+var _stack_rest := {}  # pid -> [hidden armies, their regiments, badge position]
+
+
+## Screen position of every army counter that is drawn. Crowded provinces show the selected army, the
+## player's and then the biggest ones; the others fold into one badge (see _stack_rest).
 func army_positions() -> Dictionary:
 	var per := {}
-	var out := {}
 	for a in game.armies:
-		var i: int = per.get(a.pid, 0)
-		per[a.pid] = i + 1
-		var step := 12.0 if zoom < 0.8 else 22.0
-		var c: Vector2 = game.provinces[a.pid].center
-		if a.path.size() >= 2 and a.path[0] == a.pid:
-			# on the march: the counter slides up to halfway towards the next province
-			c = c.lerp(game.provinces[a.path[1]].center, 0.5 * Warfare.step_progress(game, a))
-		out[a.id] = to_screen(c) + Vector2(i * 6, 8 + i * step)
+		if not per.has(a.pid):
+			per[a.pid] = []
+		per[a.pid].append(a)
+	var out := {}
+	_stack_rest = {}
+	var step := 17.0 if zoom < 0.8 else 31.0  # counter height plus its morale bar: stacked counters do not overlap
+	for pid in per:
+		var arms: Array = per[pid]
+		if arms.size() > STACK_SHOWN:
+			var me: String = game.player
+			var sel := selected_army
+			arms.sort_custom(func(x, y):
+				var kx: float = (1e6 if x.id == sel else 0.0) + (1e5 if x.owner == me else 0.0) + x.regs
+				var ky: float = (1e6 if y.id == sel else 0.0) + (1e5 if y.owner == me else 0.0) + y.regs
+				return kx > ky if kx != ky else x.id < y.id)
+		for i in arms.size():
+			var a = arms[i]
+			if i >= STACK_SHOWN:
+				if not _stack_rest.has(pid):
+					_stack_rest[pid] = [0, 0.0, to_screen(game.provinces[pid].center) + Vector2(0, 8 + i * step - step * 0.1)]
+				_stack_rest[pid][0] += 1
+				_stack_rest[pid][1] += a.regs
+				continue
+			var c: Vector2 = game.provinces[pid].center
+			if a.path.size() >= 2 and a.path[0] == a.pid:
+				# on the march: the counter slides up to halfway towards the next province
+				c = c.lerp(game.provinces[a.path[1]].center, 0.5 * Warfare.step_progress(game, a))
+			out[a.id] = to_screen(c) + Vector2(0, 8 + i * step)
 	return out
 
 
 func _draw_armies() -> void:
 	var pos := army_positions()
 	for a in game.armies:
-		if a.target >= 0 and (a.owner == game.player or a.id == selected_army):
+		if pos.has(a.id) and a.target >= 0 and (a.owner == game.player or a.id == selected_army):
 			var pts := PackedVector2Array([pos[a.id]])
 			for pid in a.path:
 				pts.append(to_screen(game.provinces[pid].center))
@@ -1149,6 +1272,8 @@ func _draw_armies() -> void:
 				pts.append(to_screen(game.provinces[a.target].center))
 			draw_polyline(pts, Color(1, 1, 1, 0.8), 2.0)
 	for a in game.armies:
+		if not pos.has(a.id):
+			continue
 		var s: Vector2 = pos[a.id]
 		if not Rect2(Vector2(-20, -20), size + Vector2(40, 40)).has_point(s) or not known(a.pid):
 			continue
@@ -1174,6 +1299,18 @@ func _draw_armies() -> void:
 		draw_string_outline(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color.BLACK)
 		draw_string(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
 		_draw_power_bar(a, Rect2(s.x - ARMY_R, s.y + ARMY_R + 3, ARMY_R * 2, 4))
+	for pid in _stack_rest:
+		var rest: Array = _stack_rest[pid]
+		var s: Vector2 = rest[2]
+		if not Rect2(Vector2(-20, -20), size + Vector2(40, 40)).has_point(s) or not known(pid):
+			continue
+		var txt := "+%d · %d" % [rest[0], int(round(rest[1]))]
+		var fs := 10 if zoom < 0.8 else 13
+		var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var r := Rect2(s.x - w / 2 - 4, s.y - fs * 0.6, w + 8, fs + 4)
+		draw_rect(r.grow(1.0), Color(0, 0, 0, 0.9))
+		draw_rect(r, Color(0.25, 0.23, 0.2, 0.95))
+		draw_string(font, Vector2(s.x - w / 2, r.position.y + fs), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
 	_draw_battles()
 	_draw_flashes()
 

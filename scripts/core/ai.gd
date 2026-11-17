@@ -5,6 +5,7 @@ extends RefCounted
 const Warfare = preload("res://scripts/core/warfare.gd")
 
 var _no_tech := {}  # tag+category -> [year, techs owned] of the last search that found nothing to research
+var _friends := {}  # control_armies: province -> regiments of non-enemy armies standing in or marching to it
 
 
 func think(g, n) -> void:
@@ -604,9 +605,21 @@ func control_armies(g, tag: String) -> void:
 	if (g.month + tag.hash()) % 2 != 0:
 		return
 	var enemy_power := {}
+	_friends = {}
 	for e in g.armies:
 		if enemies.has(e.owner):
 			enemy_power[e.pid] = enemy_power.get(e.pid, 0.0) + e.regs * g.combat_mult(e.owner) * g.power_factor(e)
+		else:
+			var at: int = e.target if e.target >= 0 else e.pid
+			_friends[at] = _friends.get(at, 0.0) + e.regs
+	# an army far too big for the land it stands in splits, so the halves can besiege two places
+	for a in mine.duplicate():
+		if a.regs >= 8.0 and not g.Warfare.in_battle(g, a) and g.Warfare.over_supply(g, a) \
+				and a.regs > 1.3 * g.Warfare.supply_limit(g, a.pid, tag):
+			var b = g.split_army(a)
+			if b != null:
+				b.general = 0
+				mine.append(b)
 	for a in mine:
 		_command(g, a, enemies, enemy_power)
 
@@ -672,6 +685,10 @@ func _command(g, a, enemies: Array, enemy_power: Dictionary) -> void:
 				s += 15.0
 			if g.nations[p.owner].capital == cur:
 				s += 10.0
+			# a siege camp the land cannot feed: prefer another target
+			var others: float = _friends.get(cur, 0.0) - (a.regs if (a.target if a.target >= 0 else a.pid) == cur else 0.0)
+			if others + a.regs > g.Warfare.supply_limit(g, cur, tag):
+				s -= float(g.bal.ai_supply_penalty)
 		if cur == a.target:
 			cur_score = s
 		if s > best_score:
@@ -691,7 +708,10 @@ func _command(g, a, enemies: Array, enemy_power: Dictionary) -> void:
 		return
 	if best >= 0 and best != a.pid and best_score > -1e8:
 		if a.target != best:
-			g.move_army(a, best)
+			var was: int = a.target if a.target >= 0 else a.pid
+			if g.move_army(a, best) == "":
+				_friends[was] = _friends.get(was, 0.0) - a.regs
+				_friends[best] = _friends.get(best, 0.0) + a.regs
 	elif best == a.pid:
 		a.target = -1
 	elif best < 0 and not defend and g.Naval.ai_transport(g, a, enemies, enemy_power, my_power):

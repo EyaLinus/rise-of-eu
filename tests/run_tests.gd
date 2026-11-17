@@ -66,6 +66,7 @@ func _init() -> void:
 		"test_debug_tools",
 		"test_ledger",
 		"test_more_goods_and_softer_costs",
+		"test_supply_and_ai_stacks",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		if not only.is_empty() and not only.has(t):
@@ -3675,3 +3676,46 @@ func test_ledger() -> void:
 		check(rows.size() > 20 and float(rows[0][1]) >= float(rows[-1][1]), "ledger %s sorted, best first" % k)
 	check(L.rows(g, "provinces")[0][1] == float(g.provinces_of(L.rows(g, "provinces")[0][0]).size()), "province count")
 	check(L.fmt("income", 3.14159) == "3.1" and L.fmt("dev", 12.6) == "13", "ledger number format")
+
+
+func test_supply_and_ai_stacks() -> void:
+	var g = new_game("FRA", 5)
+	var W = g.Warfare
+	var cap: int = g.nations.ENG.capital
+	for a in g.armies.duplicate():
+		if a.owner == "ENG":
+			g.armies.erase(a)
+	# AI stacks in one province join into one army
+	for i in 6:
+		g.spawn_army("ENG", cap, 1.0)
+	g._armies_tick()
+	var eng: Array = g.armies_of("ENG")
+	check(eng.size() == 1 and absf(eng[0].regs - 6.0) < 0.01, "AI single-regiment stacks merge into one army")
+	# the player's stacks stay as they are
+	var fcap: int = g.nations.FRA.capital
+	var before: int = g.armies_of("FRA").size()
+	g.spawn_army("FRA", fcap, 1.0)
+	g._armies_tick()
+	check(g.armies_of("FRA").size() == before + 1, "player armies are never merged for him")
+	# supply: home land feeds more than foreign land
+	check(W.supply_limit(g, cap, "ENG") > W.supply_limit(g, cap, "FRA"), "the holder gets a higher supply limit")
+	# at peace in the own land: no attrition however big the army
+	eng[0].regs = 500.0
+	eng[0].full = 500.0
+	g._armies_tick()
+	check(absf(eng[0].regs - 500.0) < 0.01, "no attrition at peace at home")
+	# abroad and over the limit: the surplus withers, and there are no reinforcements
+	var f = g.spawn_army("FRA", cap, 200.0)
+	f.full = 300.0
+	g.nations.FRA.manpower = 1000.0
+	g.nations.FRA.gold = 100000.0
+	W.attrition(g)
+	check(f.regs < 200.0 and f.regs > 150.0, "over the supply limit regiments are lost (%.1f)" % f.regs)
+	check(W.over_supply(g, f), "camp is flagged as over supply")
+	var r0: float = f.regs
+	g._reinforce(f)
+	check(f.regs == r0 or not g.is_at_war("FRA"), "no reinforcements over the limit in war")
+	var small = g.spawn_army("FRA", g.nations.FRA.capital, 3.0)
+	W.attrition(g)
+	check(absf(small.regs - 3.0) < 0.01, "an army within the limit loses nothing")
+

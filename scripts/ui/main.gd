@@ -1115,7 +1115,7 @@ func _after_tick() -> void:
 	if battles > last_battles:
 		_sfx("battle", -10.0)
 	last_battles = battles
-	map.refresh()
+	map.refresh_after_tick()
 	music.set_mood("war" if game.is_at_war(game.player) else "peace")
 	if game.log_lines.size() != last_log_count:
 		if not game.log_lines.is_empty():
@@ -2392,11 +2392,22 @@ func _province_army(p) -> void:
 	_province_armies(pid)
 
 
+func _supply_tip() -> String:
+	return "So viele Regimenter ernährt die Provinz (mehr Entwicklung und Straßen = mehr; im eigenen und verbündeten Land das %.1f-fache). Stehen mehr dort, verliert jede Armee im Monat bis zu %d %% des Überschusses und bekommt keinen Nachschub. Im Frieden versorgt dein Reich die Truppen im eigenen Land ohne Verluste. Große Heere also aufteilen und getrennt marschieren lassen." % [
+			float(game.bal.supply_home_mult), int(float(game.bal.supply_attrition) * 100)]
+
+
 func _province_armies(pid: int) -> void:
 	var me: String = game.player
 	if not game.armies_of(me).is_empty():
 		side_box.add_child(_btn("🏁 Alle meine Armeen hierher", _all_armies_to.bind(pid), "Schickt jede eigene Armee in diese Provinz (danach manuell)."))
 	var here: Array = game.armies_in(pid)
+	var load: float = Warfare.supply_load(game, pid, me)
+	var lim: float = Warfare.supply_limit(game, pid, me)
+	var sl := _lbl("🌾 Versorgung %d / %d Reg." % [int(round(load)), int(lim)], 16, Color(1.0, 0.45, 0.35) if load > lim else Color(0.75, 0.8, 0.85))
+	sl.tooltip_text = _supply_tip()
+	sl.mouse_filter = Control.MOUSE_FILTER_STOP
+	side_box.add_child(sl)
 	if not here.is_empty():
 		side_box.add_child(_lbl("Armeen hier:", 18, Color(0.7, 0.8, 0.9)))
 		for a in here:
@@ -2766,6 +2777,9 @@ func _panel_army(id: int) -> void:
 		_chip(("⭐ General %d" % a.general) if a.general > 0 else "⭐ Kein General",
 				("+%d %% Kampfkraft." % int(a.general * float(game.bal.general_bonus) * 100)) if a.general > 0 else "Ohne General kämpft die Armee ohne Bonus.", "gold" if a.general > 0 else ""),
 	]
+	var s_load: float = Warfare.supply_load(game, a.pid, a.owner)
+	var s_lim: float = Warfare.supply_limit(game, a.pid, a.owner)
+	chips.append(_chip("🌾 Versorgung %d / %d" % [int(round(s_load)), int(s_lim)], _supply_tip(), "bad" if s_load > s_lim else ""))
 	chips.append(_unit_chip(a))
 	var fight = Warfare.battle_of(game, a)
 	if fight != null:
