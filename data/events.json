@@ -38,9 +38,9 @@
   {"id": "fra_richelieu", "tag": "FRA", "title": "Kardinal Richelieu", "text": "Ein brillanter Minister bietet seine Dienste an.",
    "trigger": {"year_min": 1610},
    "options": [
-     {"text": "Er soll die Krone stärken.", "effects": {"mods": {"adm": 1}, "prestige": 10}},
-     {"text": "Er soll Habsburg schwächen.", "effects": {"claim": ["luxembourg", "franchecomte"], "dip": 40}},
-     {"text": "Wir brauchen ihn nicht.", "effects": {"gold": 100}}]},
+     {"text": "Er soll die Krone stärken.", "effects": {"mods": {"adm": 1}, "gold": -120, "estate": {"adel": -6}}},
+     {"text": "Er soll Habsburg schwächen.", "effects": {"claim": ["luxembourg", "franchecomte"], "dip": 80}},
+     {"text": "Wir brauchen ihn nicht.", "effects": {"gold": 200}}]},
   {"id": "eng_roses", "tag": "ENG", "title": "Die Rosenkriege", "text": "York und Lancaster streiten um die Krone. Der Bürgerkrieg droht.",
    "trigger": {"year_min": 1453, "year_max": 1490},
    "options": [
@@ -98,15 +98,15 @@
   {"id": "spa_inquisition", "tag": "SPA", "title": "Die Inquisition", "text": "Kirchenmänner fordern ein Tribunal zur Wahrung des Glaubens.",
    "trigger": {"year_min": 1478, "year_max": 1520},
    "options": [
-     {"text": "Das Tribunal einrichten.", "effects": {"prestige": 10, "dev_random": -2, "adm": 40}},
-     {"text": "Religiöse Toleranz.", "effects": {"dev_random": 2, "prestige": -5}},
-     {"text": "Vermögen der Ausgewiesenen einziehen.", "effects": {"gold": 150, "dev_random": -3}}]},
+     {"text": "Das Tribunal einrichten.", "effects": {"prestige": 10, "dev_random": -1, "adm": 40, "estate": {"klerus": 6}}},
+     {"text": "Religiöse Toleranz.", "effects": {"dev_random": 1, "prestige": -10, "estate": {"klerus": -8}, "relations": {"PAP": -30}}},
+     {"text": "Vermögen der Ausgewiesenen einziehen.", "effects": {"gold": 150, "dev_random": -2, "estate": {"klerus": 3}}}]},
   {"id": "spa_columbus", "tag": "SPA", "title": "Ein Genuese mit einem Plan", "text": "Ein Seefahrer namens Kolumbus will Indien über den Westen erreichen.",
    "trigger": {"year_min": 1485, "year_max": 1510},
    "options": [
-     {"text": "Die Expedition finanzieren!", "effects": {"gold": -50, "mods": {"income": 0.1}, "prestige": 10}, "ai": 70},
-     {"text": "Zu teuer.", "effects": {"gold": 30}},
-     {"text": "Erst einmal die Gelehrten fragen.", "effects": {"adm": 30}}]},
+     {"text": "Die Expedition finanzieren!", "effects": {"gold": -80, "mods": {"income": 0.04}, "prestige": 10}, "ai": 70},
+     {"text": "Zu teuer.", "effects": {"gold": 60, "dip": 20}},
+     {"text": "Erst einmal die Gelehrten fragen.", "effects": {"adm": 60, "prestige": 3}}]},
   {"id": "spa_silver", "tag": "SPA", "title": "Silberflotten", "text": "Silber aus der Neuen Welt strömt nach Sevilla.",
    "trigger": {"year_min": 1530, "flag": "ev_spa_columbus"},
    "options": [
@@ -164,19 +164,19 @@
   {"id": "hab_frederick", "tag": "HAB", "title": "AEIOU", "text": "Friedrich III. lässt seine Devise überall anbringen: Austria erit in orbe ultima.",
    "trigger": {"year_max": 1490},
    "options": [
-     {"text": "Geduldig auf Erbschaften warten.", "effects": {"dip": 60, "mods": {"ae_decay": 0.1}}},
-     {"text": "Die Erblande ordnen.", "effects": {"adm": 60}},
-     {"text": "Prunk für die Kaiserkrone.", "effects": {"prestige": 15, "gold": -40}}]},
+     {"text": "Geduldig auf Erbschaften warten.", "effects": {"dip": 30, "mods": {"ae_decay": 0.1}, "prestige": -5}},
+     {"text": "Die Erblande ordnen.", "effects": {"adm": 80}},
+     {"text": "Prunk für die Kaiserkrone.", "effects": {"prestige": 25, "dip": 30, "gold": -30}}]},
   {"id": "hab_mary", "tag": "HAB", "title": "Maria von Burgund", "text": "Karl der Kühne ist gefallen. Seine Erbin Maria sucht einen Gatten.",
    "trigger": {"year_min": 1470, "year_max": 1500, "alive": "BUR"},
    "options": [
      {"text": "Maximilian heiratet Maria.", "effects": {"alliance": "BUR", "claim": ["flanders", "brabant", "holland"], "prestige": 10}, "ai": 70},
      {"text": "Burgund ist zu weit.", "effects": {"adm": 40}},
      {"text": "Frankreich die Beute überlassen.", "effects": {"relations": {"FRA": 40}, "dip": 30}}]},
-  {"id": "hab_mohacs", "tag": "HAB", "title": "Nach Mohács", "text": "Der ungarische König ist gegen die Osmanen gefallen. Die Krone ist frei.",
-   "trigger": {"year_min": 1500, "alive": "HUN", "at_peace": true},
+  {"id": "hab_mohacs", "once": false, "tag": "HAB", "title": "Nach Mohács", "text": "Der ungarische König ist gegen die Osmanen gefallen. Die Krone ist frei.",
+   "trigger": {"year_min": 1520, "alive": "HUN", "at_peace": true, "nation_flag": {"HUN": "hun_habsburg_king"}},
    "options": [
-     {"text": "Die ungarische Krone beanspruchen!", "effects": {"inherit": "HUN", "ae": 10}, "ai": 70},
+     {"text": "Die ungarische Krone beanspruchen!", "effects": {"inherit": "HUN", "ae": 10}, "ai": 90},
      {"text": "Nur Kroatien sichern.", "effects": {"claim": ["croatia", "slavonia"]}},
      {"text": "Abwarten.", "effects": {"dip": 50}}]},
   {"id": "hab_bohemia_inherit", "tag": "HAB", "title": "Die böhmische Thronfolge", "text": "Der böhmische König ist ohne Erben gestorben. Habsburg hat Ansprüche.",
@@ -190,7 +190,7 @@
    "options": [
      {"text": "Die Mauern verstärken.", "effects": {"regs": 5, "gold": -60}},
      {"text": "Das Reich zur Hilfe rufen.", "effects": {"relations": {"BAV": 40, "SAX": 40, "BOH": 40}, "dip": 20}},
-     {"text": "Tribut zahlen.", "effects": {"gold": -100, "relations": {"TUR": 60}}}]},
+     {"text": "Tribut zahlen.", "effects": {"gold": -60, "relations": {"TUR": 80}, "mil": 30}}]},
   {"id": "hab_spanish_branch", "tag": "HAB", "title": "Die spanische Linie", "text": "Ein Habsburger sitzt auf dem spanischen Thron.",
    "trigger": {"year_min": 1516, "alive": "SPA"},
    "options": [
@@ -206,15 +206,15 @@
   {"id": "rus_ugra", "tag": "RUS", "title": "Stehen an der Ugra", "text": "Die Goldene Horde fordert Tribut. Unsere Armee steht ihr am Fluss gegenüber.",
    "trigger": {"year_min": 1470, "year_max": 1500},
    "options": [
-     {"text": "Standhalten! Kein Tribut mehr.", "effects": {"prestige": 25, "mods": {"manpower": 0.05}}, "ai": 70},
-     {"text": "Ein letztes Mal zahlen.", "effects": {"gold": -80, "adm": 30}},
-     {"text": "Angreifen!", "effects": {"mil": 40, "manpower": -5, "prestige": 15}}]},
+     {"text": "Standhalten! Kein Tribut mehr.", "effects": {"prestige": 15, "mods": {"manpower": 0.05}, "mil": -20}, "ai": 70},
+     {"text": "Ein letztes Mal zahlen.", "effects": {"gold": -40, "adm": 60, "dip": 30}},
+     {"text": "Angreifen!", "effects": {"mil": 60, "manpower": -2, "prestige": 15}}]},
   {"id": "rus_third_rome", "tag": "RUS", "title": "Das Dritte Rom", "text": "Konstantinopel ist gefallen. Moskau sieht sich als Erbe von Byzanz.",
    "trigger": {"year_min": 1453, "not_alive": "BYZ"},
    "options": [
-     {"text": "Moskau, das Dritte Rom!", "effects": {"prestige": 20, "mods": {"adm": 1}}},
-     {"text": "Kirche und Krone verbinden.", "effects": {"adm": 40, "dip": 40}},
-     {"text": "Bescheiden bleiben.", "effects": {"gold": 60}}]},
+     {"text": "Moskau, das Dritte Rom!", "effects": {"prestige": 10, "mods": {"adm": 1}, "gold": -120, "estate": {"adel": -5}}},
+     {"text": "Kirche und Krone verbinden.", "effects": {"adm": 70, "dip": 70}},
+     {"text": "Bescheiden bleiben.", "effects": {"gold": 180, "prestige": 5}}]},
   {"id": "rus_oprichnina", "tag": "RUS", "title": "Die Opritschnina", "text": "Der Zar misstraut den Bojaren und will ein eigenes Reich im Reich.",
    "trigger": {"year_min": 1550, "year_max": 1600},
    "options": [
@@ -256,7 +256,7 @@
    "options": [
      {"text": "Den Wiederaufbau finanzieren.", "effects": {"gold": -60, "dev_capital": 1}},
      {"text": "Prozessionen zu San Gennaro.", "effects": {"prestige": 5, "dip": 20}},
-     {"text": "Abwarten.", "effects": {"dev_capital": -1}}]},
+     {"text": "Abwarten.", "effects": {"dev_capital": -1, "gold": 60}}]},
   {"id": "nap_masaniello", "tag": "NAP", "title": "Der Fischer Masaniello", "text": "Ein Fischer führt einen Aufstand gegen die neue Obststeuer an.",
    "trigger": {"year_min": 1600},
    "options": [
@@ -302,9 +302,9 @@
   {"id": "gen_military_revolution", "tag": "*", "title": "Militärische Revolution", "text": "Feuerwaffen und Festungsbau verändern die Kriegsführung.",
    "trigger": {"year_min": 1520, "major": true},
    "options": [
-     {"text": "Musketen für alle!", "effects": {"mil": -50, "mods": {"combat": 0.05}}},
-     {"text": "Festungen nach italienischer Art.", "effects": {"gold": -80, "manpower": 4}},
-     {"text": "Bewährtes behalten.", "effects": {"mil": 40}}]},
+     {"text": "Musketen für alle!", "effects": {"mil": -100, "mods": {"combat": 0.03}}},
+     {"text": "Festungen nach italienischer Art.", "effects": {"gold": -40, "manpower": 4, "mil": 20}},
+     {"text": "Bewährtes behalten.", "effects": {"mil": 60}}]},
   {"id": "gen_merchants", "once": false, "tag": "*", "title": "Kaufmannsgilden", "text": "Die Gilden wollen Handelsmonopole.",
    "trigger": {"min_dev": 40},
    "options": [
@@ -332,9 +332,9 @@
   {"id": "fra_estates", "tag": "FRA", "title": "Die Generalstände", "text": "Die drei Stände verlangen, gehört zu werden. Der König braucht Geld, die Stände wollen Mitsprache.",
    "trigger": {"year_min": 1484, "year_max": 1600},
    "options": [
-     {"text": "Steuern bewilligen lassen.", "effects": {"gold": 100, "prestige": -5}, "ai": 50},
-     {"text": "Die Krone regiert allein.", "effects": {"mods": {"adm": 1}, "dip": -30}},
-     {"text": "Den Ständen Zugeständnisse machen.", "effects": {"dip": 40, "prestige": 5}}]},
+     {"text": "Steuern bewilligen lassen.", "effects": {"gold": 180, "prestige": -5}, "ai": 50},
+     {"text": "Die Krone regiert allein.", "effects": {"mods": {"adm": 1}, "dip": -60, "estate": {"adel": -6, "buerger": -4}}},
+     {"text": "Den Ständen Zugeständnisse machen.", "effects": {"dip": 70, "prestige": 5, "estate": {"buerger": 4}}}]},
   {"id": "fra_albret", "tag": "FRA", "title": "Das Haus Albret", "text": "Die Könige von Navarra suchen den Schutz der französischen Krone gegen Kastilien.",
    "trigger": {"year_min": 1480, "year_max": 1590, "alive": "NAV", "at_peace": true},
    "options": [
@@ -410,9 +410,9 @@
   {"id": "hab_worms", "tag": "HAB", "title": "Reichstag zu Worms", "text": "Die Reichsstände beraten über Ewigen Landfrieden, Reichskammergericht und den Gemeinen Pfennig.",
    "trigger": {"year_min": 1495, "year_max": 1520},
    "options": [
-     {"text": "Die Reichsreform vorantreiben.", "effects": {"mods": {"dip": 1}, "prestige": 5}, "ai": 50},
-     {"text": "Den Gemeinen Pfennig eintreiben.", "effects": {"gold": 80}},
-     {"text": "Die Erblande zuerst.", "effects": {"adm": 40}}]},
+     {"text": "Die Reichsreform vorantreiben.", "effects": {"mods": {"dip": 1}, "gold": -100, "estate": {"adel": -5}}, "ai": 50},
+     {"text": "Den Gemeinen Pfennig eintreiben.", "effects": {"gold": 160}},
+     {"text": "Die Erblande zuerst.", "effects": {"adm": 80}}]},
   {"id": "hab_schwaz", "tag": "HAB", "title": "Schwazer Silber", "text": "In den Tiroler Bergwerken wird so viel Silber gefördert wie nirgends sonst in Europa.",
    "trigger": {"owns": ["tirol"]},
    "options": [
@@ -440,9 +440,9 @@
   {"id": "rus_sudebnik", "tag": "RUS", "title": "Der Sudebnik", "text": "Ein einheitliches Gesetzbuch für alle russischen Lande soll die Macht des Großfürsten festigen.",
    "trigger": {"year_min": 1497, "year_max": 1560},
    "options": [
-     {"text": "Das Gesetzbuch verkünden.", "effects": {"adm": 50}, "ai": 50},
-     {"text": "Prikase gründen.", "effects": {"mods": {"adm": 1}, "gold": -60}},
-     {"text": "Die Bojaren einbinden.", "effects": {"prestige": 5, "dip": 20}}]},
+     {"text": "Das Gesetzbuch verkünden.", "effects": {"adm": 90}, "ai": 50},
+     {"text": "Prikase gründen.", "effects": {"mods": {"adm": 1}, "gold": -150, "estate": {"adel": -5}}},
+     {"text": "Die Bojaren einbinden.", "effects": {"prestige": 10, "dip": 50, "estate": {"adel": 5}}}]},
   {"id": "rus_kazan", "tag": "RUS", "title": "Der Fall von Kasan", "text": "Das Khanat Kasan blockiert die Wolga. Der Zar ruft zum Feldzug.",
    "trigger": {"year_min": 1540, "year_max": 1600, "alive": "KAZ"},
    "options": [
@@ -584,8 +584,8 @@
   {"id": "spa_lepanto", "tag": "SPA", "title": "Die Heilige Liga", "text": "Papst und Venedig rufen zur Seeschlacht gegen die Osmanen. Don Juan de Austria soll die Flotte führen.",
    "trigger": {"year_min": 1565, "year_max": 1580, "alive": "TUR"},
    "options": [
-     {"text": "Die Galeeren in See stechen lassen.", "effects": {"mil": -40, "ships": -2, "prestige": 20, "relations": {"PAP": 40, "VEN": 40, "TUR": -50}}, "ai": 60},
-     {"text": "Nur Gold schicken.", "effects": {"gold": -60, "relations": {"PAP": 30}}},
+     {"text": "Die Galeeren in See stechen lassen.", "effects": {"mil": -20, "ships": -2, "prestige": 25, "relations": {"PAP": 40, "VEN": 40, "TUR": -50}}, "ai": 60},
+     {"text": "Nur Gold schicken.", "effects": {"gold": -60, "relations": {"PAP": 30}, "ships": 2}},
      {"text": "Die Flandern-Front geht vor.", "effects": {"mil": 30, "prestige": -5}}]},
   {"id": "spa_moriscos", "tag": "SPA", "title": "Die Morisken", "text": "Die Nachfahren der Mauren gelten als unzuverlässig. Der Hof diskutiert ihre Vertreibung.",
    "trigger": {"year_min": 1600, "year_max": 1625, "owns_any": ["granada", "valencia"]},
@@ -614,9 +614,9 @@
   {"id": "boh_brethren", "tag": "BOH", "title": "Die Brüdergemeine", "text": "Eine stille Glaubensgemeinschaft lehnt Waffen und Eide ab und gründet Schulen.",
    "trigger": {"year_min": 1460, "year_max": 1530},
    "options": [
-     {"text": "Gewähren lassen.", "effects": {"adm": 30, "dev_random": 1}, "ai": 50},
-     {"text": "Verfolgen.", "effects": {"prestige": 5, "relations": {"PAP": 20}, "dev_random": -1}},
-     {"text": "Ihre Druckereien nutzen.", "effects": {"dip": 30, "gold": -20}}]},
+     {"text": "Gewähren lassen.", "effects": {"adm": 30, "dev_random": 1, "estate": {"klerus": -5}}, "ai": 50},
+     {"text": "Verfolgen.", "effects": {"prestige": 10, "relations": {"PAP": 30}, "estate": {"klerus": 6}}},
+     {"text": "Ihre Druckereien nutzen.", "effects": {"dip": 50, "gold": -20}}]},
   {"id": "boh_land_ordinance", "tag": "BOH", "title": "Die Wladislawsche Landesordnung", "text": "Die Herren verlangen, dass nur Adlige im Landtag sitzen. Die Städte protestieren.",
    "trigger": {"year_min": 1495, "year_max": 1530},
    "options": [
@@ -674,9 +674,9 @@
   {"id": "hab_eger", "tag": "HAB", "title": "Mord in Eger", "text": "Wallenstein verhandelt heimlich mit den Schweden. Seine Offiziere warten nur auf ein Wort aus Wien.",
    "trigger": {"year_min": 1625, "flag": "hab_wallenstein"},
    "options": [
-     {"text": "Das Wort geben.", "effects": {"prestige": -5, "mil": 40, "gold": 60}, "ai": 50},
-     {"text": "Ihn absetzen, das Heer übernehmen.", "effects": {"adm": -30, "mods": {"combat": 0.02}}},
-     {"text": "Ihm weiter vertrauen.", "effects": {"regs": 3, "prestige": -10}}]},
+     {"text": "Das Wort geben.", "effects": {"prestige": -5, "mil": 40}, "ai": 50},
+     {"text": "Ihn absetzen, das Heer übernehmen.", "effects": {"adm": -20, "mods": {"combat": 0.02}, "prestige": 5}},
+     {"text": "Ihm weiter vertrauen.", "effects": {"regs": 3, "prestige": -5}}]},
   {"id": "rus_sophia", "tag": "RUS", "title": "Die Nichte des letzten Kaisers", "text": "Sophia Palaiologa, Erbin Konstantinopels, soll Iwan III. heiraten. Mit ihr kommen der Doppeladler und italienische Baumeister.",
    "trigger": {"year_min": 1465, "year_max": 1485},
    "options": [
@@ -788,15 +788,15 @@
   {"id": "gen_university", "tag": "*", "title": "Eine Universität", "text": "Gelehrte bitten um ein Privileg, um eine Hohe Schule zu gründen.",
    "trigger": {"year_min": 1460, "min_dev": 30},
    "options": [
-     {"text": "Die Universität stiften.", "effects": {"gold": -70, "mods": {"adm": 1}}, "ai": 25},
-     {"text": "Eine Lateinschule genügt.", "effects": {"adm": 25}, "ai": 50},
-     {"text": "Kein Geld für Gelehrte.", "effects": {"gold": 20}}]},
+     {"text": "Die Universität stiften.", "effects": {"gold": -140, "mods": {"adm": 1}}, "ai": 25},
+     {"text": "Eine Lateinschule genügt.", "effects": {"adm": 60, "prestige": 3}, "ai": 50},
+     {"text": "Kein Geld für Gelehrte.", "effects": {"gold": 60, "estate": {"buerger": 3}}}]},
   {"id": "gen_fugger", "tag": "*", "title": "Ein Angebot der Bankiers", "text": "Ein Augsburger Handelshaus bietet einen großzügigen Kredit an, gegen Bergbaurechte.",
    "trigger": {"year_min": 1480, "year_max": 1600},
    "options": [
      {"text": "Den Kredit annehmen.", "effects": {"gold": 120, "mods": {"income": -0.02}}, "ai": 40},
-     {"text": "Nur einen kleinen Kredit.", "effects": {"gold": 50, "dip": -20}},
-     {"text": "Wir machen keine Schulden.", "effects": {"prestige": 5}}]},
+     {"text": "Nur einen kleinen Kredit.", "effects": {"gold": 70, "dip": -20}},
+     {"text": "Wir machen keine Schulden.", "effects": {"prestige": 10, "estate": {"buerger": 4}}}]},
   {"id": "gen_artist", "tag": "*", "title": "Ein Künstler am Hof", "text": "Ein Maler aus Italien bietet an, den Palast auszuschmücken. Er ist teuer und launisch.",
    "trigger": {"year_min": 1470, "year_max": 1620},
    "options": [
@@ -886,7 +886,7 @@
    "options": [
      {"text": "Neutralität erklären.", "effects": {"dip": 40, "prestige": 5}, "ai": 50},
      {"text": "Festungen statt Freunde.", "effects": {"mil": -30, "manpower": 2}},
-     {"text": "Den Schutz eines Mächtigen suchen.", "effects": {"dip": 20, "prestige": -5}}]},
+     {"text": "Den Schutz eines Mächtigen suchen.", "effects": {"dip": 20, "prestige": -5, "ae": -10}}]},
   {"id": "gen_minor_mercenaries", "once": false, "tag": "*", "title": "Söhne für fremde Kriege", "text": "Fremde Werber bieten gutes Geld für unsere jungen Männer.",
    "trigger": {"major": false, "at_peace": true},
    "options": [
@@ -1035,8 +1035,8 @@
    "trigger": {"is_vassal": true, "year_min": 1450},
    "options": [
      {"text": "Ihn schicken.", "effects": {"dip": 30, "ruler": {"dip": 1}}, "ai": 50},
-     {"text": "Er bleibt hier.", "effects": {"prestige": 5, "dip": -20}},
-     {"text": "Einen Vetter schicken.", "effects": {"adm": 20}}]},
+     {"text": "Er bleibt hier.", "effects": {"prestige": 10, "dip": -10, "estate": {"adel": 4}}},
+     {"text": "Einen Vetter schicken.", "effects": {"adm": 40}}]},
   {"id": "gen_overlord_vassal_loyalty", "once": false, "tag": "*", "title": "Unruhige Vasallen", "text": "Unsere Vasallen murren über den Tribut. Ein Fest am Hof könnte die Wogen glätten.",
    "trigger": {"has_vassal": true},
    "options": [
@@ -1178,9 +1178,9 @@
   {"id": "pap_julius", "tag": "PAP", "title": "Der kriegerische Papst", "text": "Julius II. legt die Tiara ab und zieht in Rüstung gegen Bologna.",
    "trigger": {"year_min": 1500, "year_max": 1515},
    "options": [
-     {"text": "Selbst ins Feld ziehen.", "effects": {"mil": 40, "prestige": 10, "regs": 2}, "ai": 50},
+     {"text": "Selbst ins Feld ziehen.", "effects": {"mil": 20, "prestige": 10, "regs": 2}, "ai": 50},
      {"text": "Die Schweizergarde gründen.", "effects": {"mods": {"combat": 0.03}, "gold": -40}},
-     {"text": "Michelangelo die Decke bemalen lassen.", "effects": {"prestige": 15, "gold": -50}}]},
+     {"text": "Michelangelo die Decke bemalen lassen.", "effects": {"prestige": 25, "gold": -40}}]},
   {"id": "pap_indulgences", "tag": "PAP", "title": "Der Petersablass", "text": "Für den Bau des Petersdoms sollen Ablassbriefe im ganzen Reich verkauft werden.",
    "trigger": {"year_min": 1505, "year_max": 1530},
    "options": [
@@ -1190,9 +1190,9 @@
   {"id": "pap_trent", "tag": "PAP", "title": "Der Papst beruft ein Konzil", "text": "Ein deutscher Mönch stellt die Kirche in Frage. Ein Konzil soll antworten.",
    "trigger": {"year_min": 1540, "year_max": 1565},
    "options": [
-     {"text": "Reformen und eine klare Lehre.", "effects": {"adm": 50, "prestige": 15}, "ai": 50},
-     {"text": "Die Inquisition stärken.", "effects": {"mil": 20, "prestige": 5, "dev_random": -1}},
-     {"text": "Ausgleich mit den Protestanten suchen.", "effects": {"dip": 40, "prestige": -10}}]},
+     {"text": "Reformen und eine klare Lehre.", "effects": {"adm": 40, "prestige": 10}, "ai": 50},
+     {"text": "Die Inquisition stärken.", "effects": {"mil": 40, "prestige": 5, "estate": {"klerus": 6}}},
+     {"text": "Ausgleich mit den Protestanten suchen.", "effects": {"dip": 60, "prestige": -5}}]},
   {"id": "pap_sack_of_rome", "tag": "PAP", "title": "Der Sacco di Roma", "text": "Meuternde Landsknechte des Kaisers plündern Rom. Der Papst flieht in die Engelsburg.",
    "trigger": {"year_min": 1520, "year_max": 1535, "alive": "HAB"},
    "options": [
@@ -1258,7 +1258,7 @@
    "options": [
      {"text": "Ein Privileg erteilen.", "effects": {"dip": 30, "prestige": 5}, "ai": 50},
      {"text": "Unter Zensur stellen.", "effects": {"adm": 20}},
-     {"text": "Verbieten.", "effects": {"prestige": -5}}]},
+     {"text": "Verbieten.", "effects": {"prestige": -5, "adm": 30}}]},
   {"id": "gen_coffee_house", "tag": "*", "title": "Das Kaffeehaus", "text": "Ein Händler aus der Levante schenkt ein schwarzes Getränk aus. Kaufleute und Gelehrte streiten dort bis in die Nacht.",
    "trigger": {"year_min": 1600},
    "options": [
@@ -1346,9 +1346,9 @@
   {"id": "ara_remensa", "tag": "ARA", "title": "Die Remença-Bauern", "text": "In Katalonien erheben sich die leibeigenen Bauern gegen die bösen Bräuche ihrer Herren.",
    "trigger": {"year_min": 1460, "year_max": 1490},
    "options": [
-     {"text": "Die Bauern befreien.", "effects": {"dev_random": 1, "relations": {"SPA": 10}, "prestige": 5}, "ai": 50},
-     {"text": "Mit dem Adel gegen die Bauern.", "effects": {"mil": 30, "dev_random": -1}},
-     {"text": "Ablösung gegen Geld.", "effects": {"gold": 60, "adm": -20}}]},
+     {"text": "Die Bauern befreien.", "effects": {"dev_random": 1, "relations": {"SPA": 10}, "estate": {"adel": -5}}, "ai": 50},
+     {"text": "Mit dem Adel gegen die Bauern.", "effects": {"mil": 30, "estate": {"adel": 5}}},
+     {"text": "Ablösung gegen Geld.", "effects": {"gold": 80, "adm": -10}}]},
   {"id": "hun_hunyadi", "tag": "HUN", "title": "Johann Hunyadi", "text": "Der Reichsverweser will die Türken vor Belgrad schlagen. Ein Franziskaner predigt dazu den Kreuzzug.",
    "trigger": {"year_max": 1460, "alive": "TUR"},
    "options": [
@@ -1364,9 +1364,9 @@
   {"id": "lit_grunwald_legacy", "tag": "LIT", "title": "Das Erbe Vytautas'", "text": "Die Bojaren der Rus fragen, ob der Großfürst ihre Rechte und ihren Glauben schützt.",
    "trigger": {"year_max": 1500},
    "options": [
-     {"text": "Gleiche Rechte für die Orthodoxen.", "effects": {"dip": 30, "mods": {"manpower": 0.03}, "relations": {"PAP": -10}}, "ai": 50},
-     {"text": "Nur katholische Herren.", "effects": {"relations": {"PAP": 30, "POL": 20}, "prestige": 5}},
-     {"text": "Steuerfreiheit für die Grenzfürsten.", "effects": {"gold": -40, "manpower": 2}}]},
+     {"text": "Gleiche Rechte für die Orthodoxen.", "effects": {"dip": 20, "mods": {"manpower": 0.03}, "relations": {"PAP": -20}}, "ai": 50},
+     {"text": "Nur katholische Herren.", "effects": {"relations": {"PAP": 30, "POL": 20}, "prestige": 10, "dip": 20}},
+     {"text": "Steuerfreiheit für die Grenzfürsten.", "effects": {"gold": -20, "manpower": 3}}]},
   {"id": "nov_marfa", "tag": "NOV", "title": "Marfa Boretskaja", "text": "Die Witwe des Bürgermeisters will Nowgorod an Litauen binden, um Moskau zu entgehen.",
    "trigger": {"year_max": 1480, "alive": "LIT"},
    "options": [
@@ -1383,8 +1383,8 @@
    "trigger": {"year_min": 1455, "year_max": 1480, "alive": "TUR"},
    "options": [
      {"text": "Krieg dem Sultan!", "effects": {"prestige": 15, "relations": {"TUR": -60, "HUN": 30}, "mil": 30}, "ai": 40},
-     {"text": "Den Tribut zahlen.", "effects": {"gold": -40, "relations": {"TUR": 30}}, "ai": 40},
-     {"text": "Ungarn um Schutz bitten.", "effects": {"relations": {"HUN": 50}, "dip": -20}}]},
+     {"text": "Den Tribut zahlen.", "effects": {"gold": -20, "relations": {"TUR": 30}, "adm": 20}, "ai": 40},
+     {"text": "Ungarn um Schutz bitten.", "effects": {"relations": {"HUN": 50}, "dip": 20}}]},
   {"id": "mol_stephen", "tag": "MOL", "title": "Stephan der Große", "text": "Nach jedem Sieg gegen die Türken lässt der Fürst ein Kloster bauen.",
    "trigger": {"year_min": 1457, "year_max": 1505},
    "options": [
@@ -1443,8 +1443,8 @@
    "trigger": {"year_min": 1450},
    "options": [
      {"text": "Zölle erheben.", "effects": {"gold": 60}, "ai": 50},
-     {"text": "Den Händlern Schutz geben.", "effects": {"mods": {"income": 0.02}, "mil": -20}},
-     {"text": "Russische Kaufleute ausschließen.", "effects": {"relations": {"RUS": -30}, "prestige": 5}}]},
+     {"text": "Den Händlern Schutz geben.", "effects": {"mods": {"income": 0.03}, "mil": -20}},
+     {"text": "Russische Kaufleute ausschließen.", "effects": {"relations": {"RUS": -30}, "prestige": 10, "mil": 30}}]},
   {"id": "rya_last_prince", "tag": "RYA", "title": "Der letzte Fürst von Rjasan", "text": "Moskau verlangt immer mehr. Der Fürst überlegt, zu Litauen überzulaufen.",
    "trigger": {"year_min": 1480, "year_max": 1525, "alive": "RUS"},
    "options": [
@@ -1515,8 +1515,8 @@
    "trigger": {"year_min": 1505, "year_max": 1525},
    "options": [
      {"text": "Den Tübinger Vertrag schließen.", "effects": {"adm": 30, "gold": -20}, "ai": 50},
-     {"text": "Den Aufstand niederschlagen.", "effects": {"mil": -20, "dev_random": -1}},
-     {"text": "Die Steuern zurücknehmen.", "effects": {"gold": -40, "prestige": 5}}]},
+     {"text": "Den Aufstand niederschlagen.", "effects": {"mil": -10, "prestige": 5, "estate": {"adel": 4}}},
+     {"text": "Die Steuern zurücknehmen.", "effects": {"gold": -30, "prestige": 5, "estate": {"buerger": 5}}}]},
   {"id": "nur_duerer", "tag": "NUR", "title": "Albrecht Dürer", "text": "Ein Maler aus der Stadt ist in ganz Europa berühmt. Der Rat könnte ihn mit Aufträgen halten.",
    "trigger": {"year_min": 1490, "year_max": 1530},
    "options": [
@@ -1539,14 +1539,14 @@
    "trigger": {"year_max": 1525},
    "options": [
      {"text": "Ein einheitliches Pommern.", "effects": {"adm": 40, "prestige": 5}, "ai": 50},
-     {"text": "Pilgerfahrt nach Jerusalem.", "effects": {"prestige": 15, "gold": -40}},
-     {"text": "Ein Erbvertrag mit Brandenburg.", "effects": {"relations": {"BRA": 50}, "prestige": -5}}]},
+     {"text": "Pilgerfahrt nach Jerusalem.", "effects": {"prestige": 20, "gold": -20}},
+     {"text": "Ein Erbvertrag mit Brandenburg.", "effects": {"relations": {"BRA": 50}, "dip": 30}}]},
   {"id": "tur_istanbul", "tag": "TUR", "title": "Istanbul", "text": "Die eroberte Stadt ist halb leer. Der Sultan will sie wieder zur größten Stadt der Welt machen.",
    "trigger": {"year_min": 1453, "year_max": 1490, "owns": ["constantinople"]},
    "options": [
-     {"text": "Siedler aus ganz Anatolien.", "effects": {"dev_random": 2, "gold": -40}, "ai": 40},
+     {"text": "Siedler aus ganz Anatolien.", "effects": {"dev_random": 2, "gold": -80}, "ai": 40},
      {"text": "Griechen, Armenier und Juden einladen.", "effects": {"mods": {"income": 0.03}, "prestige": -5}, "ai": 40},
-     {"text": "Eine große Moschee und ein Basar.", "effects": {"prestige": 15, "gold": -50}, "ai": 20}]},
+     {"text": "Eine große Moschee und ein Basar.", "effects": {"prestige": 20, "gold": -30}, "ai": 20}]},
   {"id": "tur_cem", "tag": "TUR", "title": "Prinz Cem", "text": "Der Bruder des Sultans beansprucht den Thron und ist zu den Johannitern geflohen. Rom bietet an, ihn gegen Geld festzuhalten.",
    "trigger": {"year_min": 1481, "year_max": 1500},
    "options": [
@@ -1616,9 +1616,9 @@
   {"id": "pol_warsaw_confederation", "tag": "POL", "title": "Die Warschauer Konföderation", "text": "Der Adel schwört, dass niemand wegen seines Glaubens verfolgt werden darf.",
    "trigger": {"year_min": 1570, "year_max": 1580},
    "options": [
-     {"text": "Religionsfrieden für alle.", "effects": {"dip": 40, "dev_random": 1, "relations": {"PAP": -20}}, "ai": 60},
-     {"text": "Nur für den Adel.", "effects": {"prestige": 5, "adm": 20}},
-     {"text": "Die Jesuiten holen.", "effects": {"relations": {"PAP": 40}, "dip": -20}}]},
+     {"text": "Religionsfrieden für alle.", "effects": {"dip": 30, "dev_random": 1, "relations": {"PAP": -30}}, "ai": 60},
+     {"text": "Nur für den Adel.", "effects": {"prestige": 5, "adm": 40}},
+     {"text": "Die Jesuiten holen.", "effects": {"relations": {"PAP": 40}, "estate": {"klerus": 6}}}]},
   {"id": "pol_zamoyski", "tag": "POL", "title": "Jan Zamoyski", "text": "Der Kanzler und Hetman baut eine Idealstadt und will die Macht des Königs stärken.",
    "trigger": {"year_min": 1575, "year_max": 1605},
    "options": [
@@ -1725,7 +1725,7 @@
    "trigger": {"produces": "fish", "coastal": true},
    "options": [
      {"text": "Salz für die Fässer bereitstellen.", "effects": {"gold": 35, "mil": 10}},
-     {"text": "Fischer sollen Seeleute werden.", "effects": {"manpower": 1500}},
+     {"text": "Fischer sollen Seeleute werden.", "effects": {"manpower": 3}},
      {"text": "Eine Fischereiordnung erlassen.", "effects": {"adm": -25, "mods": {"production": 0.01}}, "ai": 25}]},
   {"id": "eco_hammer_mills", "tag": "*", "title": "Hammerwerke am Fluss", "text": "Schmiede wollen am Fluss wassergetriebene Hämmer bauen. Die Müller fürchten um ihr Wasser.", "image": "mine",
    "trigger": {"produces": "iron", "year_min": 1460},
@@ -1797,7 +1797,7 @@
    "trigger": {"building": {"estate": 3}},
    "options": [
      {"text": "Ausfuhr erlauben.", "effects": {"gold": 40, "estate": {"adel": 4}}},
-     {"text": "Kornspeicher für Notzeiten.", "effects": {"estate": {"adel": -4}, "manpower": 1500}},
+     {"text": "Kornspeicher für Notzeiten.", "effects": {"estate": {"adel": -4}, "manpower": 3}},
      {"text": "Das Korn an die Armee.", "effects": {"mil": 30, "estate": {"adel": -2}}, "ai": 25}]},
   {"id": "eco_merchants_want_port", "tag": "*", "title": "Die Kaufleute wollen einen Hafen", "text": "Deine Küste hat keinen richtigen Hafen. Die Kaufleute bieten an, sich an den Kosten zu beteiligen.", "image": "naval",
    "trigger": {"coastal": true, "no_building": "harbor", "year_min": 1455},
@@ -1820,7 +1820,7 @@
   {"id": "eco_harbor_fire", "tag": "*", "title": "Feuer im Hafen", "text": "Ein Lagerhaus mit Teer und Tauwerk ist in Flammen aufgegangen. Das Feuer greift auf die Kais über.", "image": "town_fire",
    "trigger": {"building": {"harbor": 2}},
    "options": [
-     {"text": "Alle Mann zum Löschen.", "effects": {"manpower": -800, "adm": 10}},
+     {"text": "Alle Mann zum Löschen.", "effects": {"manpower": -2, "adm": 10}},
      {"text": "Wiederaufbau aus der Staatskasse.", "effects": {"gold": -50, "estate": {"buerger": 6}}, "ai": 10},
      {"text": "Die Reeder sollen zahlen.", "effects": {"estate": {"buerger": -8}, "gold": 20}, "ai": 20}]},
   {"id": "eco_highwaymen", "once": false, "tag": "*", "title": "Wegelagerer auf der Landstraße", "text": "Auf deinen neuen Straßen reisen reiche Kaufleute, und das lockt Räuber an.", "image": "border",
@@ -1846,7 +1846,7 @@
    "options": [
      {"text": "Die Schlagbäume einreißen.", "effects": {"estate": {"adel": -6}, "mods": {"trade": 0.01}}},
      {"text": "Den Zoll teilen.", "effects": {"gold": 30, "estate": {"adel": 5}}},
-     {"text": "Ein Gericht soll entscheiden.", "effects": {"adm": -25, "estate": {"adel": 2}}}]},
+     {"text": "Ein Gericht soll entscheiden.", "effects": {"adm": -10, "estate": {"adel": 2}, "prestige": 2}}]},
   {"id": "eco_bankers_press", "once": false, "tag": "*", "title": "Die Bankiers drängen", "text": "Die Gläubiger der Krone werden ungeduldig. Sie verlangen Sicherheiten für deine Schulden.", "image": "bank",
    "trigger": {"loans_min": 2},
    "options": [
@@ -1880,9 +1880,9 @@
   {"id": "eco_merc_plunder", "once": false, "tag": "*", "title": "Söldner auf dem Heimweg", "text": "Die abgedankten Söldner ziehen plündernd durch deine Dörfer. Die Bauern verstecken sich in den Wäldern.", "image": "famine",
    "trigger": {"mercs_recent": 36, "at_peace": true},
    "options": [
-     {"text": "Die Miliz aufbieten.", "effects": {"mil": -25, "manpower": -500}},
+     {"text": "Die Miliz aufbieten.", "effects": {"mil": -25, "manpower": -1}},
      {"text": "Sie mit Gold aus dem Land schaffen.", "effects": {"gold": -35, "estate": {"adel": 3}}, "ai": 10},
-     {"text": "Sie bleiben, als Siedler.", "effects": {"dev_random": -1, "manpower": 1500}, "ai": 25}]},
+     {"text": "Sie bleiben, als Siedler.", "effects": {"dev_random": -1, "manpower": 3}, "ai": 25}]},
   {"id": "eco_merc_band", "once": false, "tag": "*", "title": "Ein Haufen Landsknechte", "text": "Ein Werber meldet: eine ganze Kompanie Landsknechte sucht gerade einen Kriegsherrn.", "image": "camp",
    "trigger": {"at_war": true, "year_min": 1470},
    "options": [
@@ -1894,7 +1894,7 @@
    "options": [
      {"text": "Eine flammende Rede.", "effects": {"army_power": 0.15, "mil": -15}},
      {"text": "Doppelter Sold.", "effects": {"gold": -45, "army_power": 0.3}, "ai": 10},
-     {"text": "Die Fahnenflüchtigen hängen.", "effects": {"army_power": 0.1, "manpower": -600, "prestige": -2}, "ai": 20}]},
+     {"text": "Die Fahnenflüchtigen hängen.", "effects": {"army_power": 0.1, "manpower": -1, "prestige": -2}, "ai": 20}]},
   {"id": "eco_field_preachers", "once": false, "tag": "*", "title": "Feldprediger im Lager", "text": "Mönche ziehen mit dem Heer und predigen vom gerechten Krieg. Die Männer hören ihnen zu.", "image": "procession",
    "trigger": {"morale_max": 0.6, "at_war": true, "estate_min": {"klerus": 55}},
    "options": [
@@ -1923,20 +1923,20 @@
    "trigger": {"budget_max": {"steuern": 1}, "at_peace": true},
    "options": [
      {"text": "Sie sollen das Ödland roden.", "effects": {"dev_random": 1, "estate": {"adel": -3}}},
-     {"text": "Sie in die Städte holen.", "effects": {"estate": {"buerger": 4}, "manpower": 1000}},
+     {"text": "Sie in die Städte holen.", "effects": {"estate": {"buerger": 4}, "manpower": 2}},
      {"text": "Mehr Leute, mehr Steuern.", "effects": {"gold": 30, "prestige": -1}, "ai": 20}]},
   {"id": "eco_rusty_armor", "once": false, "tag": "*", "title": "Verrostete Rüstungen", "text": "Bei der Musterung zeigen sich die Folgen des knappen Militärbudgets: stumpfe Klingen, rostige Harnische.", "image": "camp",
    "trigger": {"budget_max": {"heer": 1}, "year_min": 1450},
    "options": [
      {"text": "Es muss reichen.", "effects": {"army_power": -0.15, "mil": 10}},
      {"text": "Eine Sonderzahlung für die Zeughäuser.", "effects": {"gold": -40, "mil": 20}, "ai": 10},
-     {"text": "Die Bauern sollen eigene Waffen tragen.", "effects": {"estate": {"adel": -4}, "manpower": 1000}, "ai": 25}]},
+     {"text": "Die Bauern sollen eigene Waffen tragen.", "effects": {"estate": {"adel": -4}, "manpower": 2}, "ai": 25}]},
   {"id": "eco_war_footing", "once": false, "tag": "*", "title": "Die Waffenschmieden glühen", "text": "Das Heer bekommt alles, was es verlangt. Die Schmiede arbeiten Tag und Nacht, das Eisen wird knapp.", "image": "artillery",
    "trigger": {"budget_min": {"heer": 3}, "at_war": true},
    "options": [
      {"text": "Sie sollen weiterarbeiten.", "effects": {"army_power": 0.1, "estate": {"buerger": -2}}},
      {"text": "Eisen aus dem Ausland kaufen.", "effects": {"gold": -35, "mods": {"combat": 0.01}}, "ai": 10},
-     {"text": "Neue Rekruten ausrüsten.", "effects": {"manpower": 1500, "mil": -15}, "ai": 25}]},
+     {"text": "Neue Rekruten ausrüsten.", "effects": {"manpower": 3, "mil": -15}, "ai": 25}]},
   {"id": "eco_academies", "tag": "*", "title": "Gelehrte aus aller Welt", "text": "Deine Akademien sind berühmt. Gelehrte aus ganz Europa wollen bei dir forschen und lehren.", "image": "scholar",
    "trigger": {"budget_min": {"bildung": 3}},
    "options": [
@@ -1996,13 +1996,13 @@
    "options": [
      {"text": "Die Heirat mit Uzun Hasan.", "effects": {"relations": {"AKK": 35}, "prestige": 3}},
      {"text": "Ein Bund mit Georgien.", "effects": {"alliance": "GEO", "dip": -10}},
-     {"text": "Mauern statt Bündnisse.", "effects": {"mil": 30, "manpower": 1000}}]},
+     {"text": "Mauern statt Bündnisse.", "effects": {"mil": 30, "manpower": 2}}]},
   {"id": "south_akk_uzun_hasan", "tag": "AKK", "title": "Uzun Hasan", "text": "Der Lange Hasan hat die Stämme der Weißen Hammel geeint. Er träumt von einem Reich bis nach Persien.", "image": "coronation",
    "trigger": {"year_min": 1457, "year_max": 1478},
    "options": [
      {"text": "Gegen die Schwarzen Hammel ziehen.", "effects": {"claim": ["tabriz"], "mil": 20}},
      {"text": "Gesandte nach Venedig.", "effects": {"relations": {"VEN": 30}, "dip": 20}},
-     {"text": "Erst die Stämme ordnen.", "effects": {"adm": 30, "manpower": 1500}}]},
+     {"text": "Erst die Stämme ordnen.", "effects": {"adm": 30, "manpower": 3}}]},
   {"id": "south_akk_venice_guns", "tag": "AKK", "title": "Geschütze aus Venedig", "text": "Venedig hat Kanonen und Büchsenmeister geschickt. Sie wollen dafür, dass du den Sultan angreifst.", "image": "artillery",
    "trigger": {"year_min": 1465, "year_max": 1480, "alive": "VEN"},
    "options": [
@@ -2036,8 +2036,8 @@
   {"id": "south_cir_mamluks", "tag": "CIR", "title": "Krieger für Kairo", "text": "Sklavenhändler kaufen junge Tscherkessen für die Mamluken. Manche kehren als Emire zurück.", "image": "camp",
    "trigger": {"year_min": 1450, "alive": "MAM"},
    "options": [
-     {"text": "Die Verbindung nach Kairo pflegen.", "effects": {"relations": {"MAM": 25}, "manpower": -500}},
-     {"text": "Den Handel verbieten.", "effects": {"manpower": 1500, "relations": {"MAM": -15}}},
+     {"text": "Die Verbindung nach Kairo pflegen.", "effects": {"relations": {"MAM": 25}, "manpower": -1}},
+     {"text": "Den Handel verbieten.", "effects": {"manpower": 3, "relations": {"MAM": -15}}},
      {"text": "Zurückkehrende Emire anwerben.", "effects": {"mods": {"combat": 0.02}, "gold": -30}, "ai": 10}]},
   {"id": "south_mam_qaitbay", "tag": "MAM", "title": "Sultan Qaitbay baut", "text": "Der neue Sultan lässt Moscheen, Festungen und Brunnen bauen, von Alexandria bis Mekka.", "image": "city",
    "trigger": {"year_min": 1468, "year_max": 1496},
@@ -2060,8 +2060,8 @@
   {"id": "south_mam_selim", "tag": "MAM", "title": "Der Sultan von Istanbul rüstet", "text": "Spione melden: Der osmanische Sultan sammelt Heer und Geschütze. Sein Ziel ist Syrien.", "image": "artillery",
    "trigger": {"year_min": 1510, "year_max": 1520, "alive": "TUR"},
    "options": [
-     {"text": "Die Grenzfesten verstärken.", "effects": {"mil": 30, "manpower": 1500}},
-     {"text": "Feuerwaffen kaufen.", "effects": {"mods": {"combat": 0.03}, "gold": -60}, "ai": 10},
+     {"text": "Die Grenzfesten verstärken.", "effects": {"mil": 20, "manpower": 2}},
+     {"text": "Feuerwaffen kaufen.", "effects": {"mods": {"combat": 0.03}, "gold": -50}, "ai": 10},
      {"text": "Gesandte mit Geschenken.", "effects": {"relations": {"TUR": 25}, "prestige": -3}}]},
   {"id": "south_tun_corsairs", "once": false, "tag": "TUN", "title": "Die Korsaren von Tunis", "text": "Korsaren laufen mit reicher Beute aus Sizilien und Sardinien in den Hafen ein. Der Sultan bekommt ein Fünftel.", "image": "naval",
    "trigger": {"year_min": 1450},
@@ -2084,7 +2084,7 @@
   {"id": "south_mor_tangier", "tag": "MOR", "title": "Die Portugiesen vor Tanger", "text": "Portugiesische Schiffe liegen vor Tanger. Ceuta haben sie schon, jetzt wollen sie mehr.", "image": "siege",
    "trigger": {"year_min": 1460, "year_max": 1480, "alive": "POR", "owns": ["tangier"]},
    "options": [
-     {"text": "Die Stadt verteidigen.", "effects": {"mil": 30, "manpower": 1500}},
+     {"text": "Die Stadt verteidigen.", "effects": {"mil": 30, "manpower": 3}},
      {"text": "Mit Lissabon verhandeln.", "effects": {"relations": {"POR": 25}, "dip": -20}},
      {"text": "Den heiligen Krieg ausrufen.", "effects": {"prestige": 5, "estate": {"klerus": 6}, "relations": {"POR": -20}}}]},
   {"id": "south_mor_saadi", "tag": "MOR", "title": "Die Saadier aus dem Süden", "text": "Im Sous ruft eine Familie von Scherifen zum Kampf gegen die Portugiesen. Ihr Ansehen wächst.", "image": "procession",
@@ -2102,9 +2102,9 @@
   {"id": "south_kni_rhodes", "tag": "KNI", "title": "Die Belagerung von Rhodos", "text": "Eine osmanische Flotte liegt vor der Insel. Großmeister d'Aubusson ruft die Ritter auf die Mauern.", "image": "siege",
    "trigger": {"year_min": 1478, "year_max": 1485, "alive": "TUR"},
    "options": [
-     {"text": "Die Mauern verstärken.", "effects": {"mil": 30, "manpower": 1000}},
+     {"text": "Die Mauern verstärken.", "effects": {"mil": 30, "manpower": 2}},
      {"text": "Hilfe aus dem Westen erbitten.", "effects": {"relations": {"PAP": 25, "FRA": 15}, "dip": -15}},
-     {"text": "Ein Ausfall bei Nacht.", "effects": {"prestige": 6, "manpower": -800}}]},
+     {"text": "Ein Ausfall bei Nacht.", "effects": {"prestige": 6, "manpower": -2}}]},
   {"id": "court_master_builder", "once": false, "tag": "*", "title": "Ein berühmter Baumeister", "text": "Ein Meister, der schon für Päpste und Kaiser gebaut hat, bietet an, die Leitung deiner Baustelle zu übernehmen.", "image": "artist",
    "trigger": {"monument_building": true},
    "options": [
@@ -2162,9 +2162,9 @@
   {"id": "court_palace_envy", "tag": "*", "title": "Neid auf deinen Palast", "text": "Fremde Fürsten reden nur noch von deinem Palast. Manche bewundern ihn, andere ärgern sich.", "image": "court",
    "trigger": {"monument": "palace"},
    "options": [
-     {"text": "Gesandte herumführen.", "effects": {"dip": 40, "prestige": 3}},
+     {"text": "Gesandte herumführen.", "effects": {"dip": 25, "prestige": 3}},
      {"text": "Ein Fest für die Neider.", "effects": {"gold": -40, "dip": 25, "prestige": 5}, "ai": 2},
-     {"text": "Sollen sie neidisch sein.", "effects": {"prestige": 6, "dip": -15}}]},
+     {"text": "Sollen sie neidisch sein.", "effects": {"prestige": 10, "dip": -10}}]},
   {"id": "court_wonders", "tag": "*", "title": "Reisende bestaunen deine Bauten", "text": "Gelehrte und Fürstensöhne reisen in deine Hauptstadt, nur um deine Bauwerke zu sehen.", "image": "city",
    "trigger": {"monuments_min": 3},
    "options": [
@@ -2253,7 +2253,7 @@
    "trigger": {},
    "options": [
      {"text": "Mehr Proben, weniger Eile.", "effects": {"mil": 25}},
-     {"text": "Weiter wie bisher.", "effects": {"monument_progress": 4, "manpower": -500}},
+     {"text": "Weiter wie bisher.", "effects": {"monument_progress": 4, "manpower": -1}},
      {"text": "Den Gießmeister bestrafen.", "effects": {"prestige": -1, "estate": {"buerger": -3}, "mil": 15}}]},
   {"id": "mon_arsenal_done", "manual": true, "tag": "*", "title": "Das Arsenal ist fertig", "text": "Lager voller Pulver, Spieße und Geschütze. Die Hauptleute können das neue Arsenal kaum erwarten.", "image": "artillery",
    "trigger": {},
@@ -2283,7 +2283,7 @@
    "trigger": {},
    "options": [
      {"text": "Die Krone baut allein.", "effects": {"prestige": 2, "adm": 10}},
-     {"text": "Die Kaufleute zahlen mit.", "effects": {"gold": 60, "estate": {"buerger": 5}, "prestige": -1}},
+     {"text": "Die Kaufleute zahlen mit.", "effects": {"gold": 40, "estate": {"buerger": 3}, "prestige": -1}},
      {"text": "Die Bank leiht uns das Geld.", "effects": {"loan": 1, "prestige": -1}, "ai": 5}]},
   {"id": "mon_exchange_half", "manual": true, "tag": "*", "title": "Händel um die Börsenordnung", "text": "Noch ist die Halle nicht fertig, doch die Kaufleute streiten schon um Regeln für Wechsel und Kredite.", "image": "market",
    "trigger": {},
@@ -2302,7 +2302,7 @@
    "options": [
      {"text": "Nur Söhne des Adels.", "effects": {"estate": {"adel": 5}, "mil": 10}},
      {"text": "Wer begabt ist, wird aufgenommen.", "effects": {"estate": {"adel": -4, "buerger": 4}, "mil": 20}},
-     {"text": "Veteranen als Lehrer.", "effects": {"mil": 25, "manpower": -500}}]},
+     {"text": "Veteranen als Lehrer.", "effects": {"mil": 25, "manpower": -1}}]},
   {"id": "mon_academy_half", "manual": true, "tag": "*", "title": "Manöver der Kadetten", "text": "Die ersten Kadetten üben schon, obwohl die Gebäude noch nicht stehen. Ein Manöver vor dem Hof wird gewünscht.", "image": "camp",
    "trigger": {},
    "options": [
@@ -2362,7 +2362,7 @@
    "options": [
      {"text": "Das wächst sich aus.", "effects": {"estate": {"buerger": -5}}},
      {"text": "Ins Kloster zur Besinnung.", "effects": {"dip": -40, "heir_trait": "fromm"}},
-     {"text": "An die Grenze mit ihm, dort braucht man Härte.", "effects": {"mil": -30, "manpower": -800, "heir_trait": "feldherr"}}]},
+     {"text": "An die Grenze mit ihm, dort braucht man Härte.", "effects": {"mil": -30, "manpower": -2, "heir_trait": "feldherr"}}]},
   {"id": "heir_spendthrift_heir", "once": false, "tag": "*", "title": "Der Erbe verprasst sein Erbe", "text": "Spieltische, Pferde, Juwelen: Die Gläubiger des Erben stehen schon vor dem Schatzamt.", "image": "tavern",
    "trigger": {"heir_trait": "verschwender"},
    "options": [
@@ -2397,7 +2397,7 @@
    "trigger": {"ruler_trait": "verschwender"},
    "options": [
      {"text": "Der Glanz der Krone ist es wert.", "effects": {"prestige": 3, "estate": {"adel": 4}}},
-     {"text": "Ein strenges Sparprogramm.", "effects": {"estate": {"adel": -10}, "adm": -20, "ruler_trait": "sparsam"}},
+     {"text": "Ein strenges Sparprogramm.", "effects": {"estate": {"adel": -5}, "adm": -10, "ruler_trait": "sparsam"}},
      {"text": "Die Kronjuwelen verpfänden.", "effects": {"gold": 70, "prestige": -6}}]},
   {"id": "heir_scholar_ruler", "once": false, "tag": "*", "title": "Die Bibliothek des Herrschers", "text": "Der Herrscher sammelt Handschriften aus aller Welt und will sie seinem Volk zugänglich machen.", "image": "printing",
    "trigger": {"ruler_trait": "gelehrt"},
@@ -2493,8 +2493,8 @@
    "trigger": {"year_min": 1640, "year_max": 1660, "owns_any": ["kiev", "zaporozhia", "volhynia"]},
    "options": [
      {"text": "Mit den Kosaken verhandeln.", "effects": {"estate": {"adel": -5}, "dip": 20}},
-     {"text": "Das Heer gegen die Rebellen.", "effects": {"manpower": -2500, "mil": 25, "estate": {"adel": 4}}},
-     {"text": "Mehr Kosaken ins Register aufnehmen.", "effects": {"gold": -40, "manpower": 2000}, "ai": 8}]},
+     {"text": "Das Heer gegen die Rebellen.", "effects": {"manpower": -5, "mil": 25, "estate": {"adel": 4}}},
+     {"text": "Mehr Kosaken ins Register aufnehmen.", "effects": {"gold": -40, "manpower": 4}, "ai": 8}]},
   {"id": "pol_late_liberum_veto", "tag": "POL", "title": "Liberum veto", "text": "Zum ersten Mal hat ein einziger Abgeordneter den ganzen Sejm gesprengt. Der Adel nennt es Freiheit.", "image": "diet",
    "trigger": {"year_min": 1640, "year_max": 1700},
    "options": [
@@ -2504,7 +2504,7 @@
   {"id": "pol_late_gustav_prussia", "tag": "POL", "title": "Gustav Adolf in Preußen", "text": "Der Schwedenkönig landet an der preußischen Küste und sperrt die Weichselmündung. Der Zoll von Danzig fließt nach Stockholm.", "image": "siege",
    "trigger": {"year_min": 1620, "year_max": 1640, "at_war": true},
    "options": [
-     {"text": "Das Volk zum Widerstand rufen.", "effects": {"manpower": 3000, "estate": {"klerus": 4}}},
+     {"text": "Das Volk zum Widerstand rufen.", "effects": {"manpower": 6, "estate": {"klerus": 4}}},
      {"text": "Die Magnaten mit Ämtern halten.", "effects": {"estate": {"adel": 6}, "dip": -15}},
      {"text": "Einen Waffenstillstand suchen.", "effects": {"dip": 30, "prestige": -3}}]},
   {"id": "pol_late_chotyn", "tag": "POL", "title": "Das Lager von Chotyn", "text": "Hetman Chodkiewicz hält mit Kosaken und Husaren das Lager von Chotyn gegen das Heer des Sultans. Der Adel will die Helden belohnen.", "image": "knights",
@@ -2522,8 +2522,8 @@
   {"id": "pol_late_cossack_register", "tag": "POL", "title": "Das Kosakenregister", "text": "Die Kosaken am Dnjepr wollen als freie Krieger in den Dienst der Krone treten, mit Sold und eigenen Rechten.", "image": "steppe",
    "trigger": {"year_min": 1570, "year_max": 1640},
    "options": [
-     {"text": "Ein kleines Register.", "effects": {"manpower": 1000, "estate": {"adel": 2}}},
-     {"text": "Alle aufnehmen.", "effects": {"manpower": 3000, "estate": {"adel": -5}}},
+     {"text": "Ein kleines Register.", "effects": {"manpower": 2, "estate": {"adel": 2}}},
+     {"text": "Alle aufnehmen.", "effects": {"manpower": 6, "estate": {"adel": -5}}},
      {"text": "Die Kosaken bleiben Bauern.", "effects": {"estate": {"adel": 5}, "mil": -10}}]},
   {"id": "tur_late_koprulu", "tag": "TUR", "title": "Die Köprülü-Wesire", "text": "Ein alter Pascha verlangt für das Amt des Großwesirs freie Hand. Er will Korruption und Aufruhr mit eiserner Hand beenden.", "image": "court",
    "trigger": {"year_min": 1640, "year_max": 1700},
@@ -2535,7 +2535,7 @@
    "trigger": {"year_min": 1590, "year_max": 1620, "owns": ["konya"]},
    "options": [
      {"text": "Die Anführer mit Ämtern kaufen.", "effects": {"estate": {"adel": 4}, "adm": -15}},
-     {"text": "Das Heer nach Anatolien.", "effects": {"manpower": -2000, "mil": 25}},
+     {"text": "Das Heer nach Anatolien.", "effects": {"manpower": -4, "mil": 25}},
      {"text": "Steuern in Anatolien senken.", "effects": {"gold": -30, "estate": {"buerger": 5}}, "ai": 8}]},
   {"id": "tur_late_candia", "tag": "TUR", "title": "Die Belagerung von Candia", "text": "Kreta ist venezianisch. Die Festung Candia könnte Jahre der Belagerung kosten, aber sie öffnet das Mittelmeer.", "image": "siege",
    "trigger": {"year_min": 1640, "year_max": 1670, "not_owns": ["crete"], "alive": "VEN"},
@@ -2547,7 +2547,7 @@
    "trigger": {"year_min": 1615, "year_max": 1640},
    "options": [
      {"text": "Die Janitscharen besänftigen.", "effects": {"mil": 20, "estate": {"adel": 3}}},
-     {"text": "Langsam neue Truppen ausheben.", "effects": {"manpower": 1500, "estate": {"adel": -3}}},
+     {"text": "Langsam neue Truppen ausheben.", "effects": {"manpower": 3, "estate": {"adel": -3}}},
      {"text": "Die Kasernen auflösen.", "effects": {"mil": 30, "prestige": -2, "estate": {"adel": -6}}, "ai": 15}]},
   {"id": "tur_late_kadizadeli", "tag": "TUR", "title": "Die Kadızadeliler", "text": "Strenge Prediger wettern gegen Kaffeehäuser, Tabak und die Derwischorden. Ihre Anhänger stürmen Tekken.", "image": "procession",
    "trigger": {"year_min": 1620, "year_max": 1690},
@@ -2576,8 +2576,8 @@
   {"id": "rel_peasant_war", "tag": "*", "title": "Der Bauernkrieg", "text": "Bauern berufen sich auf das Evangelium und fordern das Ende der Leibeigenschaft. Erste Klöster brennen.", "image": "revolt",
    "trigger": {"year_min": 1524, "year_max": 1527, "hre": true},
    "options": [
-     {"text": "Mit den Bauern verhandeln.", "effects": {"estate": {"adel": -6}, "adm": 20, "dev_random": 1}},
-     {"text": "Der Adel soll sie niederwerfen.", "effects": {"estate": {"adel": 8}, "manpower": -1500, "prestige": 2}},
+     {"text": "Mit den Bauern verhandeln.", "effects": {"estate": {"adel": -6}, "adm": 10, "dev_random": 1}},
+     {"text": "Der Adel soll sie niederwerfen.", "effects": {"estate": {"adel": 8}, "manpower": -3, "prestige": 2}},
      {"text": "Zwölf Artikel prüfen lassen.", "effects": {"adm": -30, "estate": {"adel": -2, "buerger": 4}}}]},
   {"id": "rel_bible_translation", "tag": "*", "title": "Die Bibel in der Landessprache", "text": "Ein Gelehrter hat die Heilige Schrift übersetzt. Jeder, der lesen kann, will sie kaufen.", "image": "printing",
    "trigger": {"year_min": 1517, "year_max": 1620, "religion": "protestant"},
@@ -2703,8 +2703,8 @@
    "trigger": {"year_min": 1610, "tech": {"mil": 12}},
    "options": [
      {"text": "Nur die Hauptstadt befestigen.", "effects": {"mil": 20, "adm": -10}},
-     {"text": "Eine Festung an der Grenze bauen.", "effects": {"build": "fortress", "mil": -25}},
-     {"text": "Lieber ein stehendes Heer.", "effects": {"manpower": 1500}}]},
+     {"text": "Eine Festung an der Grenze bauen.", "effects": {"build": "fortress", "mil": -10}},
+     {"text": "Lieber ein stehendes Heer.", "effects": {"manpower": 3}}]},
   {"id": "era_absolutism", "tag": "*", "title": "Der Fürst über dem Gesetz", "text": "Die Hofjuristen erklären, dass der Herrscher an kein Gesetz gebunden ist, nur an Gott. Die Stände sind empört.", "image": "coronation",
    "trigger": {"year_min": 1620},
    "options": [
@@ -2720,7 +2720,7 @@
   {"id": "era_veterans", "tag": "*", "title": "Abgedankte Söldner", "text": "Nach dem letzten Krieg ziehen entlassene Söldner durchs Land. Sie wollen Sold, Land oder einen neuen Krieg.", "image": "camp",
    "trigger": {"year_min": 1620, "at_peace": true},
    "options": [
-     {"text": "Ihnen Land an der Grenze geben.", "effects": {"manpower": 2000, "estate": {"adel": -3}}},
+     {"text": "Ihnen Land an der Grenze geben.", "effects": {"manpower": 4, "estate": {"adel": -3}}},
      {"text": "Sie in die Garnisonen aufnehmen.", "effects": {"mil": 25, "adm": -10}},
      {"text": "Sie mit Gold heimschicken.", "effects": {"gold": -40, "estate": {"buerger": 4}}, "ai": 8}]},
   {"id": "era_little_ice_age", "tag": "*", "title": "Kalte Jahre", "text": "Die Winter sind länger als je zuvor, Flüsse frieren zu, das Korn reift nicht. Die Bauern hungern.", "image": "famine",
@@ -2764,7 +2764,7 @@
    "options": [
      {"text": "Die eigenen Offiziere lernen daraus.", "effects": {"mil": 30}},
      {"text": "Den Fremden alles zeigen.", "effects": {"dip": 20, "prestige": 2}},
-     {"text": "Eine Garnison aus dem Adel.", "effects": {"estate": {"adel": 4}, "manpower": 500}}]},
+     {"text": "Eine Garnison aus dem Adel.", "effects": {"estate": {"adel": 4}, "manpower": 1}}]},
   {"id": "bld_courthouse_first", "manual": true, "tag": "*", "title": "Der erste Gerichtshof", "text": "Im neuen Gerichtshof wird nach geschriebenem Recht geurteilt. Die Grundherren verlieren ihre Gerichte.", "image": "court",
    "trigger": {},
    "options": [
@@ -2793,7 +2793,7 @@
    "trigger": {},
    "options": [
      {"text": "Die Regimenter ausrüsten.", "effects": {"army_power": 0.15, "mil": 10}},
-     {"text": "Ein Teil für die Landwehr.", "effects": {"manpower": 1500}},
+     {"text": "Ein Teil für die Landwehr.", "effects": {"manpower": 3}},
      {"text": "Alte Waffen verkaufen.", "effects": {"gold": 45}}]},
   {"id": "bld_max_level", "manual": true, "tag": "*", "title": "Ein Musterbau", "text": "Zum ersten Mal hat ein Gebäude in deinem Reich die höchste Ausbaustufe erreicht. Baumeister aus den Nachbarländern kommen, um es zu sehen.", "image": "city",
    "trigger": {},
@@ -2811,7 +2811,7 @@
    "trigger": {},
    "options": [
      {"text": "Aus den Fehlern lernen.", "effects": {"mil": 25}},
-     {"text": "Den Admiral absetzen.", "effects": {"prestige": -1, "estate": {"adel": -3}, "mil": 15}},
+     {"text": "Den Admiral absetzen.", "effects": {"prestige": -1, "estate": {"adel": -3}, "mil": 30}},
      {"text": "Sofort neue Schiffe bauen.", "effects": {"gold": -40, "ships": 3}, "ai": 5}]},
   {"id": "nav_shipwrights", "tag": "*", "title": "Die Fleute", "text": "In Holland baut man ein neues Frachtschiff: billig, geräumig und mit kleiner Mannschaft. Deine Reeder wollen es nachbauen.", "image": "naval",
    "trigger": {"year_min": 1590, "coastal": true, "ships_min": 4},
@@ -2847,25 +2847,25 @@
    "trigger": {"at_war": true, "ships_min": 6, "is_player": true},
    "options": [
      {"text": "Bessere Heuer versprechen.", "effects": {"estate": {"buerger": 3}, "dip": -10}},
-     {"text": "Pressgangs in den Häfen.", "effects": {"manpower": -800, "estate": {"buerger": -4}, "mil": 15}},
+     {"text": "Pressgangs in den Häfen.", "effects": {"manpower": -2, "estate": {"buerger": -4}, "mil": 15}},
      {"text": "Weniger Schiffe bemannen.", "effects": {"ships": -2, "adm": 10}}]},
   {"id": "war_first_win", "manual": true, "tag": "*", "title": "Der erste Sieg im Feld", "text": "Nach Wochen des Ringens weicht der Feind. Es ist der erste Sieg deiner Armee in einer offenen Feldschlacht.", "image": "battle",
    "trigger": {},
    "options": [
      {"text": "Ein Dankgottesdienst.", "effects": {"prestige": 3, "estate": {"klerus": 2}}},
      {"text": "Die Offiziere befördern.", "effects": {"mil": 20, "estate": {"adel": 2}}},
-     {"text": "Die Beute verteilen.", "effects": {"gold": 30, "manpower": -300}}]},
+     {"text": "Die Beute verteilen.", "effects": {"gold": 30, "manpower": -1}}]},
   {"id": "war_first_loss", "manual": true, "tag": "*", "title": "Die erste verlorene Schlacht", "text": "Deine Armee hat das Feld räumen müssen. Die Überlebenden sammeln sich, aber im Land fragt man nach dem Schuldigen.", "image": "battle",
    "trigger": {},
    "options": [
      {"text": "Aus den Fehlern lernen.", "effects": {"mil": 25}},
-     {"text": "Den Befehlshaber ablösen.", "effects": {"prestige": -1, "mil": 10, "estate": {"adel": -2}}},
-     {"text": "Neue Rekruten ausheben.", "effects": {"manpower": 1000, "estate": {"buerger": -2}}}]},
+     {"text": "Den Befehlshaber ablösen.", "effects": {"prestige": -1, "mil": 15, "army_power": 0.1}},
+     {"text": "Neue Rekruten ausheben.", "effects": {"manpower": 2, "estate": {"buerger": -2}}}]},
   {"id": "war_long_battle", "manual": true, "tag": "*", "title": "Eine Schlacht über Monate", "text": "Wochenlang lagen sich die Heere gegenüber, ein Gefecht folgte dem nächsten. Die Soldaten haben gelernt, in Schanzen und Gräben zu überleben.", "image": "camp",
    "trigger": {},
    "options": [
      {"text": "Die Erfahrung festhalten.", "effects": {"mil": 25}},
-     {"text": "Lazarette einrichten.", "effects": {"manpower": 800, "estate": {"klerus": 2}}},
+     {"text": "Lazarette einrichten.", "effects": {"manpower": 2, "estate": {"klerus": 2}}},
      {"text": "Die Ausdauer der Truppe ehren.", "effects": {"prestige": 2, "estate": {"adel": 2}}}]},
   {"id": "war_first_fort", "manual": true, "tag": "*", "title": "Die erste Festung fällt", "text": "Nach langer Belagerung hat die Besatzung die Tore geöffnet. Zum ersten Mal hat dein Heer eine befestigte Stadt genommen.", "image": "siege",
    "trigger": {},
@@ -2876,7 +2876,7 @@
   {"id": "war_capital_lost", "manual": true, "tag": "*", "title": "Feinde in der Hauptstadt", "text": "Fremde Truppen stehen in deiner Hauptstadt. Der Hof ist geflohen, die Beamten warten ab, wer am Ende siegt.", "image": "siege",
    "trigger": {},
    "options": [
-     {"text": "Den Widerstand im Land organisieren.", "effects": {"manpower": 1500, "estate": {"adel": 2}}},
+     {"text": "Den Widerstand im Land organisieren.", "effects": {"manpower": 3, "estate": {"adel": 2}}},
      {"text": "Die Kanzlei in Sicherheit bringen.", "effects": {"adm": 15, "prestige": -1}},
      {"text": "Um Hilfe bitten.", "effects": {"dip": 20, "prestige": -2}}]},
   {"id": "war_peace_gain", "manual": true, "tag": "*", "title": "Ein siegreicher Friede", "text": "Der Friedensvertrag ist unterzeichnet. Neue Provinzen gehören zu deinem Reich, doch ihre Bewohner sind dir noch fremd.", "image": "treaty",
@@ -2900,7 +2900,7 @@
   {"id": "dip_coalition", "manual": true, "tag": "*", "title": "Eine Koalition gegen dich", "text": "Deine Nachbarn haben sich gegen dich verbündet. Ihre Gesandten sprechen von Gleichgewicht, ihre Heere marschieren.", "image": "diet",
    "trigger": {},
    "options": [
-     {"text": "Das Volk zur Verteidigung rufen.", "effects": {"manpower": 2000, "estate": {"buerger": -2}}},
+     {"text": "Das Volk zur Verteidigung rufen.", "effects": {"manpower": 4, "estate": {"buerger": -2}}},
      {"text": "Einen Keil zwischen sie treiben.", "effects": {"dip": 25}},
      {"text": "Die Festungen rüsten.", "effects": {"mil": 20, "gold": -20}, "ai": 8}]},
   {"id": "dip_rivaled", "manual": true, "tag": "*", "title": "Ein erklärter Rivale", "text": "Ein Nachbar hat dich öffentlich zum Rivalen erklärt. Seine Gesandten werben an den Höfen gegen dich, seine Generäle studieren deine Grenzen.", "image": "diet",
@@ -2908,7 +2908,7 @@
    "options": [
      {"text": "Die Grenze befestigen.", "effects": {"mil": 15}},
      {"text": "Mit eigenen Gesandten antworten.", "effects": {"dip": 15, "prestige": 2}},
-     {"text": "Das Volk aufrütteln.", "effects": {"manpower": 1000, "prestige": -2}}]},
+     {"text": "Das Volk aufrütteln.", "effects": {"manpower": 2, "prestige": -2}}]},
   {"id": "dip_first_vassal", "manual": true, "tag": "*", "title": "Der erste Vasall", "text": "Ein fremder Fürst hat dir den Treueid geleistet. Er herrscht weiter in seinem Land, aber nach deinem Willen.", "image": "coronation",
    "trigger": {},
    "options": [
@@ -2979,7 +2979,7 @@
    "trigger": {"rival_at_war": true, "is_player": true},
    "options": [
      {"text": "Ihn aufnehmen.", "effects": {"army_power": 0.1}},
-     {"text": "Seine Männer einreihen.", "effects": {"manpower": 500}},
+     {"text": "Seine Männer einreihen.", "effects": {"manpower": 1}},
      {"text": "Ihn zurückschicken, mit falschen Plänen.", "effects": {"dip": 10, "power_proj": 3}}]},
   {"id": "riv_pamphlets", "once": false, "tag": "*", "title": "Schmähschriften", "text": "In den Städten kursieren Flugblätter aus der Druckerei des Rivalen: dein Haus als Narren, dein Herrscher als Tyrann.", "image": "printing",
    "trigger": {"rivaled": true, "year_min": 1470, "is_player": true},
@@ -3002,7 +3002,7 @@
   {"id": "urb_back_to_land", "manual": true, "tag": "*", "title": "Verlassene Gassen", "text": "Die Stadt ist aufgegeben: Die Bürger ziehen aufs Land, die Werkstätten verfallen, doch die Dörfer ringsum stellen wieder mehr Männer.", "image": "harvest",
    "trigger": {},
    "options": [
-     {"text": "Die Bauern entlasten.", "effects": {"manpower": 400}},
+     {"text": "Die Bauern entlasten.", "effects": {"manpower": 1}},
      {"text": "Die Steine für Straßen nutzen.", "effects": {"adm": 10}},
      {"text": "Die Zünfte entschädigen.", "effects": {"gold": -20, "prestige": 1}, "ai": 8}]},
   {"id": "urb_guild_dispute", "once": false, "tag": "*", "title": "Zunftstreit", "text": "In einer deiner Städte liegen Weber und Färber im Streit um die Preise. Beide Seiten verlangen ein Urteil des Hofes.", "image": "court",
@@ -3020,27 +3020,27 @@
   {"id": "urb_city_fever", "once": false, "tag": "*", "title": "Fieber in der Stadt", "text": "In den engen Gassen einer deiner Städte grassiert ein Fieber. Die Ratsherren wollen die Tore schließen, die Händler nicht.", "image": "plague",
    "trigger": {"cities_min": 2, "year_min": 1460, "is_player": true},
    "options": [
-     {"text": "Die Tore schließen.", "effects": {"adm": 10, "manpower": -200}},
+     {"text": "Die Tore schließen.", "effects": {"adm": 10, "manpower": -1}},
      {"text": "Ärzte bezahlen.", "effects": {"gold": -30, "prestige": 2}, "ai": 8},
-     {"text": "Es Gottes Hand überlassen.", "effects": {"prestige": -2, "manpower": -400}}]},
+     {"text": "Es Gottes Hand überlassen.", "effects": {"prestige": -2, "manpower": -1}}]},
   {"id": "urb_charter", "tag": "*", "title": "Ein Freibrief", "text": "Ein wohlhabender Flecken bittet um das Stadtrecht und bietet eine stattliche Summe für Mauern und Markt. Der Adel ringsum murrt.", "image": "diet",
    "trigger": {"cities_min": 1, "cities_max": 6, "year_min": 1470},
    "options": [
      {"text": "Das Stadtrecht verleihen.", "effects": {"urbanize": 1, "prestige": 1}},
-     {"text": "Dem Adel nachgeben.", "effects": {"mil": 20}},
+     {"text": "Dem Adel nachgeben.", "effects": {"mil": 20, "estate": {"adel": 5}}},
      {"text": "Verleihen und den Adel entschädigen.", "effects": {"urbanize": 1, "gold": -40}, "ai": 8}]},
   {"id": "urb_country_fair", "once": false, "tag": "*", "title": "Erntedank", "text": "Auf dem Land wird die Ernte gefeiert. Die Dörfer schicken Gesandte mit Garben und der Bitte um eine Steuerpause.", "image": "harvest",
    "trigger": {"cities_max": 3, "at_peace": true, "is_player": true},
    "options": [
-     {"text": "Die Bitte gewähren.", "effects": {"manpower": 300, "prestige": 1}},
+     {"text": "Die Bitte gewähren.", "effects": {"manpower": 1, "prestige": 1}},
      {"text": "Die Garben annehmen, die Steuer bleibt.", "effects": {"gold": 20, "prestige": -1}},
      {"text": "Ein Fest mit den Bauern feiern.", "effects": {"gold": -15, "mil": 10, "prestige": 1}, "ai": 8}]},
   {"id": "urb_walls_needed", "tag": "*", "title": "Die Stadt will Mauern", "text": "Die Bürger deiner Städte fürchten Plünderer und bitten um Festungswerke. Die Zünfte sind bereit, einen Teil zu zahlen.", "image": "siege",
    "trigger": {"cities_min": 3, "year_min": 1480, "is_player": true},
    "options": [
-     {"text": "Die Bürger selbst bauen lassen.", "effects": {"mil": 15}},
+     {"text": "Die Bürger selbst bauen lassen.", "effects": {"mil": 15, "estate": {"buerger": 3}}},
      {"text": "Mitzahlen: eine Festung entsteht.", "effects": {"gold": -40, "build": "fortress"}, "ai": 8},
-     {"text": "Lieber ein stehendes Heer.", "effects": {"manpower": 300}}]},
+     {"text": "Lieber ein stehendes Heer.", "effects": {"manpower": 1}}]},
   {"id": "form_ita", "manual": true, "tag": "*", "title": "Italia unita", "text": "Von den Alpen bis Sizilien weht ein Banner. In Rom, Florenz und Venedig streiten die Gelehrten, wessen Dialekt die Sprache des neuen Reiches sein soll.", "image": "coronation",
    "trigger": {},
    "options": [
@@ -3051,7 +3051,7 @@
    "trigger": {},
    "options": [
      {"text": "Die Freiheiten der Städte bestätigen.", "effects": {"dip": 25, "prestige": 2}},
-     {"text": "Ein Reichsheer aufstellen.", "effects": {"manpower": 1000, "mil": 15}},
+     {"text": "Ein Reichsheer aufstellen.", "effects": {"manpower": 2, "mil": 15}},
      {"text": "Ein Reichstag mit Pomp.", "effects": {"gold": -50, "prestige": 8}, "ai": 8}]},
   {"id": "form_gbr", "manual": true, "tag": "*", "title": "Zwei Kronen, ein Reich", "text": "England und Schottland sind vereint. In Edinburgh wehen neue Banner, in London streitet das Parlament über die neuen Abgeordneten aus dem Norden.", "image": "treaty",
    "trigger": {},
@@ -3074,13 +3074,13 @@
   {"id": "form_rom", "manual": true, "tag": "*", "title": "Roma renata", "text": "Rom und Konstantinopel in einer Hand: Gesandte aus ganz Europa staunen, die Gelehrten graben alte Titel aus, und der Hof will Purpur tragen.", "image": "coronation",
    "trigger": {},
    "options": [
-     {"text": "Den Titel der Caesaren annehmen.", "effects": {"prestige": 10, "ae": 10}},
-     {"text": "Die Legionen neu ordnen.", "effects": {"mil": 30, "manpower": 1000}},
+     {"text": "Den Titel der Caesaren annehmen.", "effects": {"prestige": 20, "ae": 10}},
+     {"text": "Die Legionen neu ordnen.", "effects": {"mil": 30, "manpower": 2}},
      {"text": "Ein Triumphzug durch die Stadt.", "effects": {"gold": -60, "prestige": 12}, "ai": 8}]},
   {"id": "form_per", "manual": true, "tag": "*", "title": "Der Schah der Schahs", "text": "Von Täbris bis Mossul huldigen die Stammesfürsten dem neuen Schah. Dichter preisen ihn als Erben der alten Könige.", "image": "court",
    "trigger": {},
    "options": [
-     {"text": "Die Stämme mit Land belohnen.", "effects": {"manpower": 1000, "prestige": 2}},
+     {"text": "Die Stämme mit Land belohnen.", "effects": {"manpower": 2, "prestige": 2}},
      {"text": "Die Karawanenstraßen sichern.", "effects": {"mods": {"trade": 0.02}}},
      {"text": "Ein Hof voll Dichter.", "effects": {"gold": -50, "prestige": 8}, "ai": 8}]},
   {"id": "form_mag", "manual": true, "tag": "*", "title": "Ein Sultan für den Westen", "text": "Von Fès bis Tunis gilt ein Wort. Die Korsaren der Küste fragen, ob der neue Sultan ihre Fahrten duldet.", "image": "naval",
@@ -3117,8 +3117,8 @@
    "trigger": {"year_min": 1450, "year_max": 1600},
    "options": [
      {"text": "Gefangene vom Sklavenmarkt kaufen.", "effects": {"gold": 60, "prestige": -10, "mods": {"naval": 0.03}}},
-     {"text": "Freiwillige anständig bezahlen.", "effects": {"gold": -60, "prestige": 10, "mods": {"naval": 0.03}}, "ai": 70},
-     {"text": "Sträflinge an die Ruder.", "effects": {"mods": {"naval": 0.02}, "dip": -10}}]},
+     {"text": "Freiwillige anständig bezahlen.", "effects": {"gold": -80, "prestige": 10, "mods": {"naval": 0.02}}, "ai": 70},
+     {"text": "Sträflinge an die Ruder.", "effects": {"mods": {"naval": 0.02}, "dip": -10, "gold": 30}}]},
   {"id": "np_ven_carnival", "tag": "VEN", "title": "Karneval in Venedig", "text": "Masken, Feste und Fremde aus aller Welt. Der Rat fragt, ob das Fest größer werden soll.",
    "trigger": {"year_min": 1470, "at_peace": true},
    "options": [
@@ -3128,8 +3128,8 @@
   {"id": "np_ven_cambrai", "tag": "VEN", "title": "Die Liga gegen Venedig", "text": "Der Papst, Frankreich und der Kaiser haben sich gegen die Republik verbündet.",
    "trigger": {"year_min": 1505, "year_max": 1515, "min_dev": 120},
    "options": [
-     {"text": "Kämpfen, um jede Stadt.", "effects": {"mil": 40, "regs": 4}, "ai": 60},
-     {"text": "Die Liga mit Gold spalten.", "effects": {"gold": -120, "dip": 50}},
+     {"text": "Kämpfen, um jede Stadt.", "effects": {"mil": 20, "regs": 3}, "ai": 60},
+     {"text": "Die Liga mit Gold spalten.", "effects": {"gold": -80, "dip": 50}},
      {"text": "Terraferma aufgeben, das Meer behalten.", "effects": {"prestige": -15, "mods": {"naval": 0.03}}}]},
   {"id": "np_hun_corvinus", "tag": "HUN", "title": "Ein König aus dem Volk", "text": "Der Adel wählt den jungen Matthias Corvinus zum König. Er will eine starke Krone.",
    "trigger": {"year_min": 1455, "year_max": 1470},
@@ -3140,9 +3140,9 @@
   {"id": "np_hun_dozsa", "tag": "HUN", "title": "Der Bauernkreuzzug", "text": "Bauern, die zum Kreuzzug gerufen wurden, wenden ihre Waffen gegen die Grundherren.",
    "trigger": {"year_min": 1500, "year_max": 1530},
    "options": [
-     {"text": "Hart durchgreifen und die Leibeigenschaft verschärfen.", "effects": {"mil": 30, "mods": {"tax": 0.03, "manpower": -0.05}}},
-     {"text": "Die Forderungen der Bauern teilweise erfüllen.", "effects": {"prestige": 10, "mods": {"manpower": 0.05}, "gold": -40}, "ai": 70},
-     {"text": "Den Kreuzzug abblasen.", "effects": {"prestige": -10}}]},
+     {"text": "Hart durchgreifen und die Leibeigenschaft verschärfen.", "effects": {"mil": 30, "mods": {"tax": 0.03, "manpower": -0.03}}},
+     {"text": "Die Forderungen der Bauern teilweise erfüllen.", "effects": {"prestige": 10, "mods": {"manpower": 0.03}, "gold": -60}, "ai": 70},
+     {"text": "Den Kreuzzug abblasen.", "effects": {"prestige": -10, "adm": 40}}]},
   {"id": "np_hun_border", "tag": "HUN", "title": "Die Grenzfestungen", "text": "Die Burgen an der Save verfallen. Die Osmanen warten nur darauf.",
    "trigger": {"year_min": 1444, "alive": "TUR"},
    "options": [
@@ -3206,8 +3206,8 @@
   {"id": "np_eth_zara_yaqob", "tag": "ETH", "title": "Der strenge Kaiser", "text": "Zara Yaqob verlangt, dass jeder Christ das Kreuz auf der Stirn trägt. Die Mönche murren.",
    "trigger": {"year_min": 1444, "year_max": 1470},
    "options": [
-     {"text": "Die Kirche einen, mit Härte.", "effects": {"adm": 40, "prestige": 10, "mods": {"unrest": 0.25}}},
-     {"text": "Die Klöster ihren Weg gehen lassen.", "effects": {"dip": 30, "mods": {"unrest": -0.25}}, "ai": 70},
+     {"text": "Die Kirche einen, mit Härte.", "effects": {"adm": 60, "prestige": 10, "mods": {"unrest": 0.25}}},
+     {"text": "Die Klöster ihren Weg gehen lassen.", "effects": {"dip": 20, "mods": {"unrest": -0.25}, "estate": {"klerus": -5}}, "ai": 70},
      {"text": "Ein Konzil einberufen.", "effects": {"prestige": 15, "gold": -40}}]},
   {"id": "np_eth_florence", "tag": "ETH", "title": "Mönche in Florenz", "text": "Äthiopische Mönche aus Jerusalem sind beim Konzil in Italien gewesen und berichten von Europa.",
    "trigger": {"year_min": 1444, "year_max": 1480},
@@ -3236,9 +3236,9 @@
   {"id": "np_eth_succession", "tag": "ETH", "title": "Der Berg der Prinzen", "text": "Alle männlichen Verwandten des Kaisers leben auf dem Amba Geshen, damit sie keinen Aufstand anzetteln.",
    "trigger": {"year_min": 1444},
    "options": [
-     {"text": "Die alte Sitte bewahren.", "effects": {"mods": {"unrest": -0.25}}, "ai": 60},
-     {"text": "Einen Prinzen als Statthalter einsetzen.", "effects": {"adm": 40, "mods": {"unrest": 0.25}}},
-     {"text": "Die Prinzen erziehen lassen.", "effects": {"prestige": 10, "dip": 20}}]},
+     {"text": "Die alte Sitte bewahren.", "effects": {"mods": {"unrest": -0.25}, "ruler": {"adm": -1}}, "ai": 60},
+     {"text": "Einen Prinzen als Statthalter einsetzen.", "effects": {"adm": 60, "mods": {"unrest": 0.25}}},
+     {"text": "Die Prinzen erziehen lassen.", "effects": {"prestige": 10, "dip": 40}}]},
   {"id": "age_q_buchdruck", "manual": true, "tag": "*", "title": "Die schwarze Kunst", "text": "In Mainz druckt ein Goldschmied Bücher mit beweglichen Lettern. Bald kann jeder Krämer lesen, was früher nur Mönche abschrieben: Bibeln, Kalender, Schmähschriften. Wie hält es dein Reich mit den Pressen?", "image": "printing",
    "trigger": {},
    "options": [
@@ -3363,7 +3363,7 @@
    "trigger": {"age_pick": "sklavenhandel", "year_min": 1560},
    "options": [
      {"text": "Einen Vertrag schließen: ihre Freiheit gegen Frieden.", "effects": {"dip": -15, "prestige": 2}},
-     {"text": "Die nächste Expedition ausrüsten.", "effects": {"manpower": -400, "mil": -15}},
+     {"text": "Die nächste Expedition ausrüsten.", "effects": {"manpower": -1, "mil": -15}},
      {"text": "Wegsehen.", "effects": {"prestige": -2, "estate": {"adel": -3}}}]},
   {"id": "age_abschaffung", "tag": "*", "title": "Die Bittschrift", "text": "Zehntausend Unterschriften, gesammelt von Handwerkern, Pfarrern und ehemaligen Seeleuten: Der Menschenhandel soll enden. Die Pflanzer drohen mit dem Ruin, die Hafenstädte mit Aufruhr, und in den Kolonien wächst die Angst vor dem nächsten Aufstand.", "image": "diet",
    "trigger": {"age_pick": "sklavenhandel", "year_min": 1600},
@@ -3376,7 +3376,7 @@
    "options": [
      {"text": "Die Überfahrt bezuschussen.", "effects": {"gold": -30, "dev_random": 2}, "ai": 8},
      {"text": "Handwerker bevorzugen.", "effects": {"dev_random": 1, "adm": 15}},
-     {"text": "Die Besten für die Garnisonen werben.", "effects": {"manpower": 600}}]},
+     {"text": "Die Besten für die Garnisonen werben.", "effects": {"manpower": 1}}]},
   {"id": "age_lohnstreit", "tag": "*", "title": "Der Lohn der Freien", "text": "Die Pflanzer klagen: Freie Arbeiter verlangen das Doppelte und gehen, wenn es ihnen nicht passt. Die Nachbarreiche verkaufen ihren Zucker billiger.", "image": "market",
    "trigger": {"age_pick": "freie_arbeit", "year_min": 1555},
    "options": [
@@ -3405,7 +3405,7 @@
    "trigger": {"age_pick": "zwangsarbeit", "year_min": 1570},
    "options": [
      {"text": "Verhandeln und die Fron mildern.", "effects": {"dip": -20, "prestige": 1}},
-     {"text": "Den Aufstand niederschlagen.", "effects": {"manpower": -800, "we": 2, "prestige": -2}},
+     {"text": "Den Aufstand niederschlagen.", "effects": {"manpower": -2, "we": 2, "prestige": -2}},
      {"text": "Nachgeben: Selbstverwaltung unter den alten Fürsten.", "effects": {"age_pick": ["unterworfene", "selbstverwaltung"], "prestige": 3}, "ai": 25}]},
   {"id": "age_siedler_murren", "tag": "*", "title": "Die Siedler murren", "text": "Eine Abordnung der Siedler steht vor dem Thron: Ohne Zwangsarbeiter könnten sie ihre Güter nicht halten. Einige drohen offen, sich einen anderen König zu suchen.", "image": "diet",
    "trigger": {"age_pick": "schutzgesetze", "year_min": 1545},
@@ -3417,12 +3417,12 @@
    "trigger": {"age_pick": "schutzgesetze", "year_min": 1565},
    "options": [
      {"text": "Das Urteil überall verlesen lassen.", "effects": {"prestige": 4, "dip": 15}},
-     {"text": "Freiwillige aus den Provinzen annehmen.", "effects": {"manpower": 700}},
+     {"text": "Freiwillige aus den Provinzen annehmen.", "effects": {"manpower": 1}},
      {"text": "Die dankbaren Dörfer zahlen pünktlich.", "effects": {"gold": 60}}]},
   {"id": "age_fuerstenrat", "tag": "*", "title": "Der Rat der alten Fürsten", "text": "Die verbündeten Fürsten der eroberten Länder kommen zum ersten Mal gemeinsam an deinen Hof. Sie bringen Krieger, Geschenke und eine lange Liste von Wünschen.", "image": "coronation",
    "trigger": {"age_pick": "selbstverwaltung", "year_min": 1555},
    "options": [
-     {"text": "Ihre Krieger in das Heer aufnehmen.", "effects": {"manpower": 800, "mil": 15}},
+     {"text": "Ihre Krieger in das Heer aufnehmen.", "effects": {"manpower": 2, "mil": 15}},
      {"text": "Ihre Söhne am Hof erziehen.", "effects": {"dip": 25, "prestige": 2}},
      {"text": "Die Wünsche prüfen. Gründlich. Jahrelang.", "effects": {"adm": 20}}]},
   {"id": "age_gelehrte_fliehen", "tag": "*", "title": "Die leeren Lehrstühle", "text": "Drei Professoren sind über Nacht geflohen, einer mit der halben Sternwarte im Gepäck. An der Universität lehrt nun der Neffe des Großinquisitors Mathematik.", "image": "inquisition",
@@ -3459,7 +3459,7 @@
    "trigger": {"age_pick": "goldmacher", "year_min": 1610},
    "options": [
      {"text": "Es zählt. Eine Manufaktur gründen.", "effects": {"mods": {"production": 0.03}, "prestige": 3}},
-     {"text": "Das Geheimnis streng bewachen und teuer verkaufen.", "effects": {"gold": 150}},
+     {"text": "Das Geheimnis streng bewachen und teuer verkaufen.", "effects": {"gold": 100}},
      {"text": "Ihn freilassen und adeln.", "effects": {"prestige": 4, "adm": 20}}]},
   {"id": "age_explosion", "tag": "*", "title": "Der Knall im Schlosskeller", "text": "Kurz nach Mitternacht fliegt das Labor in die Luft. Der Goldmacher sitzt rußgeschwärzt, aber glücklich im Hof und spricht von einem Durchbruch. Der Westflügel hat kein Dach mehr.", "image": "town_fire",
    "trigger": {"age_pick": "goldmacher", "year_min": 1600},
@@ -3496,7 +3496,7 @@
    "options": [
      {"text": "Die neuen Methoden überall bekannt machen.", "effects": {"dev_random": 2}},
      {"text": "Den Überschuss besteuern, maßvoll.", "effects": {"gold": 80}},
-     {"text": "Die Söhne der Freibauern als Unteroffiziere werben.", "effects": {"manpower": 700, "mil": 15}}]},
+     {"text": "Die Söhne der Freibauern als Unteroffiziere werben.", "effects": {"manpower": 1, "mil": 15}}]},
   {"id": "age_verbrannte_stadt", "tag": "*", "title": "Die Stadt, die nicht zahlen konnte", "text": "Eine belagerte Stadt konnte die geforderte Summe nicht aufbringen. Deine Söldner haben sie drei Tage lang geplündert und angezündet. Flugblätter mit dem Bild der brennenden Türme gehen durch ganz Europa.", "image": "town_fire",
    "trigger": {"age_pick": "kontributionen", "year_min": 1635},
    "options": [
@@ -3507,7 +3507,7 @@
    "trigger": {"age_pick": "magazine", "year_min": 1635},
    "options": [
      {"text": "Die Ordnung zum Vorbild erklären.", "effects": {"prestige": 3, "army_power": 0.1}},
-     {"text": "Die dankbaren Dörfer stellen Rekruten.", "effects": {"manpower": 600}},
+     {"text": "Die dankbaren Dörfer stellen Rekruten.", "effects": {"manpower": 1}},
      {"text": "Den Quartiermeister befördern.", "effects": {"mil": 30}}]},
   {"id": "age_fun_tanzwut", "tag": "*", "title": "Die Tanzwut", "text": "In einer deiner Städte beginnt eine Frau auf der Gasse zu tanzen und hört nicht mehr auf. Nach einer Woche tanzen vierhundert, manche bis zum Umfallen. Die Ärzte empfehlen: mehr Tanz. Der Rat hat bereits Musikanten bestellt.", "image": "plague",
    "trigger": {"year_min": 1518, "is_player": true, "year_max": 1560},
@@ -3560,9 +3560,9 @@
   {"id": "age_fun_kartoffel", "tag": "*", "title": "Die Teufelsknolle", "text": "Aus Übersee kommt eine Knolle, die auf schlechtem Boden wächst und satt macht. Die Bauern rühren sie nicht an: Sie steht nicht in der Bibel. Ein Rat schlägt vor, das Feld von Soldaten bewachen zu lassen, damit die Leute sie für wertvoll halten und nachts stehlen.", "image": "harvest",
    "trigger": {"year_min": 1590, "is_player": true},
    "options": [
-     {"text": "Bewachen lassen, aber nachts schlecht.", "effects": {"dev_random": 2, "prestige": 1}},
-     {"text": "Per Erlass anordnen.", "effects": {"dev_random": 1, "estate": {"adel": -2}}},
-     {"text": "Sie zuerst an der Hoftafel servieren.", "effects": {"prestige": 3}}]},
+     {"text": "Bewachen lassen, aber nachts schlecht.", "effects": {"dev_random": 1, "prestige": 2}},
+     {"text": "Per Erlass anordnen.", "effects": {"dev_random": 1, "estate": {"adel": -2}, "adm": 10}},
+     {"text": "Sie zuerst an der Hoftafel servieren.", "effects": {"prestige": 5, "dip": 20}}]},
   {"id": "age_fun_kaffeehaus", "tag": "*", "title": "Der Türkentrank", "text": "Ein Armenier eröffnet in der Hauptstadt ein Haus, in dem ein bitteres schwarzes Getränk ausgeschenkt wird. Die Gäste schlafen nicht mehr, lesen Zeitung und reden über Politik. Die Brauer verlangen ein Verbot, der Klerus auch.", "image": "tavern",
    "trigger": {"year_min": 1610, "is_player": true},
    "options": [
@@ -3573,7 +3573,7 @@
    "trigger": {"year_min": 1634, "is_player": true},
    "options": [
      {"text": "Den Handel mit Zwiebeln auf Zeit verbieten.", "effects": {"adm": 15, "estate": {"buerger": -3}}},
-     {"text": "Mitspielen und rechtzeitig verkaufen.", "effects": {"gold": 120, "prestige": -1}},
+     {"text": "Mitspielen und rechtzeitig verkaufen.", "effects": {"gold": 70, "prestige": -2}},
      {"text": "Den Koch befördern. Er hat als Einziger den wahren Wert erkannt.", "effects": {"prestige": 3}}]},
   {"id": "age_fun_wunderkammer", "tag": "*", "title": "Die Wunderkammer", "text": "Dein Hofmeister schlägt eine Sammlung vor, wie sie jeder Fürst von Rang besitzt: ein ausgestopftes Krokodil, ein Kirschkern mit hundert geschnitzten Gesichtern, eine Uhr, die Enten nachahmt, und ein Stück vom Turm zu Babel (mit Echtheitsbrief).", "image": "scholar",
    "trigger": {"year_min": 1560, "is_player": true},
@@ -3639,7 +3639,7 @@
    "trigger": {"produces": "glass", "year_min": 1450},
    "options": [
      {"text": "Er bleibt. Notfalls mit Gewalt.", "effects": {"prestige": -2, "mods": {"production": 0.01}}},
-     {"text": "Ihn mit einem Adelstitel halten.", "effects": {"adm": -25, "estate": {"buerger": 4}, "prestige": 2}, "ai": 25},
+     {"text": "Ihn mit einem Adelstitel halten.", "effects": {"adm": -15, "estate": {"buerger": 4}, "prestige": 3}, "ai": 25},
      {"text": "Das Rezept an einen Verbündeten verkaufen.", "effects": {"gold": 60, "dip": 15, "estate": {"buerger": -6}}, "ai": 15}]},
   {"id": "gds_paper_mill", "tag": "*", "title": "Eine Papiermühle am Fluss", "text": "Die neue Papiermühle liefert so viel Papier, dass die Schreiber nicht mehr hinterherkommen. Die Kanzlei will mehr Beamte.", "image": "printing",
    "trigger": {"produces": "paper", "year_min": 1460},
@@ -3728,7 +3728,7 @@
   {"id": "pf_por_sugar", "tag": "POR", "title": "Zucker von den Inseln", "text": "Auf den Atlantikinseln wächst Zuckerrohr wie Unkraut. Die Pflanzer verlangen Arbeiter, und die Sklavenhändler stehen schon im Hafen.", "image": "harvest",
    "trigger": {"year_min": 1450, "year_max": 1600},
    "options": [
-     {"text": "Die Pflanzer kaufen, wen sie wollen.", "effects": {"gold": 120, "prestige": -15, "estate": {"adel": 3}}},
+     {"text": "Die Pflanzer kaufen, wen sie wollen.", "effects": {"gold": 80, "prestige": -15, "estate": {"adel": 3}}},
      {"text": "Freie Siedler aus dem Norden mit Land locken.", "effects": {"gold": -40, "mods": {"production": 0.02}, "prestige": 5}, "ai": 70},
      {"text": "Kein Zucker. Weizen für Lissabon reicht.", "effects": {"estate": {"buerger": -3}, "adm": 20}}]},
   {"id": "pf_por_jews", "tag": "POR", "title": "Flüchtlinge aus Kastilien", "text": "Zehntausende vertriebene Juden aus Kastilien stehen an der Grenze. Kastilien verlangt, dass man sie zurückschickt oder ebenfalls vertreibt.", "image": "border",
@@ -3795,8 +3795,8 @@
    "trigger": {"year_min": 1500, "at_war": true, "alive": "TUR"},
    "options": [
      {"text": "Hinter die Mauern, die Burgen halten.", "effects": {"mil": 30, "mods": {"manpower": 0.02}, "prestige": -5}, "ai": 60},
-     {"text": "Angriff, für Gott und die Krone!", "effects": {"prestige": 10, "manpower": -4, "army_power": 0.15}},
-     {"text": "Hilfe bei Habsburg suchen, um jeden Preis.", "effects": {"relations": {"HAB": 40}, "dip": 30, "gold": -50}}]},
+     {"text": "Angriff, für Gott und die Krone!", "effects": {"prestige": 10, "manpower": -3, "army_power": 0.15, "mil": 20}},
+     {"text": "Hilfe bei Habsburg suchen, um jeden Preis.", "effects": {"relations": {"HAB": 40}, "dip": 30, "gold": -30, "regs": 2}}]},
   {"id": "pf_mam_qaitbay", "tag": "MAM", "title": "Die Festung am Pharos", "text": "Wo einst der Leuchtturm von Alexandria stand, liegen nur noch Steine. Sultan Qaitbay will dort eine Festung gegen die Flotten der Christen.", "image": "siege",
    "trigger": {"year_min": 1470, "year_max": 1520, "owns": ["alexandria"]},
    "options": [
@@ -3887,6 +3887,438 @@
      {"text": "Königliche Aufseher an die Flüsse.", "effects": {"gold": 50, "estate": {"adel": -4}, "adm": -10}, "ai": 60},
      {"text": "Den Statthaltern vertrauen.", "effects": {"gold": 20, "estate": {"adel": 4}}},
      {"text": "Das Gold für Kirchen und Ikonen verwenden.", "effects": {"prestige": 8, "estate": {"klerus": 4}}}]},
+  {"id": "col_spa_hispaniola", "tag": "SPA", "title": "Land im Westen!", "text": "Der Genuese ist zurück. Statt Indien hat er Inseln gefunden, mit Gold an den Flüssen und Menschen, die ihn für einen Gott halten. Auf Hispaniola stehen schon die ersten Hütten von La Isabela.", "image": "exploration",
+   "trigger": {"year_min": 1490, "year_max": 1515, "coastal": true, "colony_free": ["quisqueya", "ayiti", "boriken", "havana", "oriente"]},
+   "options": [
+     {"text": "Eine Stadt gründen: Santo Domingo.", "effects": {"colony_grant": ["quisqueya", "ayiti", "boriken", "havana", "oriente"], "gold": -60, "prestige": 10}, "ai": 70},
+     {"text": "Nur Karten zeichnen und Gold suchen lassen.", "effects": {"discover": ["quisqueya", "ayiti", "boriken", "havana", "oriente"], "gold": 40, "dip": 30}, "ai": 20},
+     {"text": "Die Inseln sind nicht Indien. Die Mauren gehen vor.", "effects": {"mil": 50, "adm": 30}, "ai": 10}]},
+  {"id": "col_por_mina", "tag": "POR", "title": "São Jorge da Mina", "text": "An der Goldküste tauschen die Akan Gold gegen Tuch und Messing. Ein Kapitän schlägt vor, dort eine steinerne Festung zu bauen, damit kein Kastilier den Handel stört.", "image": "exploration",
+   "trigger": {"year_min": 1470, "year_max": 1500, "coastal": true, "colony_free": ["gold_coast", "akan", "ivory_coast", "allada"]},
+   "options": [
+     {"text": "Die Festung bauen.", "effects": {"colony_grant": ["gold_coast", "akan", "ivory_coast", "allada"], "gold": -50, "mods": {"trade": 0.01}}, "ai": 70},
+     {"text": "Nur einen Handelsposten am Strand.", "effects": {"discover": ["gold_coast", "akan", "ivory_coast", "allada"], "gold": 50, "dip": 20}, "ai": 20},
+     {"text": "Weiter nach Süden, das Kap ist wichtiger.", "effects": {"dip": 50, "prestige": 5}, "ai": 10}]},
+  {"id": "col_por_brazil", "tag": "POR", "title": "Terra de Vera Cruz", "text": "Cabrals Flotte nach Indien ist zu weit nach Westen abgetrieben und hat eine Küste voller Rotholz gefunden. Nach dem Vertrag von Tordesillas gehört sie Portugal.", "image": "exploration",
+   "trigger": {"year_min": 1499, "year_max": 1540, "coastal": true, "colony_free": ["pernambuco", "bahia"]},
+   "options": [
+     {"text": "Kapitanate an Adlige vergeben.", "effects": {"colony_grant": ["pernambuco", "bahia"], "gold": -40, "estate": {"adel": 4}, "prestige": 5}, "ai": 70},
+     {"text": "Nur Rotholz schlagen lassen.", "effects": {"discover": ["pernambuco", "bahia"], "gold": 70, "dip": 15}, "ai": 20},
+     {"text": "Indien zuerst.", "effects": {"dip": 40, "mods": {"trade": 0.01}}, "ai": 10}]},
+  {"id": "col_spa_plata", "tag": "SPA", "title": "Der Silberfluss", "text": "Am Río de la Plata gründet Pedro de Mendoza eine Stadt. Die Siedler hoffen auf den Weg zu den Silberbergen im Westen.", "image": "exploration",
+   "trigger": {"year_min": 1530, "year_max": 1590, "coastal": true, "colony_free": ["rio_plata"]},
+   "options": [
+     {"text": "Buenos Aires gründen.", "effects": {"colony_grant": ["rio_plata"], "gold": -50, "prestige": 10}, "ai": 70},
+     {"text": "Nur die Mündung erkunden.", "effects": {"discover": ["rio_plata"], "dip": 40, "gold": 20}, "ai": 20},
+     {"text": "Peru ist reicher.", "effects": {"gold": 80}, "ai": 10}]},
+  {"id": "col_eng_virginia", "tag": "ENG", "title": "Jamestown", "text": "Die Virginia Company hat drei Schiffe ausgerüstet. Hundert Siedler wollen an einem Fluss im Land der Powhatan eine Festung bauen.", "image": "exploration",
+   "trigger": {"year_min": 1585, "year_max": 1625, "coastal": true, "colony_free": ["powhatan", "secotan", "susquehannock", "lenape"]},
+   "options": [
+     {"text": "Den Freibrief der Krone geben.", "effects": {"colony_grant": ["powhatan", "secotan", "susquehannock", "lenape"], "gold": -40, "prestige": 10}, "ai": 70},
+     {"text": "Nur die Küste vermessen lassen.", "effects": {"discover": ["powhatan", "secotan", "susquehannock", "lenape"], "dip": 40, "gold": 20}, "ai": 20},
+     {"text": "Lieber Spaniens Silberflotten kapern.", "effects": {"gold": 90, "relations": {"SPA": -30}}, "ai": 10}]},
+  {"id": "col_fra_quebec", "tag": "FRA", "title": "Québec", "text": "Samuel de Champlain will am Sankt-Lorenz-Strom eine Stadt gründen, wo der Fluss schmal wird. Die Huronen bieten Biberpelze und ein Bündnis.", "image": "exploration",
+   "trigger": {"year_min": 1600, "year_max": 1640, "coastal": true, "colony_free": ["stadacona", "hochelaga", "gaspe", "wendake"]},
+   "options": [
+     {"text": "Neufrankreich gründen.", "effects": {"colony_grant": ["stadacona", "hochelaga", "gaspe", "wendake"], "gold": -50, "prestige": 10}, "ai": 70},
+     {"text": "Nur Pelzhändler schicken.", "effects": {"discover": ["stadacona", "hochelaga", "gaspe", "wendake"], "gold": 60, "dip": 15}, "ai": 20},
+     {"text": "Frankreich braucht seine Söhne zu Hause.", "effects": {"mil": 50, "adm": 20}, "ai": 10}]},
+  {"id": "col_ned_amsterdam", "tag": "BUR", "title": "Nieuw Amsterdam", "text": "Kaufleute aus Holland haben den Lenape eine Insel an einer großen Flussmündung abgekauft. Ein Fort und eine Windmühle stehen schon.", "image": "exploration",
+   "trigger": {"year_min": 1605, "year_max": 1644, "coastal": true, "colony_free": ["munsee", "lenape", "mahican"], "owns": ["holland"]},
+   "options": [
+     {"text": "Die Westindische Kompanie gründen.", "effects": {"colony_grant": ["munsee", "lenape", "mahican"], "gold": -40, "mods": {"trade": 0.01}}, "ai": 70},
+     {"text": "Nur Pelzhandel am Fluss.", "effects": {"discover": ["munsee", "lenape", "mahican"], "gold": 60, "dip": 15}, "ai": 20},
+     {"text": "Die Ostindienfahrt ist lohnender.", "effects": {"gold": 30, "dip": 40}, "ai": 10}]},
+  {"id": "col_ned_guiana", "tag": "BUR", "title": "Die Wilde Küste", "text": "Zeeländer Kaufleute haben an der Küste von Guayana Handelsposten zwischen den Flüssen angelegt. Sie wollen Zuckermühlen bauen.", "image": "exploration",
+   "trigger": {"year_min": 1590, "year_max": 1644, "coastal": true, "colony_free": ["suriname", "guayana"], "owns": ["holland"]},
+   "options": [
+     {"text": "Eine Kolonie mit freien Siedlern.", "effects": {"colony_grant": ["suriname", "guayana"], "gold": -50, "prestige": 5}, "ai": 70},
+     {"text": "Nur Handelsposten.", "effects": {"discover": ["suriname", "guayana"], "gold": 60, "dip": 15}, "ai": 20},
+     {"text": "Zu viel Fieber, zu wenig Gewinn.", "effects": {"adm": 40, "gold": 20}, "ai": 10}]},
+  {"id": "col_dan_westindies", "tag": "DAN", "title": "Sankt Thomas", "text": "Ein Kapitän aus Kopenhagen meldet eine Insel in der Karibik, die weder Spanier noch Engländer beanspruchen. Ein guter Hafen für Kaufleute aller Länder.", "image": "exploration",
+   "trigger": {"year_min": 1600, "year_max": 1644, "coastal": true, "colony_free": ["antilles", "boriken", "lucayas"]},
+   "options": [
+     {"text": "Eine Handelsstation gründen.", "effects": {"colony_grant": ["antilles", "boriken", "lucayas"], "gold": -40, "mods": {"trade": 0.01}}, "ai": 70},
+     {"text": "Die Route für die Flotte kartieren.", "effects": {"discover": ["antilles", "boriken", "lucayas"], "dip": 40, "gold": 15}, "ai": 20},
+     {"text": "Der Sundzoll ist sicherer.", "effects": {"gold": 70}, "ai": 10}]},
+  {"id": "col_sco_novascotia", "tag": "SCO", "title": "Nova Scotia", "text": "König Jakob vergibt Baronien in Neu-Schottland an jeden, der Siedler über das Meer bringt.", "image": "exploration",
+   "trigger": {"year_min": 1615, "year_max": 1644, "coastal": true, "colony_free": ["mikmaq", "abenaki", "wolastoqiyik"]},
+   "options": [
+     {"text": "Die Baronien verkaufen und Siedler schicken.", "effects": {"colony_grant": ["mikmaq", "abenaki", "wolastoqiyik"], "gold": 30, "estate": {"adel": 4}, "prestige": 5}, "ai": 70},
+     {"text": "Nur Fischer und Pelzhändler.", "effects": {"discover": ["mikmaq", "abenaki", "wolastoqiyik"], "gold": 50, "dip": 15}, "ai": 20},
+     {"text": "Schotten bleiben in Schottland.", "effects": {"mil": 40, "adm": 20}, "ai": 10}]},
+  {"id": "col_eng_plymouth", "tag": "ENG", "title": "Die Pilgerväter", "text": "Religiöse Abweichler wollen auf der Mayflower über das Meer, um in Frieden ihren Glauben zu leben. Sie bitten um ein Patent.", "image": "exploration",
+   "trigger": {"year_min": 1610, "year_max": 1644, "coastal": true, "colony_free": ["wampanoag", "massachusett", "pequot"]},
+   "options": [
+     {"text": "Ein Patent für Neuengland.", "effects": {"colony_grant": ["wampanoag", "massachusett", "pequot"], "gold": -20, "estate": {"klerus": -3}, "prestige": 5}, "ai": 50},
+     {"text": "Ziehen lassen, ohne Patent.", "effects": {"discover": ["wampanoag", "massachusett", "pequot"], "dip": 30, "estate": {"klerus": 3}}, "ai": 30},
+     {"text": "Sie sollen sich der Kirche fügen.", "effects": {"estate": {"klerus": 6}, "adm": 30}, "ai": 20}]},
+  {"id": "nx_eng_wool_staple", "tag": "ENG", "title": "Der Wollstapel von Calais", "text": "Alle englische Wolle für den Kontinent muss über den Stapel in Calais. Die Tuchmacher in Suffolk wollen lieber selbst weben und Tuch statt Wolle verkaufen.", "image": "market",
+   "trigger": {"year_min": 1444, "year_max": 1520},
+   "options": [
+     {"text": "Den Stapel behalten: Zölle für die Krone.", "effects": {"gold": 90, "estate": {"buerger": -4}}, "ai": 50},
+     {"text": "Die Tuchmacher fördern.", "effects": {"mods": {"production": 0.03}, "gold": -40}},
+     {"text": "Flämische Weber ins Land holen.", "effects": {"dev_random": 1, "relations": {"BUR": 20}, "estate": {"buerger": -2}}}]},
+  {"id": "nx_eng_dissolution", "tag": "ENG", "title": "Die Auflösung der Klöster", "text": "Die Klöster besitzen ein Viertel des Landes. Thomas Cromwell legt eine Liste vor: Sie alle könnten der Krone gehören.", "image": "church",
+   "trigger": {"year_min": 1530, "year_max": 1560, "flag": "ev_eng_reformation"},
+   "options": [
+     {"text": "Alles einziehen und an den Adel verkaufen.", "effects": {"gold": 150, "estate": {"klerus": -12, "adel": 5}}, "ai": 50},
+     {"text": "Nur die kleinen Klöster.", "effects": {"gold": 100, "estate": {"klerus": -4}}},
+     {"text": "Die Klöster als Schulen behalten.", "effects": {"adm": 60, "mods": {"tech_cost": -0.02}, "gold": -40}}]},
+  {"id": "nx_eng_shakespeare", "tag": "ENG", "title": "Ein Theater am Südufer", "text": "Ein Schauspieler aus Stratford schreibt Stücke über die Könige Englands. Die Puritaner wollen die Theater schließen, die Königin lacht über seine Komödien.", "image": "tavern",
+   "trigger": {"year_min": 1585, "year_max": 1625},
+   "options": [
+     {"text": "Die Truppe unter königlichen Schutz stellen.", "effects": {"prestige": 15, "estate": {"klerus": -3}}, "ai": 50},
+     {"text": "Die Stücke sollen die Tudors loben.", "effects": {"adm": 30, "dip": 20}},
+     {"text": "Die Theater schließen.", "effects": {"estate": {"klerus": 6}, "gold": 30}}]},
+  {"id": "nx_fra_jeanne_trial", "tag": "FRA", "title": "Die Rehabilitierung der Jungfrau", "text": "Zwanzig Jahre nach Rouen verlangt die Mutter Jeannes d'Arc einen neuen Prozess. Der König zögert: Er verdankt ihr die Krone, aber nicht gern.", "image": "inquisition",
+   "trigger": {"year_max": 1460},
+   "options": [
+     {"text": "Ein neuer Prozess, ein gerechtes Urteil.", "effects": {"prestige": 20, "relations": {"PAP": 20}, "gold": -30}, "ai": 60},
+     {"text": "Die Sache ruhen lassen.", "effects": {"adm": 40}},
+     {"text": "Die Engländer öffentlich anklagen.", "effects": {"mil": 30, "relations": {"ENG": -30}, "prestige": 5}}]},
+  {"id": "nx_fra_loire", "tag": "FRA", "title": "Schlösser an der Loire", "text": "Der König hat Italien gesehen und will es zu Hause. Leonardo da Vinci soll in Amboise wohnen, Chambord soll das schönste Schloss der Welt werden.", "image": "artist",
+   "trigger": {"year_min": 1495, "year_max": 1560},
+   "options": [
+     {"text": "Chambord bauen lassen.", "effects": {"gold": -100, "prestige": 25, "dev_capital": 1}, "ai": 40},
+     {"text": "Den Meister holen, nicht das Schloss.", "effects": {"gold": -30, "mods": {"tech_cost": -0.02}}},
+     {"text": "Lieber Festungen an der Grenze.", "effects": {"mil": 50, "manpower": 1}}]},
+  {"id": "nx_fra_nantes", "tag": "FRA", "title": "Das Edikt von Nantes", "text": "Nach dreißig Jahren Bürgerkrieg bietet der König den Hugenotten Sicherheitsplätze und Gewissensfreiheit an. Paris murrt, die Hugenotten trauen dem Frieden nicht.", "image": "treaty",
+   "trigger": {"year_min": 1585, "year_max": 1630},
+   "options": [
+     {"text": "Das Edikt verkünden.", "effects": {"mods": {"religious_unrest": -0.3}, "estate": {"klerus": -6}, "dip": 20}, "ai": 60},
+     {"text": "Nur Duldung, keine Festungen.", "effects": {"adm": 30, "estate": {"klerus": -2}, "prestige": 5}},
+     {"text": "Paris ist eine Messe wert: ein katholisches Reich.", "effects": {"estate": {"klerus": 8}, "relations": {"PAP": 30}, "convert_random": 1}}]},
+  {"id": "nx_spa_salamanca", "tag": "SPA", "title": "Die Schule von Salamanca", "text": "Theologen in Salamanca fragen, ob die Völker der Neuen Welt Rechte haben und ob Preise gerecht sein müssen. Der Hof ist sich nicht sicher, ob er die Antwort hören will.", "image": "scholar",
+   "trigger": {"year_min": 1520, "year_max": 1600},
+   "options": [
+     {"text": "Ihre Gesetze für die Indios annehmen.", "effects": {"prestige": 15, "estate": {"klerus": 4, "adel": -4}}, "ai": 60},
+     {"text": "Nur die Wirtschaftslehre nutzen.", "effects": {"adm": 40, "mods": {"income": 0.02}, "gold": -40}},
+     {"text": "Die Gelehrten zum Schweigen bringen.", "effects": {"estate": {"adel": 5}, "gold": 40, "prestige": -10}}]},
+  {"id": "nx_spa_mesta", "tag": "SPA", "title": "Die Mesta", "text": "Die Schafzüchtergilde treibt Millionen Merinoschafe quer durch Kastilien. Die Bauern klagen über zertrampelte Felder, die Mesta zahlt der Krone viel Geld.", "image": "harvest",
+   "trigger": {"year_min": 1450, "year_max": 1600},
+   "options": [
+     {"text": "Die Privilegien der Mesta bestätigen.", "effects": {"gold": 100, "dev_random": -1}, "ai": 50},
+     {"text": "Den Bauern Zäune erlauben.", "effects": {"dev_random": 1, "estate": {"adel": -4}, "gold": -20}},
+     {"text": "Wolle exportieren, aber besteuern.", "effects": {"mods": {"trade": 0.02}, "estate": {"adel": -2}}}]},
+  {"id": "nx_spa_teresa", "tag": "SPA", "title": "Teresa von Ávila", "text": "Eine Nonne aus Ávila gründet arme, strenge Klöster und schreibt über ihre Visionen. Die Inquisition liest mit, das Volk verehrt sie schon jetzt als Heilige.", "image": "church",
+   "trigger": {"year_min": 1555, "year_max": 1600},
+   "options": [
+     {"text": "Ihre Reform unterstützen.", "effects": {"prestige": 10, "estate": {"klerus": 6}, "gold": -30}, "ai": 60},
+     {"text": "Der Inquisition die Bücher überlassen.", "effects": {"adm": 30, "estate": {"klerus": 3}}},
+     {"text": "Die reichen Klöster lieber besteuern.", "effects": {"gold": 80, "estate": {"klerus": -5}}}]},
+  {"id": "nx_boh_kutna_hora", "tag": "BOH", "title": "Der Prager Groschen", "text": "Die Silberminen von Kuttenberg sind tiefer als je zuvor, und das Wasser steigt. Die Münzmeister wollen den Groschen strecken.", "image": "mine",
+   "trigger": {"year_min": 1450, "year_max": 1600},
+   "options": [
+     {"text": "Neue Pumpen und tiefere Stollen.", "effects": {"gold": -60, "mods": {"income": 0.03}}, "ai": 50},
+     {"text": "Den Groschen verdünnen.", "effects": {"gold": 120, "prestige": -10}},
+     {"text": "Die Bergleute selbst verwalten lassen.", "effects": {"estate": {"buerger": 6}, "adm": 30}}]},
+  {"id": "nx_boh_tycho", "tag": "BOH", "title": "Der Astronom mit der Silbernase", "text": "Tycho Brahe sucht einen neuen Herrn. Er bringt Instrumente, einen Elch und einen jungen Gehilfen namens Kepler mit.", "image": "scholar",
+   "trigger": {"year_min": 1595, "year_max": 1610},
+   "options": [
+     {"text": "Beide an den Hof holen.", "effects": {"gold": -50, "mods": {"tech_cost": -0.03}}, "ai": 50},
+     {"text": "Nur die Horoskope für den Kaiser.", "effects": {"prestige": 10, "dip": 20}},
+     {"text": "Der Hof hat schon genug Sonderlinge.", "effects": {"gold": 30, "adm": 30}}]},
+  {"id": "nx_boh_hussite_hymns", "tag": "BOH", "title": "Die Gesangbücher der Utraquisten", "text": "In den Dörfern singen sie die Messe auf Tschechisch und reichen den Kelch an alle. Rom verlangt das Ende der Kompaktaten.", "image": "printing",
+   "trigger": {"year_min": 1460, "year_max": 1580},
+   "options": [
+     {"text": "Die Kompaktaten verteidigen.", "effects": {"prestige": 10, "estate": {"buerger": 5}, "relations": {"PAP": -30}}, "ai": 50},
+     {"text": "Nachgeben, aber langsam.", "effects": {"relations": {"PAP": 30}, "dip": 30, "estate": {"buerger": -3}}},
+     {"text": "Die Bücher drucken und verkaufen.", "effects": {"gold": 60, "mods": {"production": 0.01}}}]},
+  {"id": "nx_hab_tirol_mines", "tag": "HAB", "title": "Das Bergwerk am Inn", "text": "Die Fugger bieten an, die Tiroler Silberbergwerke für zehn Jahre zu pachten. Das Geld wäre sofort da.", "image": "bank",
+   "trigger": {"year_min": 1480, "year_max": 1560},
+   "options": [
+     {"text": "Verpachten.", "effects": {"gold": 120, "mods": {"income": -0.02}}, "ai": 40},
+     {"text": "Selbst betreiben.", "effects": {"gold": -20, "mods": {"production": 0.04}}},
+     {"text": "Gegen einen Kredit für den Krieg tauschen.", "effects": {"regs": 5, "estate": {"buerger": -3}}}]},
+  {"id": "nx_hab_spanish_riding", "tag": "HAB", "title": "Pferde aus Spanien", "text": "Aus Spanien kommen Lipizzaner nach Wien. Der Hof will eine Reitschule bauen, die Generäle wollen Kürassiere.", "image": "court",
+   "trigger": {"year_min": 1560, "year_max": 1644},
+   "options": [
+     {"text": "Eine Hofreitschule bauen.", "effects": {"gold": -20, "prestige": 20}, "ai": 50},
+     {"text": "Kürassiere ausrüsten.", "effects": {"mods": {"combat": 0.03}, "gold": -30}},
+     {"text": "Die Zucht verkaufen.", "effects": {"gold": 50}}]},
+  {"id": "nx_hab_military_border", "tag": "HAB", "title": "Die Militärgrenze", "text": "Kroaten, Serben und Walachen siedeln an der Grenze zum Sultan. Sie bekommen Land, wenn sie jederzeit zur Waffe greifen.", "image": "border",
+   "trigger": {"year_min": 1522, "year_max": 1644, "alive": "TUR"},
+   "options": [
+     {"text": "Die Militärgrenze einrichten.", "effects": {"mods": {"manpower": 0.04}, "estate": {"adel": -4}}, "ai": 60},
+     {"text": "Die Grenzer besteuern.", "effects": {"gold": 80, "manpower": -1}},
+     {"text": "Burgen statt Bauern.", "effects": {"gold": -50, "mil": 50}}]},
+  {"id": "nx_rus_pskov", "tag": "RUS", "title": "Die Glocke von Pskow", "text": "Pskow ist die letzte freie Stadtrepublik der Rus. Ihre Wetsche-Glocke ruft das Volk zur Versammlung. Der Großfürst will sie nach Moskau bringen lassen.", "image": "city",
+   "trigger": {"year_min": 1470, "year_max": 1530},
+   "options": [
+     {"text": "Die Glocke abnehmen.", "effects": {"adm": 40, "prestige": 5, "estate": {"buerger": -5}}, "ai": 60},
+     {"text": "Pskow seine Rechte lassen, gegen Tribut.", "effects": {"gold": 70, "dip": 20}},
+     {"text": "Die Kaufleute nach Moskau umsiedeln.", "effects": {"dev_capital": 1, "estate": {"buerger": -3}, "prestige": -5}}]},
+  {"id": "nx_rus_stroganov", "tag": "RUS", "title": "Die Stroganows", "text": "Eine Kaufmannsfamilie bietet an, den Ural auf eigene Kosten zu besiedeln: Salzsiedereien, Festungen, Kosaken. Sie wollen dafür Steuerfreiheit für zwanzig Jahre.", "image": "steppe",
+   "trigger": {"year_min": 1550, "year_max": 1620},
+   "options": [
+     {"text": "Den Freibrief ausstellen.", "effects": {"mods": {"production": 0.03}, "estate": {"buerger": 5}}, "ai": 60},
+     {"text": "Nur gegen Abgaben.", "effects": {"gold": 80, "estate": {"buerger": -3}}},
+     {"text": "Die Krone besiedelt selbst.", "effects": {"gold": -50, "adm": 40, "dev_random": 1}}]},
+  {"id": "nx_rus_printing", "tag": "RUS", "title": "Der erste Drucker Moskaus", "text": "Iwan Fjodorow hat den ersten Apostel in Moskau gedruckt. Die Schreiber fürchten um ihr Brot und brennen nachts seine Werkstatt nieder.", "image": "printing",
+   "trigger": {"year_min": 1550, "year_max": 1600},
+   "options": [
+     {"text": "Eine neue Druckerei unter Schutz des Zaren.", "effects": {"gold": -40, "mods": {"tech_cost": -0.02}}, "ai": 50},
+     {"text": "Er soll nach Litauen gehen.", "effects": {"relations": {"LIT": 20}, "estate": {"klerus": 5}}},
+     {"text": "Die Schreiber bekommen Recht.", "effects": {"estate": {"klerus": 6}, "adm": 20}}]},
+  {"id": "nx_nap_castel_nuovo", "tag": "NAP", "title": "Der Triumphbogen", "text": "Alfonso will den Eingang des Castel Nuovo mit einem marmornen Triumphbogen schmücken, wie die Kaiser in Rom.", "image": "artist",
+   "trigger": {"year_max": 1470},
+   "options": [
+     {"text": "Den Bogen bauen.", "effects": {"gold": -60, "prestige": 20}, "ai": 50},
+     {"text": "Die Mauern verstärken statt schmücken.", "effects": {"mil": 40, "gold": -10}},
+     {"text": "Die Künstler nach Mailand verkaufen.", "effects": {"gold": 50, "relations": {"MLO": 20}}}]},
+  {"id": "nx_nap_silk", "tag": "NAP", "title": "Seide aus Kalabrien", "text": "In Kalabrien wachsen Maulbeerbäume an jedem Hang. Kaufleute aus Florenz wollen die Rohseide billig kaufen, die Zünfte wollen sie in Neapel weben.", "image": "market",
+   "trigger": {"year_min": 1450, "year_max": 1620},
+   "options": [
+     {"text": "Die Seidenweberei in Neapel fördern.", "effects": {"mods": {"production": 0.03}, "gold": -40}, "ai": 50},
+     {"text": "An Florenz verkaufen.", "effects": {"gold": 90, "relations": {"TUS": 20}}},
+     {"text": "Ein Monopol der Krone.", "effects": {"gold": 50, "estate": {"buerger": -5}, "adm": 20}}]},
+  {"id": "nx_nap_giordano", "tag": "NAP", "title": "Ein Mönch aus Nola", "text": "Giordano Bruno lehrt, das Universum sei unendlich und voller Welten. Die Inquisition in Rom fordert seine Auslieferung.", "image": "inquisition",
+   "trigger": {"year_min": 1570, "year_max": 1610},
+   "options": [
+     {"text": "Ausliefern.", "effects": {"relations": {"PAP": 40}, "estate": {"klerus": 5}, "prestige": -5}, "ai": 50},
+     {"text": "Ihn fliehen lassen.", "effects": {"dip": 30, "estate": {"klerus": -3}}},
+     {"text": "Ihn heimlich an der Universität lehren lassen.", "effects": {"mods": {"tech_cost": -0.02}, "relations": {"PAP": -30}}}]},
+  {"id": "nx_bur_tapestries", "tag": "BUR", "title": "Die Teppiche von Arras", "text": "Die Weber von Arras und Tournai bekommen Aufträge aus ganz Europa. Ein einziger Wandteppich kostet so viel wie ein Regiment.", "image": "market",
+   "trigger": {"year_min": 1444, "year_max": 1550},
+   "options": [
+     {"text": "Als Geschenke an fremde Höfe.", "effects": {"dip": 40, "relations": {"FRA": 15, "ENG": 15}, "gold": -20}, "ai": 50},
+     {"text": "Exportzölle erheben.", "effects": {"gold": 80, "estate": {"buerger": -3}}},
+     {"text": "Den Zünften Privilegien geben.", "effects": {"mods": {"production": 0.02}, "estate": {"buerger": 4}}}]},
+  {"id": "nx_bur_banquet", "tag": "BUR", "title": "Das Fasanenfest", "text": "In Lille schwören die Ritter des Hofes auf einen lebenden Fasan, gegen die Türken zu ziehen. Das Fest kostet mehr als ein Feldzug.", "image": "court",
+   "trigger": {"year_max": 1470},
+   "options": [
+     {"text": "Das Gelübde halten und Truppen schicken.", "effects": {"prestige": 15, "mil": -30, "relations": {"PAP": 30}}, "ai": 40},
+     {"text": "Ein schönes Fest war es trotzdem.", "effects": {"prestige": 10, "gold": -40, "estate": {"adel": 4}}},
+     {"text": "Das Geld lieber sparen.", "effects": {"gold": 60, "estate": {"adel": -3}}}]},
+  {"id": "nx_bur_dikes", "tag": "BUR", "title": "Die Polder", "text": "Holländische Deichbauer wollen mit Windmühlen ganze Seen trockenlegen. Neues Land, aber nur, wenn die Deiche halten.", "image": "harvest",
+   "trigger": {"year_min": 1500, "year_max": 1644, "owns": ["holland"]},
+   "options": [
+     {"text": "Die Seen trockenlegen.", "effects": {"gold": -80, "dev_random": 2}, "ai": 50},
+     {"text": "Nur die Deiche verstärken.", "effects": {"gold": -30, "adm": 40}},
+     {"text": "Die Deichgrafen sollen es selbst bezahlen.", "effects": {"estate": {"buerger": -4}, "dev_random": 1}}]},
+  {"id": "nx_por_lisbon_quake", "tag": "POR", "title": "Die Casa da Índia", "text": "Alle Waren aus Indien müssen über das Haus Indiens in Lissabon. Die Händler aus Antwerpen bieten an, den ganzen Pfeffer auf einmal zu kaufen.", "image": "bank",
+   "trigger": {"year_min": 1500, "year_max": 1600},
+   "options": [
+     {"text": "Alles an Antwerpen verkaufen.", "effects": {"gold": 130, "mods": {"trade": -0.01}}, "ai": 50},
+     {"text": "Lissabon soll der Markt sein.", "effects": {"mods": {"trade": 0.03}, "gold": -30}},
+     {"text": "Die Krone handelt selbst, mit eigenen Agenten.", "effects": {"adm": 30, "dip": 30}}]},
+  {"id": "nx_por_camoes", "tag": "POR", "title": "Die Lusiaden", "text": "Ein einäugiger Soldat ist aus Indien zurückgekehrt. Er hat ein Epos über Vasco da Gama geschrieben und es schwimmend aus einem Schiffbruch gerettet.", "image": "printing",
+   "trigger": {"year_min": 1560, "year_max": 1600},
+   "options": [
+     {"text": "Ihm eine Pension geben.", "effects": {"prestige": 15, "gold": -20}, "ai": 50},
+     {"text": "Das Werk drucken lassen.", "effects": {"dip": 30, "prestige": 5}},
+     {"text": "Die Zensur soll es erst prüfen.", "effects": {"estate": {"klerus": 5}, "adm": 20}}]},
+  {"id": "nx_por_restoration", "tag": "POR", "title": "Die Restauração", "text": "Vierzig Adlige stürmen in Lissabon den Palast der Statthalterin. Sie rufen den Herzog von Braganza zum König aus, gegen Madrid.", "image": "revolt",
+   "trigger": {"year_min": 1620, "year_max": 1644},
+   "options": [
+     {"text": "Den Herzog krönen.", "effects": {"prestige": 20, "relations": {"SPA": -40}, "estate": {"adel": 5}}, "ai": 50},
+     {"text": "Bündnis mit England und Frankreich suchen.", "effects": {"dip": 50, "relations": {"ENG": 30, "FRA": 30}}},
+     {"text": "Die Grenze zu Spanien befestigen.", "effects": {"gold": -40, "mil": 40, "manpower": 1}}]},
+  {"id": "nx_ven_murano", "tag": "VEN", "title": "Die Glasbläser von Murano", "text": "Ein Glasbläser hat ein Glas erfunden, klar wie Bergkristall. Fremde Fürsten bieten ihm ein Vermögen, wenn er die Lagune verlässt.", "image": "market",
+   "trigger": {"year_min": 1450, "year_max": 1600},
+   "options": [
+     {"text": "Ihn adeln und halten.", "effects": {"mods": {"production": 0.02}, "prestige": 5, "gold": -30}, "ai": 50},
+     {"text": "Das Geheimnis an Frankreich verkaufen.", "effects": {"gold": 90, "relations": {"FRA": 20}}},
+     {"text": "Die Zunft bewacht ihn.", "effects": {"estate": {"buerger": 5}, "adm": 20}}]},
+  {"id": "nx_ven_ghetto", "tag": "VEN", "title": "Das Ghetto", "text": "Der Senat streitet: Die jüdischen Kaufleute sollen auf einer Insel bei der Gießerei wohnen, hinter Toren, die nachts verschlossen werden. Die Händler am Rialto brauchen ihren Kredit.", "image": "city",
+   "trigger": {"year_min": 1500, "year_max": 1560},
+   "options": [
+     {"text": "Gleiche Rechte für alle Kaufleute.", "effects": {"mods": {"trade": 0.02}, "estate": {"klerus": -5}}, "ai": 60},
+     {"text": "Das Ghetto einrichten.", "effects": {"estate": {"klerus": 5}, "gold": 40, "prestige": -5}},
+     {"text": "Eine Abgabe für den Schutz verlangen.", "effects": {"gold": 70, "dip": -10}}]},
+  {"id": "nx_ven_palladio", "tag": "VEN", "title": "Villen auf der Terraferma", "text": "Ein Baumeister namens Palladio baut Landhäuser wie antike Tempel. Die Patrizier wollen ihr Geld vom Seehandel aufs Land bringen.", "image": "artist",
+   "trigger": {"year_min": 1540, "year_max": 1600},
+   "options": [
+     {"text": "Das Land kultivieren.", "effects": {"dev_random": 1, "mods": {"trade": -0.01}, "prestige": 5}, "ai": 50},
+     {"text": "Kirchen in Venedig statt Villen.", "effects": {"prestige": 15, "gold": -20, "estate": {"klerus": 4}}},
+     {"text": "Das Geld gehört aufs Meer.", "effects": {"ships": 3, "mil": 15}}]},
+  {"id": "nx_pol_copernicus", "tag": "POL", "title": "De revolutionibus", "text": "Ein Domherr aus Frauenburg behauptet, die Erde drehe sich um die Sonne. Er zögert, das Buch zu veröffentlichen.", "image": "scholar",
+   "trigger": {"year_min": 1510, "year_max": 1550},
+   "options": [
+     {"text": "Den Druck bezahlen.", "effects": {"gold": -30, "mods": {"tech_cost": -0.02}}, "ai": 50},
+     {"text": "Er soll erst die Münzreform ausarbeiten.", "effects": {"adm": 40}},
+     {"text": "Lieber nicht, Rom liest mit.", "effects": {"relations": {"PAP": 30}, "estate": {"klerus": 4}}}]},
+  {"id": "nx_pol_hussaria", "tag": "POL", "title": "Die geflügelten Husaren", "text": "Die Reiter tragen Flügel aus Adlerfedern am Rücken. Wenn sie angreifen, rauscht es wie ein Sturm. Jede Fahne kostet ein Vermögen.", "image": "camp",
+   "trigger": {"year_min": 1500, "year_max": 1644},
+   "options": [
+     {"text": "Mehr Fahnen aufstellen.", "effects": {"gold": -40, "mods": {"combat": 0.03}}, "ai": 50},
+     {"text": "Der Adel soll sie selbst bezahlen.", "effects": {"estate": {"adel": -5}, "regs": 3}},
+     {"text": "Billigere Kosaken anwerben.", "effects": {"manpower": 1, "mil": 20}}]},
+  {"id": "nx_pol_jews_council", "tag": "POL", "title": "Der Rat der Vier Länder", "text": "Die jüdischen Gemeinden wollen ihre Steuern selbst verteilen und ihre Streitigkeiten selbst richten. Sie bieten dafür eine feste Summe.", "image": "diet",
+   "trigger": {"year_min": 1540, "year_max": 1640},
+   "options": [
+     {"text": "Den Rat anerkennen.", "effects": {"mods": {"income": 0.02}, "estate": {"buerger": 3}}, "ai": 60},
+     {"text": "Mehr Geld verlangen.", "effects": {"gold": 90, "estate": {"buerger": -3}}},
+     {"text": "Die Szlachta soll das regeln.", "effects": {"estate": {"adel": 5}, "adm": 20}}]},
+  {"id": "nx_tur_topkapi", "tag": "TUR", "title": "Der Neue Palast", "text": "Der Sultan baut auf der Spitze der Halbinsel einen Palast mit drei Höfen. Wer in den dritten Hof darf, regiert das Reich.", "image": "court",
+   "trigger": {"year_min": 1460, "year_max": 1490, "owns": ["constantinople"]},
+   "options": [
+     {"text": "Eine Palastschule für Pagen gründen.", "effects": {"adm": 40, "mods": {"tech_cost": -0.02}, "gold": -60}, "ai": 50},
+     {"text": "Prunk für die Gesandten.", "effects": {"prestige": 15, "dip": 20, "gold": -30}},
+     {"text": "Die Janitscharen kasernieren.", "effects": {"mil": 50, "manpower": 1}}]},
+  {"id": "nx_tur_piri_reis", "tag": "TUR", "title": "Die Karte des Piri Reis", "text": "Ein Kapitän hat aus zwanzig Karten, darunter eine des Kolumbus, eine Weltkarte gezeichnet. Er will ein Buch über alle Küsten des Mittelmeers schreiben.", "image": "exploration",
+   "trigger": {"year_min": 1510, "year_max": 1560},
+   "options": [
+     {"text": "Das Kitab-ı Bahriye fördern.", "effects": {"mods": {"naval": 0.03}, "gold": -40}, "ai": 50},
+     {"text": "Die Karte dem Sultan schenken.", "effects": {"prestige": 10, "dip": 20}},
+     {"text": "Lieber Galeeren als Karten.", "effects": {"ships": 2, "mil": 10}}]},
+  {"id": "nx_tur_coffeehouse", "tag": "TUR", "title": "Die Kaffeehäuser", "text": "In Istanbul öffnen Kaffeehäuser. Dichter, Schachspieler und Klatschmäuler sitzen dort bis in die Nacht. Die Gelehrten nennen den Kaffee eine Sünde.", "image": "tavern",
+   "trigger": {"year_min": 1550, "year_max": 1644},
+   "options": [
+     {"text": "Besteuern statt verbieten.", "effects": {"gold": 70, "estate": {"klerus": -3}}, "ai": 50},
+     {"text": "Verbieten.", "effects": {"estate": {"klerus": 6}, "prestige": -5}},
+     {"text": "Spitzel in die Kaffeehäuser schicken.", "effects": {"adm": 40, "estate": {"buerger": -2}}}]},
+  {"id": "nx_qar_blue_mosque", "tag": "QAR", "title": "Die Blaue Moschee", "text": "In Täbris wird eine Moschee gebaut, deren Kacheln blauer sind als der Himmel. Die Tochter des Schahs führt die Aufsicht.", "image": "artist",
+   "trigger": {"year_min": 1460, "year_max": 1500},
+   "options": [
+     {"text": "Die Moschee vollenden.", "effects": {"gold": -60, "prestige": 20}, "ai": 50},
+     {"text": "Kacheln aus Täbris verkaufen.", "effects": {"gold": 60, "mods": {"production": 0.01}}},
+     {"text": "Eine Medrese daneben.", "effects": {"adm": 40, "estate": {"klerus": 3}}}]},
+  {"id": "nx_qar_nomads", "tag": "QAR", "title": "Sommerweiden", "text": "Die Stämme wollen im Sommer mit ihren Herden in die Berge ziehen, quer durch bebaute Felder. Die Bauern in Aserbaidschan klagen beim Schah.", "image": "steppe",
+   "trigger": {"year_min": 1444, "year_max": 1600},
+   "options": [
+     {"text": "Die alten Wege der Stämme schützen.", "effects": {"mods": {"manpower": 0.03}, "dev_random": -1}, "ai": 50},
+     {"text": "Die Felder schützen.", "effects": {"dev_random": 1, "estate": {"adel": -5}}},
+     {"text": "Weidegeld verlangen.", "effects": {"gold": 60, "estate": {"adel": -2}}}]},
+  {"id": "nx_qar_silk_road", "tag": "QAR", "title": "Karawanen nach Bursa", "text": "Persische Seide geht über Täbris nach Bursa, wo die Osmanen sie verzollen. Venezianische Gesandte bieten einen anderen Weg an.", "image": "market",
+   "trigger": {"year_min": 1450, "year_max": 1600},
+   "options": [
+     {"text": "Mit Venedig gegen die Osmanen.", "effects": {"relations": {"VEN": 40, "TUR": -30}, "mods": {"trade": 0.02}}, "ai": 50},
+     {"text": "Mit dem Sultan verhandeln.", "effects": {"relations": {"TUR": 30}, "gold": 50}},
+     {"text": "Eigene Webereien in Täbris.", "effects": {"gold": -40, "mods": {"production": 0.02}}}]},
+  {"id": "nx_mam_cairo_hospital", "tag": "MAM", "title": "Das Hospital des Qalawun", "text": "Das große Krankenhaus in Kairo nimmt jeden auf, ob reich oder arm, und spielt den Kranken Musik vor. Die Stiftung reicht nicht mehr.", "image": "plague",
+   "trigger": {"year_min": 1444, "year_max": 1600},
+   "options": [
+     {"text": "Die Stiftung erneuern.", "effects": {"gold": -50, "prestige": 10, "manpower": 1}, "ai": 60},
+     {"text": "Die Ärzte bezahlen, die Musiker nicht.", "effects": {"gold": -20, "adm": 30}},
+     {"text": "Die Stiftung für das Heer nutzen.", "effects": {"gold": 60, "estate": {"klerus": -5}}}]},
+  {"id": "nx_mam_nile_flood", "tag": "MAM", "title": "Der Nilmesser", "text": "Auf der Insel Roda misst eine Säule das Steigen des Nils. Steigt er zu wenig, hungert Ägypten. Steigt er zu viel, ertrinken die Dörfer. Dieses Jahr steigt er zu wenig.", "image": "famine",
+   "trigger": {"year_min": 1444},
+   "options": [
+     {"text": "Getreide aus den Speichern verteilen.", "effects": {"gold": -50, "prestige": 10}, "ai": 50},
+     {"text": "Die Steuern stunden.", "effects": {"gold": -20, "estate": {"buerger": 4}, "adm": -10}},
+     {"text": "Getreide aus Syrien einführen.", "effects": {"gold": -30, "dip": 20, "relations": {"VEN": 10}}}]},
+  {"id": "nx_mam_circassians", "tag": "MAM", "title": "Junge Mamluken aus dem Kaukasus", "text": "Die Sklavenhändler bringen weniger Jungen aus Tscherkessien als früher. Ohne sie gibt es keine neuen Mamluken. Die Emire schlagen vor, freie Söldner anzuwerben.", "image": "camp",
+   "trigger": {"year_min": 1460, "year_max": 1600},
+   "options": [
+     {"text": "Freie Söldner und Feuerwaffen.", "effects": {"mods": {"combat": 0.02}, "estate": {"adel": -5}}, "ai": 60},
+     {"text": "Söhne der Mamluken zulassen.", "effects": {"manpower": 2, "estate": {"adel": 5}}},
+     {"text": "Die Tscherkessen mit Gold locken, als freie Männer.", "effects": {"gold": -60, "regs": 3}}]},
+  {"id": "nx_eth_kebra", "tag": "ETH", "title": "Kebra Nagast", "text": "Die Mönche lesen aus der Herrlichkeit der Könige: Der Kaiser stammt von Salomo und der Königin von Saba ab. Ein Gelehrter aus Gondar zweifelt daran.", "image": "church",
+   "trigger": {"year_min": 1444, "year_max": 1600},
+   "options": [
+     {"text": "Die alte Linie preisen.", "effects": {"prestige": 15, "estate": {"klerus": 4}}, "ai": 60},
+     {"text": "Den Gelehrten anhören.", "effects": {"adm": 40, "estate": {"klerus": -3}}},
+     {"text": "Abschriften an fremde Höfe senden.", "effects": {"dip": 30, "relations": {"POR": 20}}}]},
+  {"id": "nx_eth_gondar", "tag": "ETH", "title": "Eine Hauptstadt aus Stein", "text": "Seit Jahrhunderten zieht der Hof mit seinen Zelten durch das Land. Ein Kaiser will endlich eine feste Stadt mit Burgen am Tanasee.", "image": "city",
+   "trigger": {"year_min": 1600, "year_max": 1644},
+   "options": [
+     {"text": "Gondar bauen.", "effects": {"gold": -80, "dev_capital": 2}, "ai": 50},
+     {"text": "Der Hof bleibt im Sattel.", "effects": {"mil": 40, "prestige": 5}},
+     {"text": "Portugiesische Baumeister holen.", "effects": {"gold": -40, "relations": {"POR": 30}, "adm": 30}}]},
+  {"id": "nx_eth_jesuits", "tag": "ETH", "title": "Die Jesuiten am Hof", "text": "Ein spanischer Jesuit predigt am Hof und gewinnt den Kaiser für Rom. Die Mönche und die Bauern rufen zum Widerstand.", "image": "church",
+   "trigger": {"year_min": 1600, "year_max": 1644},
+   "options": [
+     {"text": "Den Glauben der Väter behalten.", "effects": {"estate": {"klerus": 8}, "relations": {"POR": -20}}, "ai": 60},
+     {"text": "Rom und Lissabon als Verbündete.", "effects": {"relations": {"POR": 40, "PAP": 30}, "estate": {"klerus": -8}, "mods": {"combat": 0.02}}},
+     {"text": "Die Jesuiten lehren, aber nicht taufen.", "effects": {"adm": 30, "mods": {"tech_cost": -0.02}, "estate": {"klerus": -3}}}]},
+  {"id": "hu_mohacs_crown", "tag": "HUN", "title": "Zwei Könige für eine Krone", "text": "Der junge König ist ohne Erben gestorben. Der Kleinadel ruft auf dem Rákosfeld Johann Zápolya aus, die Magnaten in Pressburg wollen Ferdinand von Habsburg, den Schwager des Toten. Beide lassen sich krönen, wenn wir nicht jetzt entscheiden.", "image": "coronation",
+   "trigger": {"year_min": 1516, "year_max": 1545, "alive": "HAB"},
+   "options": [
+     {"text": "Zápolya: Ein Ungar soll König von Ungarn sein.", "effects": {"prestige": 10, "estate": {"adel": 6}, "relations": {"HAB": -40}, "flag": "hun_national_king"}, "ai": 48},
+     {"text": "Ferdinand: Habsburg schützt uns vor dem Sultan.", "effects": {"flag": "hun_habsburg_king", "relations": {"HAB": 50}, "mil": 60, "estate": {"adel": -6}, "prestige": -10}, "ai": 50},
+     {"text": "Keinen König: Der Palatin regiert mit dem Reichstag.", "effects": {"adm": 60, "estate": {"adel": 8}, "prestige": -10}, "ai": 2}]},
+  {"id": "hu_varna", "tag": "HUN", "title": "Nach Warna", "text": "König Wladislaw ist bei Warna gegen die Osmanen gefallen. Der Thronerbe ist ein Kind in Wien, im Gewahrsam des Kaisers. Der Reichstag muss einen Reichsverweser wählen.", "image": "mourning",
+   "trigger": {"year_max": 1447},
+   "options": [
+     {"text": "Johann Hunyadi wird Reichsverweser.", "effects": {"mil": 50, "estate": {"adel": -3}, "flag": "hun_hunyadi_regent"}, "ai": 60},
+     {"text": "Ein Rat der Magnaten regiert.", "effects": {"adm": 30, "estate": {"adel": 6}}},
+     {"text": "Das Kind aus Wien zurückfordern.", "effects": {"dip": 30, "relations": {"HAB": 30}, "prestige": 5}}]},
+  {"id": "hu_noon_bell", "tag": "HUN", "title": "Das Mittagsläuten", "text": "Belgrad hat gehalten. Der Papst befiehlt, dass in der ganzen Christenheit jeden Mittag die Glocken für den Sieg an der Donau läuten.", "image": "procession",
+   "trigger": {"year_min": 1450, "year_max": 1475, "flag": "hun_hunyadi_regent"},
+   "options": [
+     {"text": "Den Sieg in ganz Europa feiern.", "effects": {"prestige": 20, "relations": {"PAP": 30}}, "ai": 50},
+     {"text": "Gesandte an alle Höfe: Wir brauchen Geld für die Grenze.", "effects": {"gold": 60, "dip": 20}},
+     {"text": "Die Veteranen mit Land belohnen.", "effects": {"mods": {"manpower": 0.03}, "estate": {"adel": -3}}}]},
+  {"id": "hu_szekely", "tag": "HUN", "title": "Die Székler an der Grenze", "text": "Die Székler in den Ostkarpaten sind freie Grenzkrieger. Sie zahlen keine Steuern, dafür zieht jeder Mann in den Krieg. Die Kammer will sie endlich besteuern.", "image": "border",
+   "trigger": {"year_min": 1450, "year_max": 1600, "owns": ["transylvania"]},
+   "options": [
+     {"text": "Ihre Freiheiten bestätigen.", "effects": {"mods": {"manpower": 0.04}, "gold": -20}, "ai": 60},
+     {"text": "Ochsensteuer wie alle anderen.", "effects": {"gold": 90, "estate": {"adel": -4}}},
+     {"text": "Sie als Grenzer ausbilden lassen.", "effects": {"mil": 40, "regs": 1}}]},
+  {"id": "hu_saxon_towns", "tag": "HUN", "title": "Die sieben Burgen", "text": "Die Siebenbürger Sachsen halten Kronstadt, Hermannstadt und Bistritz. Ihr Handel reicht bis Venedig, und sie wollen ihre alten Rechte vom König bestätigt sehen.", "image": "city",
+   "trigger": {"year_min": 1450, "year_max": 1620, "owns": ["transylvania"]},
+   "options": [
+     {"text": "Den Goldenen Freibrief erneuern.", "effects": {"estate": {"buerger": 6}, "mods": {"trade": 0.02}, "gold": -30}, "ai": 60},
+     {"text": "Eine Sondersteuer auf die Städte.", "effects": {"gold": 100, "estate": {"buerger": -6}}},
+     {"text": "Die Städte sollen die Pässe befestigen.", "effects": {"mil": 30, "manpower": 1, "estate": {"buerger": -2}}}]},
+  {"id": "hu_hussars", "tag": "HUN", "title": "Die ersten Husaren", "text": "Serbische Flüchtlinge kämpfen als leichte Reiter an der Südgrenze. Man nennt sie Husaren, und sie sind schneller als jeder Akıncı.", "image": "camp",
+   "trigger": {"year_min": 1458, "year_max": 1560},
+   "options": [
+     {"text": "Husarenbanner für das ganze Heer.", "effects": {"gold": -50, "mods": {"army_power_regen": 0.1}}, "ai": 50},
+     {"text": "Die Flüchtlinge an der Grenze ansiedeln.", "effects": {"manpower": 2, "relations": {"SER": 30}, "adm": 20}},
+     {"text": "Sie als Söldner bezahlen, solange Krieg ist.", "effects": {"mil": 40, "regs": 2, "gold": -20}}]},
+  {"id": "hu_kremnitz", "tag": "HUN", "title": "Die Dukaten von Kremnitz", "text": "Die Bergstädte Oberungarns fördern mehr Gold und Silber als jedes andere Land Europas. Die Münze in Kremnitz prägt Dukaten, die man bis Florenz nimmt.", "image": "mine",
+   "trigger": {"year_min": 1450, "year_max": 1600, "owns": ["kassa"]},
+   "options": [
+     {"text": "Die Münze bleibt in der Hand der Krone.", "effects": {"gold": 120, "estate": {"buerger": -3}}, "ai": 50},
+     {"text": "Die Gruben an Thurzó und die Fugger verpachten.", "effects": {"mods": {"income": 0.03}, "gold": -30}},
+     {"text": "Den Bergleuten Rechte geben.", "effects": {"estate": {"buerger": 6}, "adm": 30, "dev_random": 1, "gold": -40}}]},
+  {"id": "hu_tripartitum", "tag": "HUN", "title": "Das Tripartitum", "text": "Der Jurist István Werbőczy hat das Gewohnheitsrecht des Königreichs in drei Bücher gefasst. Es macht jeden Adligen gleich und bindet die Bauern für immer an die Scholle.", "image": "diet",
+   "trigger": {"year_min": 1505, "year_max": 1535},
+   "options": [
+     {"text": "Das Gesetzbuch annehmen.", "effects": {"adm": 50, "estate": {"adel": 8, "buerger": -4}}, "ai": 60},
+     {"text": "Annehmen, aber die Leibeigenschaft streichen.", "effects": {"adm": 30, "dev_random": 1, "estate": {"adel": -6}}},
+     {"text": "Die Krone setzt eigenes Recht.", "effects": {"prestige": 10, "estate": {"adel": -4}, "dip": 30}}]},
+  {"id": "hu_eger", "tag": "HUN", "title": "Die Sterne von Eger", "text": "Ein Pascha belagert die Burg Eger mit zehnmal so vielen Männern. Hauptmann Dobó und die Frauen der Stadt gießen heißes Pech von den Mauern.", "image": "siege",
+   "trigger": {"year_min": 1540, "year_max": 1580, "alive": "TUR", "at_war": true},
+   "options": [
+     {"text": "Halten bis zum letzten Stein!", "effects": {"prestige": 20, "manpower": -2, "army_power": 0.1}, "ai": 50},
+     {"text": "Ein Entsatzheer schicken.", "effects": {"gold": -50, "regs": 3}},
+     {"text": "Die Burg gegen freien Abzug übergeben.", "effects": {"prestige": -10, "manpower": 2, "dip": 30}}]},
+  {"id": "hu_szigetvar", "tag": "HUN", "title": "Der Ausfall von Szigetvár", "text": "Nikolaus Zrínyi hält Szigetvár, bis der alte Sultan im Lager stirbt. Dann legt er seine besten Kleider an und reitet mit den letzten dreihundert Männern hinaus.", "image": "battle",
+   "trigger": {"year_min": 1555, "year_max": 1590, "alive": "TUR"},
+   "options": [
+     {"text": "Sein Name soll nie vergessen werden.", "effects": {"prestige": 25, "mil": 20}, "ai": 50},
+     {"text": "Die Grenzburgen neu befestigen.", "effects": {"gold": -60, "mods": {"manpower": 0.03}}},
+     {"text": "Den Zrínyis Kroatien als Lehen geben.", "effects": {"estate": {"adel": 8}, "mil": 40, "adm": -10}}]},
+  {"id": "hu_reformation", "tag": "HUN", "title": "Die Reformation in Debrecen", "text": "In Debrecen predigen sie Calvin, in den Bergstädten Luther. Die Bischöfe verlangen Härte, die Magnaten wollen ihre Prediger behalten.", "image": "reformation",
+   "trigger": {"year_min": 1540, "year_max": 1610},
+   "options": [
+     {"text": "Religionsfreiheit, wie in Siebenbürgen.", "effects": {"estate": {"adel": 5, "klerus": -6}, "dip": 30, "mods": {"religious_unrest": -0.2}}, "ai": 50},
+     {"text": "Die alte Kirche stärken.", "effects": {"estate": {"klerus": 8, "adel": -4}, "relations": {"PAP": 30}, "prestige": 5}},
+     {"text": "Klostergüter einziehen.", "effects": {"gold": 120, "estate": {"klerus": -8}}}]},
+  {"id": "hu_bocskai", "tag": "HUN", "title": "Die Heiducken", "text": "Viehtreiber und entlaufene Soldaten, die Heiducken, haben sich Stephan Bocskai angeschlossen. Sie wollen Land und Freiheit statt Sold.", "image": "revolt",
+   "trigger": {"year_min": 1595, "year_max": 1630},
+   "options": [
+     {"text": "Sie in eigenen Städten ansiedeln.", "effects": {"mods": {"manpower": 0.04}, "estate": {"adel": -4}}, "ai": 60},
+     {"text": "In die Armee übernehmen.", "effects": {"regs": 3, "gold": -40}},
+     {"text": "Zerschlagen.", "effects": {"mil": -30, "estate": {"adel": 6}, "prestige": 10}}]},
+  {"id": "hu_pazmany", "tag": "HUN", "title": "Der Kardinal Pázmány", "text": "Péter Pázmány predigt auf Ungarisch und gründet in Tyrnau eine Universität. Er will die Magnaten zurück zur alten Kirche holen, mit Büchern statt Soldaten.", "image": "scholar",
+   "trigger": {"year_min": 1600, "year_max": 1644},
+   "options": [
+     {"text": "Die Universität Tyrnau fördern.", "effects": {"gold": -60, "mods": {"tech_cost": -0.03}}, "ai": 50},
+     {"text": "Ungarische Bücher drucken lassen.", "effects": {"prestige": 15, "dip": 30}},
+     {"text": "Den Kardinal in den Rat holen.", "effects": {"adm": 50, "estate": {"klerus": 5}}}]},
+  {"id": "hu_corvin_court", "tag": "HUN", "title": "Ein Hof wie in Florenz", "text": "Italienische Baumeister, Humanisten und Buchmaler kommen nach Buda. Der König will einen Renaissancehof, der Wien und Prag in den Schatten stellt.", "image": "artist",
+   "trigger": {"year_min": 1458, "year_max": 1500, "is_player": true},
+   "options": [
+     {"text": "Visegrád und Buda prachtvoll ausbauen.", "effects": {"gold": -80, "dev_capital": 2, "prestige": 15}},
+     {"text": "Gelehrte an den Hof, Schulen ins Land.", "effects": {"adm": 60, "mods": {"tech_cost": -0.03}}},
+     {"text": "Alles Geld für die Schwarze Armee.", "effects": {"regs": 4, "mods": {"army_power": 0.05}, "mil": 30}}]},
+  {"id": "hu_black_army_glory", "tag": "HUN", "title": "Die Schwarze Armee marschiert", "text": "Dreißigtausend Söldner in schwarzen Rüstungen, Kanonen, Wagenburgen, Husaren: Kein Heer Europas ist stärker. Die Frage ist nur, wohin es zieht.", "image": "camp",
+   "trigger": {"year_min": 1465, "year_max": 1520, "is_player": true, "regs": 12},
+   "options": [
+     {"text": "Gegen den Sultan, die Donau hinab.", "effects": {"mods": {"combat": 0.04}, "relations": {"TUR": -40, "PAP": 40}, "prestige": 10}},
+     {"text": "Gegen den Kaiser: Wien soll ungarisch werden.", "effects": {"claim": ["wien"], "mil": 60, "relations": {"HAB": -30}}},
+     {"text": "Gegen Böhmen: die Wenzelskrone.", "effects": {"claim": ["moravia", "silesia"], "mil": 40, "relations": {"BOH": -30}}}]},
+  {"id": "hu_golden_bull", "tag": "HUN", "title": "Die Goldene Bulle von 1222", "text": "Die Stände berufen sich auf das Widerstandsrecht der Goldenen Bulle. Der König soll ihre Freiheiten beschwören oder um sein Recht kämpfen.", "image": "diet",
+   "trigger": {"year_min": 1480, "year_max": 1640, "is_player": true, "min_dev": 90},
+   "options": [
+     {"text": "Die Freiheiten beschwören.", "effects": {"estate": {"adel": 10}, "mods": {"manpower": 0.05}, "adm": -20}},
+     {"text": "Eine starke Krone: Steuern ohne Reichstag.", "effects": {"mods": {"income": 0.05}, "estate": {"adel": -8}}},
+     {"text": "Ein Kompromiss: Die Stände verwalten die Grenze.", "effects": {"mil": 60, "adm": 40, "estate": {"adel": 3}}}]},
   {"id": "gov_guild_charter", "tag": "*", "title": "Die Zünfte wollen Privilegien", "text": "Die Städte blühen unter deinem Schutz. Nun verlangen die Zünfte ein Monopol auf ihr Handwerk.", "image": "city",
    "trigger": {"law": {"wirtschaft": "staedtefoerderung"}, "year_min": 1450},
    "options": [
@@ -3921,7 +4353,7 @@
    "trigger": {"law": {"heer": "landesaufgebot"}, "year_min": 1460},
    "options": [
      {"text": "Übungen nach der Ernte.", "effects": {"mil": -30, "gold": 30}},
-     {"text": "Die Ordnung hat Vorrang.", "effects": {"manpower": 1500, "dev_random": -1}},
+     {"text": "Die Ordnung hat Vorrang.", "effects": {"manpower": 3, "dev_random": -1}},
      {"text": "Den Adel als Ausbilder einsetzen.", "effects": {"estate": {"adel": 8}, "dip": -25}}]},
   {"id": "gov_barracks_riot", "tag": "*", "title": "Unruhe in den Kasernen", "text": "Der Sold ist drei Monate im Rückstand. Die Soldaten des stehenden Heeres murren offen.", "image": "revolt",
    "trigger": {"law": {"heer": "stehendes_heer"}, "year_min": 1500},

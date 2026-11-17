@@ -80,6 +80,12 @@ static func supply_limit(g, pid: int, tag: String) -> float:
 	return lim
 
 
+## Own land the realm holds itself: troops there are fed by the realm and never starve.
+static func home_land(g, pid: int, tag: String) -> bool:
+	var p = g.provinces[pid]
+	return p.controller == tag and p.owner == tag
+
+
 static func supplied_at(g, pid: int, tag: String) -> bool:
 	var c: String = g.provinces[pid].controller
 	return c == tag or g.is_allied(tag, c)
@@ -102,7 +108,8 @@ static func supply_load(g, pid: int, tag: String) -> float:
 
 
 ## Monthly: camps over the supply limit lose a share of the surplus (never the last regiment).
-## A realm at peace feeds its troops in its own land whatever their number.
+## The own land (owned and held) never starves its troops; allied land at war only at
+## supply_ally_attrition of the rate, at peace not at all.
 static func attrition(g) -> void:
 	var camps := {}  # pid * 2 + (1 if supplied) -> armies
 	for a in g.armies:
@@ -123,9 +130,10 @@ static func attrition(g) -> void:
 		g.over_supply[key] = true
 		var frac: float = (total - lim) / total * rate
 		for a in arms:
-			if key % 2 == 1 and not g.is_at_war(a.owner):
-				continue
-			var loss: float = minf(a.regs * frac, maxf(0.0, a.regs - 1.0))
+			if key % 2 == 1 and (not g.is_at_war(a.owner) or home_land(g, a.pid, a.owner)):
+				continue  # own land feeds its army always, allied land at peace
+			var f: float = frac * (float(g.bal.get("supply_ally_attrition", 0.5)) if key % 2 == 1 else 1.0)
+			var loss: float = minf(a.regs * f, maxf(0.0, a.regs - 1.0))
 			if loss <= 0.0:
 				continue
 			a.regs -= loss

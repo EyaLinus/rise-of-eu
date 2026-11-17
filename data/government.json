@@ -181,7 +181,7 @@
  "estate_crisis": 25,
  "estate_crisis_chance": 0.35,
  "estate_crisis_years": 4,
- "concession_months": 6,
+ "concession_months": 3,
  "concession_min_gold": 30,
  "concession_amount": 20,
  "concession_cooldown_years": 5,

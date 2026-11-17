@@ -71,6 +71,9 @@ func _init() -> void:
 		"test_ledger",
 		"test_goods_events",
 		"test_playable_flavour",
+		"test_hungary_powerhouse",
+		"test_colonial_events",
+		"test_event_balance",
 		"test_more_goods_and_softer_costs",
 		"test_supply_and_ai_stacks",
 		"test_landmarks",
@@ -1531,6 +1534,15 @@ func test_monuments_and_feast() -> void:
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
 	check(g2.nations.FRA.monuments.has("cathedral") and g2.mod(g2.nations.FRA, "unrest") < u0 + 0.001, "great works are saved")
 	var p0: float = n.prestige
+	# the feast price follows the prestige rank: full price at the top, rank_cost_bottom at the bottom
+	n.income = 100.0
+	n.prestige = 1000.0
+	check(absf(g.prestige_rank_mult("FRA") - 1.0) < 0.001 and absf(g.feast_cost("FRA") - 100.0 * float(g.bal.feast_income_months)) < 0.01, "most prestigious court pays the full feast")
+	var p_keep: float = n.prestige
+	n.prestige = -1000.0
+	check(absf(g.prestige_rank_mult("FRA") - float(g.bal.rank_cost_bottom)) < 0.001, "least prestigious court pays the bottom share")
+	n.prestige = p_keep
+	n.prestige = p0
 	check(g.hold_feast("FRA") == "" and n.prestige > p0, "a feast brings prestige")
 	check(g.hold_feast("FRA") != "", "feasts have a cooldown")
 
@@ -1580,7 +1592,7 @@ func test_generals() -> void:
 	check(g.hire_general("FRA", a.id) != "", "a general costs military power")
 	g.nations.FRA.mil = 100.0
 	check(g.hire_general("FRA", a.id) == "", "hire a general")
-	check(a.general >= 1 and a.general <= 3, "general has 1-3 stars")
+	check(a.general == 1, "a new general starts at level 1")
 	check(g._side_power([a], cap) > base, "a general makes the army stronger")
 	check(g.hire_general("FRA", a.id) != "", "only one general per army")
 	var b = g.spawn_army("FRA", cap, 2.0)
@@ -1594,6 +1606,41 @@ func test_generals() -> void:
 	var g2 = new_game("FRA", 9)
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
 	check(g2.army_by_id(merged.id).general == stars, "generals are saved")
+	# levels: promotion costs military power, more combat and more command; max level 3
+	var lead = merged
+	g.nations.FRA.mil = 0.0
+	check(g.promote_general("FRA", lead.id) != "", "promotion costs military power")
+	g.nations.FRA.mil = 500.0
+	var lim1: float = g.command_limit(lead)
+	var p1: float = g._side_power([lead], cap)
+	check(g.promote_general("FRA", lead.id) == "" and lead.general == 2, "promote to level 2")
+	check(g.command_limit(lead) > lim1 and g._side_power([lead], cap) > p1, "higher level: more command and strength")
+	check(g.promote_general("FRA", lead.id) == "" and lead.general == 3, "promote to level 3")
+	check(g.promote_general("FRA", lead.id) != "", "level 3 is the top")
+	# command limit: regiments beyond it fight at general_overflow
+	var big = g.spawn_army("FRA", g.provinces_of("FRA")[1], 60.0)
+	var lim: float = g.command_limit(big)
+	check(absf(g.command_regs(big) - (lim + (60.0 - lim) * float(g.bal.general_overflow))) < 0.01, "regiments over the command limit count less")
+	var c0: float = g.command_limit(big)
+	g.nations.FRA.set_bonus("test_cmd", {"command": 0.5})
+	check(absf(g.command_limit(big) - c0 * 1.5) < 0.01, "command bonus scales the limit")
+	# war academy and the general staff tech: start level +1 each, capped at 3
+	check(g.general_start_level("FRA") == 1, "start level 1 by default")
+	g.nations.FRA.set_bonus("monuments", {"general_start": 1.0})
+	check(g.general_start_level("FRA") == 2, "war academy: generals start at level 2")
+	g.nations.FRA.set_bonus("tech_x", {"general_start": 1.0})
+	check(g.general_start_level("FRA") == 3, "academy + general staff: level 3")
+	var c = g.spawn_army("FRA", cap, 4.0)
+	g.hire_general("FRA", c.id)
+	check(c.general == 3, "hired general starts at the boosted level")
+	var mon: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/monuments.json"))
+	check(float(mon.academy.bonus.get("general_start", 0.0)) == 1.0, "the war academy gives +1 general level")
+	var staff := false
+	var techs: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/techs.json"))
+	for t in techs.techs:
+		if float(t.effects.get("general_start", 0.0)) >= 1.0 and int(t.year) >= 1630:
+			staff = true
+	check(staff, "a late tech gives +1 general level")
 
 
 func test_peace_offer_cooldown() -> void:
@@ -3959,6 +4006,18 @@ func test_supply_and_ai_stacks() -> void:
 	var small = g.spawn_army("FRA", g.nations.FRA.capital, 3.0)
 	W.attrition(g)
 	check(absf(small.regs - 3.0) < 0.01, "an army within the limit loses nothing")
+	# own land at war: never any attrition, reinforcements keep coming
+	var home: int = g.nations.FRA.capital
+	g.nations.FRA.truces.erase("ENG")
+	g.nations.ENG.truces.erase("FRA")
+	g.declare_war("FRA", "ENG")
+	check(g.is_at_war("FRA"), "test war started")
+	var h = g.spawn_army("FRA", home, 400.0)
+	h.full = 500.0
+	W.attrition(g)
+	check(absf(h.regs - 400.0) < 0.01, "no attrition in the own land even at war (%.1f)" % h.regs)
+	g._reinforce(h)
+	check(h.regs > 400.0, "reinforcements in the own land even over the limit")
 
 
 
@@ -4002,6 +4061,73 @@ func test_playable_flavour() -> void:
 	g.choose_event_option("VEN", "pf_ven_arsenal", 0)
 	check(g.log_lines.size() == lines + 1, "AI decision not logged")
 
+
+
+## Hungary (2026-11-17): stronger start, player-only bonus, Habsburg only inherits after the estates chose Ferdinand.
+func test_hungary_powerhouse() -> void:
+	var ai_game = new_game("FRA", 3)
+	var me = new_game("HUN", 3)
+	var buda: int = me.key_to_pid["buda"]
+	var map_dev := 0
+	for pd in data.map.provinces:
+		if pd.key == "buda":
+			map_dev = int(pd.dev)
+	check(me.provinces[buda].dev == map_dev + 4 and ai_game.provinces[buda].dev == map_dev + 4, "dev_bonus on Buda for AI and player")
+	check(me.nations.HUN.mods.get("income", 0.0) > ai_game.nations.HUN.mods.get("income", 0.0) + 0.1, "player bonus only for the player")
+	check(me.nations.HUN.gold > ai_game.nations.HUN.gold + 200.0, "player start gold")
+	check(ai_game.nations.HUN.mods.get("combat", 0.0) >= 0.1, "national idea combat +10 %")
+	# Habsburg cannot inherit Hungary unless Hungary picked Ferdinand
+	var g = new_game("FRA", 4)
+	var e: Dictionary = g.event_by_id["hab_mohacs"]
+	g.month = (1530 - 1444) * 12
+	for w in g.wars.duplicate():
+		g.wars.erase(w)
+	check(not g.check_conditions("HAB", e.trigger), "no Mohács inheritance without the Habsburg king")
+	g.choose_event_option("HUN", "hu_mohacs_crown", 1)
+	check(g.nations.HUN.flags.has("hun_habsburg_king"), "Ferdinand option sets the flag")
+	check(g.check_conditions("HAB", {"nation_flag": {"HUN": "hun_habsburg_king"}}), "nation_flag condition")
+	var hu := 0
+	for ev in g.event_defs:
+		if String(ev.id).begins_with("hu_"):
+			hu += 1
+	check(hu >= 12, "Hungary has its own event chain (%d)" % hu)
+
+
+## Colonial founding events: colony_grant settles the first free listed province, discover only reveals the coast.
+func test_colonial_events() -> void:
+	var g = new_game("FRA", 5)
+	var q: int = g.key_to_pid["quisqueya"]
+	check(not g.Colonial.knows(g, "SPA", q), "Hispaniola unknown at start")
+	check(g.check_conditions("SPA", {"colony_free": ["quisqueya", "no_such_key"]}), "colony_free with unknown keys")
+	g.apply_effects("SPA", {"colony_grant": ["no_such_key", "quisqueya", "ayiti"]})
+	check(g.provinces[q].owner == "SPA" and g.provinces[q].core_months == 0, "granted colony is a cored province")
+	check(g.Colonial.knows(g, "SPA", g.key_to_pid["ayiti"]), "region discovered")
+	check(not g.check_conditions("SPA", {"colony_free": ["quisqueya"]}), "taken province is not free")
+	var pw: int = g.key_to_pid["powhatan"]
+	g.apply_effects("ENG", {"discover": ["powhatan"]})
+	check(g.Colonial.knows(g, "ENG", pw) and g.provinces[pw].owner == "NAT", "discover reveals without settling")
+	if g.key_to_pid.has("pernambuco"):
+		g.apply_effects("POR", {"colony_grant": ["pernambuco", "bahia"]})
+		check(g.provinces[g.key_to_pid["pernambuco"]].owner == "POR", "Brazil colony for Portugal")
+		check(g.Colonial.knows(g, "POR", g.key_to_pid["bahia"]), "Brazilian coast discovered")
+	for ev in g.event_defs:
+		if String(ev.id).begins_with("col_"):
+			check(g.nations.has(ev.tag) and data.nations[ev.tag].has("colonial"), "%s belongs to a colonial nation" % ev.id)
+			check(ev.options[0].effects.has("colony_grant") and ev.trigger.has("colony_free"), "%s grants a colony" % ev.id)
+
+
+## Balance pass: manpower is counted in regiments (no more "+1500" that refills the pool), no option is
+## better than another one on every single effect.
+func test_event_balance() -> void:
+	var g = new_game("FRA", 6)
+	for e in g.event_defs:
+		for o in e.options:
+			check(absf(float(o.effects.get("manpower", 0))) <= 20.0, "%s: manpower in regiments" % e.id)
+	for tag in g.mission_defs:
+		for m in g.mission_defs[tag]:
+			check(absf(float(m.get("reward", {}).get("manpower", 0))) <= 20.0, "%s: manpower in regiments" % m.id)
+	var col = g.event_by_id["spa_columbus"]
+	check(float(col.options[0].effects.mods.income) <= 0.05, "Columbus no longer +10 % income for 50 gold")
 
 
 func test_alert_bar() -> void:

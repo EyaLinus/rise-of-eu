@@ -507,6 +507,48 @@ static func _finish(g, p) -> void:
 	g.log_msg("🏕 %s: Die Kolonie %s ist gewachsen und gehört nun fest zum Reich." % [n.name, p.name], [tag])
 
 
+## First province of `keys` (map keys, in order of preference) that is still free native land: nobody owns it
+## and nobody is settling it. Keys that are not on the map are skipped, so events can list provinces of
+## regions that may not exist yet. -1 if none is free.
+static func free_target(g, keys: Array) -> int:
+	for key in keys:
+		var pid: int = g.key_to_pid.get(str(key), -1)
+		if pid >= 0 and is_native_land(g, pid) and g.provinces[pid].colonist == "":
+			return pid
+	return -1
+
+
+## Event effect "colony_grant": the realm discovers the region (every sea touching the listed provinces and
+## its coasts) and receives the first free province of the list as a finished, settled colony.
+## Returns the granted province id or -1 (then only the discovery happens).
+static func grant(g, tag: String, keys: Array) -> int:
+	discover(g, tag, keys)
+	var target := free_target(g, keys)
+	if target < 0:
+		return -1
+	var p = g.provinces[target]
+	p.colonist = tag
+	_finish(g, p)
+	g.nations[tag].flags["colony_grant"] = g.month
+	return target
+
+
+## Event effect "discover": every sea touching the listed provinces (map keys) and its coasts become known.
+static func discover(g, tag: String, keys: Array) -> void:
+	var pids := []
+	for key in keys:
+		var pid: int = g.key_to_pid.get(str(key), -1)
+		if pid >= 0 and is_new_world(g, pid):
+			pids.append(pid)
+	for s in g.seas:
+		for pid in pids:
+			if pid in s.provinces:
+				reveal_sea(g, tag, s.id)
+				break
+	for pid in pids:
+		reveal(g, tag, pid)
+
+
 static func colonies_owned(g, tag: String) -> int:
 	var c := 0
 	for pid in g.provinces_of(tag):
