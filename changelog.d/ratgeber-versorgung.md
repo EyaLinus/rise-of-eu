@@ -1,1 +1,0 @@
-- **Ratgeber warnt vor Hunger:** Stehen eigene Armeen über dem Versorgungslimit, meldet der 💡 Ratgeber das Feldlager mit Last und Limit und springt per Antippen hin.
