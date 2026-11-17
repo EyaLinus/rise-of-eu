@@ -152,6 +152,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 	map.focus(Vector2(2800, 760), maxf(size.y / map.world_size.y, 0.4))
 	_show_start_menu()
+	if not debug_screen.last_crash.is_empty():
+		debug_screen.show_crash_dialog(_show_start_menu)  # crash reporter: the last session did not end cleanly
 
 
 ## The game was called "EU5 Lite" until v0.7.3. On desktop the user folder follows the project name, so copy
@@ -719,7 +721,16 @@ const DIFFICULTY_TIPS := {
 func _show_start_menu() -> void:
 	hud.visible = false
 	_open_modal()
-	modal_box.add_child(_lbl("🌍 Rise of EU", 40))
+	var head := HBoxContainer.new()
+	var title := _lbl("🌍 Rise of EU", 40)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(title)
+	var ver := _lbl(DebugScreen.version(), 15, Color(0.7, 0.7, 0.75))
+	ver.custom_minimum_size.x = 0
+	ver.autowrap_mode = TextServer.AUTOWRAP_OFF
+	ver.size_flags_vertical = Control.SIZE_SHRINK_END
+	head.add_child(ver)
+	modal_box.add_child(head)
 	modal_box.add_child(_lbl("1444 – 1644 · Ziel: am Ende die höchste Punktzahl (Entwicklung + Prestige + Technologie).", 16, Color(0.8, 0.8, 0.8)))
 	var top := []
 	if FileAccess.file_exists(SAVE_PATH):
@@ -1612,7 +1623,8 @@ func _show_menu() -> void:
 	if acts.size() % 2 == 1:
 		acts.append(Control.new())
 	modal_box.add_child(_grid(acts))
-	modal_box.add_child(_lbl("⚔️ Schwierigkeit: %s" % Game.DIFFICULTY_NAMES.get(game.difficulty, "Normal"), 15, Color(0.75, 0.75, 0.75)))
+	modal_box.add_child(_lbl("⚔️ Schwierigkeit: %s · Rise of EU %s" % [Game.DIFFICULTY_NAMES.get(game.difficulty, "Normal"),
+			DebugScreen.version()], 15, Color(0.75, 0.75, 0.75)))
 
 
 ## Find a province or nation by name and jump there. Unexplored land (terra incognita) stays hidden.
