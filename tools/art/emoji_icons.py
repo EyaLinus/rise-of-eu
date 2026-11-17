@@ -152,6 +152,21 @@ add("🧭", "compass", layer(["...GGGGG...", "..GPPPPPD..", ".GPPPRPPPD.", "GPPP
 add("🏕", "colony_tent", layer([".....k......", "....wPa.....", "...wPPPa....", "..wPPHPPa...", ".wPPHHHPPa..", "wPPPHHHPPPa.", "LLLLLLLLLLLF"], 2, 5))
 add("🪶", "feather", layer(["........wa", ".......wwa", "......wwa.", ".....wwag.", "....wwag..", "...wwag...", "..wwag....", ".wagG.....", ".aG.......", "G........."], 3, 3))
 
+# ---- more trade goods (tools/economy/add_goods.py)
+add("🧶", "silk", layer(["...rRRRE...", ".rRuRRuRE..", "rRRRuRRRuE.", "RuRRRuRRRE.", "RRuRRRuRRE.", "RRRuRRRuRE.", ".RRRuRRRE..", "..EEEEEE.ww", ".........wa", "........wa."], 2, 3))
+add("🌶", "chili", layer(["........LF", ".......LF.", ".....LLF..", "....rRRE..", "...rRRRE..", "..rRRRE...", ".rRRRE....", "rRRRE.....", "RRE.......", "E........."], 3, 3))
+add("☁", "cotton", layer(["...www.....", "..wwwwa.ww.", ".wwwwwwwwwa", "wwwwwwwwwwa", "awwwwwwwwa.", ".aaaaaaaa..", "....OH.....", "...LOHF....", "..LF.H.LF..", ".....H....."], 3, 3))
+add("🔮", "glass", layer(["...bbbb...", "..bwwBBN..", ".bwbBBBBN.", ".bbBBBBBN.", ".bBBBBBBN.", "..BBBBBN..", "...NNNN...", "...GGGD...", "..GGGGGD..", "..DDDDDD.."], 3, 3))
+add("📃", "paper", layer(["..PPPPPPP.", ".PPPPPPPPQ", "PPQQQQQPPQ", "PPPPPPPPPQ", "PPQQQQQQPQ", "PPPPPPPPPQ", "PPQQQQPPPQ", "PPPPPPPPPQ", "PPQQQQQPQ.", "QQQQQQQQ.."], 3, 3))
+add("🐎", "horse", layer(["........OO..", ".......OOOO.", "......OOkOOO", ".....HOOOO.O", "OOOOOOOOO...", "OOOOOOOOO...", "HOOOOOOOH...", "H.O.O..O.O..", "..O.O..O.O..", "..H.H..H.H.."], 2, 3))
+add("🫒", "olive", layer(["OH..........", ".OH..LLF....", "..OHLLF.....", "...OOH......", ".LLF.OH.....", "LLF...OH....", "....lLF.OH..", "...lLLLF.lLF", "...LLLLFlLLL", "...LLLLFLLLL", "....FFF.LLLF", ".........FF."], 2, 2))
+add("🔶", "amber", layer(["....YG....", "...YGGD...", "..YGGGGD..", ".YGGwGGGD.", "YGGGGGGGGD", ".DGGGGGGD.", "..DGGGGD..", "...DGGD...", "....DD...."], 3, 3))
+add("🪢", "rope", layer(["..OOOO....", ".OoooOH...", "Oo.HH.oH..", "Oo.H..oH..", ".OoOOoH...", "..HOOH....", "..OooO....", ".Oo..oO...", ".Oo..oO...", "..OOOO...."], 4, 3))
+add("🦷", "ivory", layer(["w.........", "ww........", ".wwa......", "..wwwa....", "...wwwwa..", "....wwwwaa", ".....awwwa", ".......aa.", ".........."], 3, 4))
+add("🎨", "dyes", layer(["..oooooo..", ".oOOOOOOo.", "oORRORBBOo", "oOROOOBNOH", "oOOOOOOOOH", "oOLLOOUUOH", ".OLFOOUVH.", "..HHH.OH..", ".....HH..."], 3, 3))
+add("☕", "coffee", layer(["...w..w...", "....w..w..", "...w..w...", "wwwwwwwwa.", "wOOOOOOwaa", "wOHHHHOwa.a", "awwwwwwwaa", ".awwwwwa..", "..aaaaa...", "gggggggggd"], 3, 3))
+add("🪔", "lamp", layer(["....Y.....", "...YGY....", "...rGR....", "....E.....", "GGGGGGGGD.", "YGGGGGGGGDD", ".DGGGGGGD.D", "..DDDDDD...", "...GGGD...", "..DDDDDD.."], 3, 3))
+
 
 # red ring with a diagonal bar: embargo / forbidden
 add("🚫", "no_entry", layer(["....RRRR....", "..RRrrrrRR..", ".RrrRR..rrR.", ".Rr..RR..rR.", "Rr....RR..rR", "Rr.....RR.rR",
