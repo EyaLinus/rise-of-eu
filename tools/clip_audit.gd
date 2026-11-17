@@ -131,6 +131,13 @@ func _check(m, where: String) -> void:
 	if shots != "":
 		root.get_texture().get_image().save_png("%s/%s_%s.png" % [shots, where.replace("/", "_"), int(scale * 100)])
 	_walk(m, where)
+	# popups must fit the screen, or their end (and the close button) cannot be scrolled to
+	if m.modal.visible:
+		var pc: Control = m.modal_box.get_parent().get_parent()
+		var vs: Vector2 = m.get_viewport().get_visible_rect().size
+		var r: Rect2 = pc.get_global_rect()
+		if r.position.y < -1.0 or r.end.y > vs.y + 1.0 or r.end.x > vs.x + 1.0:
+			found["%s|popup" % where] = "off screen: %s in %s" % [r, vs]
 	# the side panel must stay on screen and keep its width (content wider than it pushes it over the map)
 	var sp: Control = m.side_panel
 	if sp.visible:

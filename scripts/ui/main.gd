@@ -450,7 +450,24 @@ func _build_modal() -> void:
 	modal_box.add_theme_constant_override("separation", 10)
 	sc.add_child(modal_box)
 	modal.visible = false
-	modal_box.resized.connect(func(): sc.custom_minimum_size.y = minf(modal_box.size.y, size.y - 60))
+	modal_box.resized.connect(_fit_modal)
+	# a window resize or UI-size change while a popup is open must shrink it too, or its end (and the
+	# close button) sits below the screen edge where no scrolling reaches it
+	get_viewport().size_changed.connect(_fit_modal.call_deferred)
+
+
+## Popup height: its content, at most the screen minus a margin (then it scrolls). Width shrinks on narrow screens.
+func _fit_modal() -> void:
+	if modal_box == null:
+		return
+	var sc := modal_box.get_parent() as ScrollContainer
+	var pc := sc.get_parent() as PanelContainer
+	var vp: Vector2 = get_viewport_rect().size
+	var pad: Vector2 = pc.get_theme_stylebox("panel").get_minimum_size() if pc.has_theme_stylebox("panel") else Vector2.ZERO
+	pc.custom_minimum_size.x = minf(640.0, vp.x - 16.0)
+	sc.custom_minimum_size.x = maxf(200.0, pc.custom_minimum_size.x - 20.0)
+	sc.custom_minimum_size.y = maxf(0.0, minf(modal_box.get_combined_minimum_size().y, vp.y - 32.0 - pad.y))
+	pc.reset_size()  # drop the old (taller) size, CenterContainer re-centres it
 
 
 # ---------------------------------------------------------------- helpers
@@ -1544,6 +1561,7 @@ func _notification(what: int) -> void:
 func _open_modal() -> void:
 	_clear(modal_box)
 	modal.visible = true
+	_fit_modal.call_deferred()  # same-height content fires no resized signal
 
 
 func _close_modal() -> void:
