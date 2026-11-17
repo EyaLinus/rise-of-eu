@@ -299,6 +299,7 @@ static func is_blockaded(g, pid: int) -> bool:
 
 
 static func monthly(g) -> void:
+	g.sea_fights = []  # this month's sea battles (map animation)
 	refresh(g)
 	for w in g.wars.duplicate():
 		for s in g.seas:
@@ -316,6 +317,7 @@ static func _fleet_battle(g, w, s: Dictionary, pa: float, pd: float) -> void:
 	var lose_frac: float = clampf(float(g.bal.naval_loss_lose) / sqrt(ratio), 0.1, 0.7)
 	var win_frac: float = float(g.bal.naval_loss_win) * sqrt(ratio)
 	var lost := 0.0
+	var won_lost := 0.0
 	var win_tags: Array = w.attackers if att_wins else w.defenders
 	var lose_tags: Array = w.defenders if att_wins else w.attackers
 	for t in win_tags + lose_tags:
@@ -323,14 +325,17 @@ static func _fleet_battle(g, w, s: Dictionary, pa: float, pd: float) -> void:
 		if here <= 0.0:
 			continue
 		var gone: float = here * (lose_frac if lose_tags.has(t) else win_frac)
-		g.nations[t].ships = maxf(0.0, g.nations[t].ships - gone)
+		g.nations[t].ships = snappedf(maxf(0.0, g.nations[t].ships - gone), 0.001)  # (exact floats survive saves)
 		if lose_tags.has(t):
 			lost += gone
+		else:
+			won_lost += gone
 		g.fire_event(t, "nav_first_loss" if lose_tags.has(t) else "nav_first_win")  # once per realm
 	var ws: float = lost * float(g.bal.naval_ws_per_ship)
 	var cap := float(g.bal.battle_ws_cap)
 	w.battle_score = clampf(w.battle_score + (ws if att_wins else -ws), -cap, cap)
 	g.stats.naval_battles = g.stats.get("naval_battles", 0) + 1
+	g.sea_fights.append({"sea": s.id, "win": win_tags[0], "lose": lose_tags[0], "lost": lost, "won_lost": won_lost, "month": g.month})
 	var involved := win_tags + lose_tags
 	if involved.has(g.player):
 		g.log_msg("⚓ Seeschlacht %s: %s siegt (%.1f Schiffe des Verlierers versenkt)." % [s.name, g.nations[win_tags[0]].name, lost], [g.player])

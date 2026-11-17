@@ -32,6 +32,7 @@ func _init() -> void:
 		"test_guarantee",
 		"test_rivals",
 		"test_urban",
+		"test_units_and_templates",
 		"test_colonial",
 		"test_west_africa",
 		"test_troop_transport",
@@ -902,9 +903,12 @@ func test_battle_rounds() -> void:
 	W.gather(g)
 	var b = W.battle_at(g, pid)
 	check(b != null, "equal armies start a battle")
-	check(W.phase(b) == "Plänkeln", "battles open with skirmishing")
+	check(W.phase(b) == "Feuergefecht", "battles open with the fire fight")
 	W.fight_round(g, b)
-	check(W.phase(b) == "Nahkampf" and g.battles.has(b), "an even battle is not decided in the first round")
+	check(g.battles.has(b), "an even battle is not decided in the first round")
+	check(b.log.size() == 1 and b.log[0][1] > 0.0 and b.log[0][2] > 0.0, "each round is logged with both sides' losses")
+	W.fight_round(g, b)
+	check(W.phase(b) == "Nahkampf" or not g.battles.has(b), "melee follows the fire fight")
 	# reinforcements join the running battle
 	var r = g.spawn_army("ENG", pid, 4.0)
 	W.gather(g)
@@ -3521,6 +3525,84 @@ func test_chronicle() -> void:
 	check(g2.chronicle.size() == g.chronicle.size() and g2.chronicle[0][1] == g.chronicle[0][1], "chronicle survives save/load")
 
 
+func test_units_and_templates() -> void:
+	var g = new_game("FRA", 5)
+	var U = g.Units
+	var W = g.Warfare
+	# standard mix: an AI army with the standard mix costs exactly what a plain regiment did
+	var std: Dictionary = U.standard_mix(g, "FRA")
+	check(absf(U.cost_mult(g, "FRA", std) - 1.0) < 0.001 and absf(U.cost_mult(g, "FRA", {}) - 1.0) < 0.001, "standard mix costs x1")
+	var a = g.spawn_army("FRA", g.nations.FRA.capital, 10.0)
+	check(absf(U.upkeep_regs(g, "FRA") - g.army_regs("FRA")) < 0.001, "upkeep unchanged for standard armies")
+	# artillery needs tech, shares are clamped
+	g.nations.FRA.tech.mil = 0
+	check(U.clean(g, "FRA", {"cav": 0.2, "art": 0.3}).art == 0.0, "no artillery before the tech")
+	g.nations.FRA.tech.mil = 5
+	var c: Dictionary = U.clean(g, "FRA", {"cav": 0.9, "art": 0.3})
+	check(c.cav <= 0.6 and absf(c.inf + c.cav + c.art - 1.0) < 0.02, "shares are clamped and sum to 1")
+	# phases: artillery shines in the fire fight, cavalry in melee but not in the mountains
+	var pid: int = g.nations.FRA.capital
+	a.mix = U.clean(g, "FRA", {"cav": 0.0, "art": 0.4})
+	var fire_art: float = U.battle_mult(g, a, 0, pid)
+	var melee_art: float = U.battle_mult(g, a, 3, pid)
+	check(fire_art > 1.2 and melee_art < fire_art, "artillery: strong fire, weak melee (%.2f / %.2f)" % [fire_art, melee_art])
+	a.mix = U.clean(g, "FRA", {"cav": 0.6, "art": 0.0})
+	var plain: float = U.battle_mult(g, a, 3, pid)
+	var mtn: int = g.key_to_pid["tirol"]
+	check(plain > 1.05 and U.battle_mult(g, a, 3, mtn) < plain, "cavalry hits hard on open ground, less in the mountains")
+	check(U.pursuit_mult(g, [a]) > 1.2, "cavalry drives the pursuit")
+	a.mix = U.clean(g, "FRA", {"art": 0.4})
+	check(U.siege_mult(g, [a]) > 1.1, "artillery speeds up sieges")
+	# unique units
+	check(U.unique(g, "TUR").name == "Janitscharen" and U.stat(g, "TUR", "inf", "shock") > U.stat(g, "FRA", "inf", "shock"), "Ottoman janissaries are better infantry")
+	check(U.stat(g, "POL", "cav", "shock") > U.stat(g, "FRA", "cav", "shock"), "winged hussars beat gendarmes in the charge")
+	# templates: add, adjust, recruit with one, refit
+	var n = g.nations.FRA
+	check(U.add_template(g, "FRA", "Reiter", {"cav": 0.5}) == "", "a template is added")
+	U.adjust_template(g, "FRA", 0, "cav", 0.1)
+	check(absf(float(n.templates[0].cav) - 0.6) < 0.01, "the cavalry share goes up in 10 % steps")
+	n.recruit_tmpl = 0
+	n.gold = 5000.0
+	n.manpower = 50.0
+	var gold0: float = n.gold
+	var free: int = -1
+	for q in g.provinces_of("FRA"):
+		if g.armies_in(q).is_empty():
+			free = q
+			break
+	for q in g.armies_of("FRA").duplicate():
+		g.armies.erase(q)
+	var rerr: String = g.recruit("FRA", free, 2)
+	check(rerr == "", "recruiting with a template works " + rerr)
+	var na = g.armies_in(free)[0]
+	check(absf(float(na.mix.cav) - 0.6) < 0.01 and na.tmpl == 0, "new regiments use the template")
+	check(gold0 - n.gold > 2.0 * g.regiment_cost("FRA") * 1.01, "cavalry-heavy regiments cost more")
+	n.gold = 5000.0
+	var p0: float = na.power
+	check(U.refit(g, na, -1) == "" and na.mix.is_empty() and na.tmpl == -1, "refitting back to the standard mix")
+	check(na.power < p0 and n.gold < 5000.0, "refitting costs gold and morale")
+	U.remove_template(g, "FRA", 0)
+	check(n.templates.is_empty() and n.recruit_tmpl == -1, "deleting a template resets its users")
+	# merging blends the mix
+	var x = g.spawn_army("FRA", mtn, 4.0)
+	var y = g.spawn_army("FRA", mtn, 4.0)
+	x.owner = "FRA"
+	x.mix = {"inf": 1.0, "cav": 0.0, "art": 0.0}
+	y.mix = {"inf": 0.5, "cav": 0.5, "art": 0.0}
+	g.merge_armies("FRA", mtn)
+	check(absf(float(x.mix.cav) - 0.25) < 0.02, "merging blends unit shares")
+	# save/load keeps mixes and templates
+	U.add_template(g, "FRA", "Feld", {"cav": 0.3, "art": 0.1})
+	g.nations.FRA.tech.mil = 0  # (raising tech directly would not survive the save)
+	var text := JSON.stringify(g.to_dict())
+	var g2 = new_game("FRA", 5)
+	g2.from_dict(JSON.parse_string(text))
+	check(JSON.stringify(g2.to_dict()) == text, "unit mixes and templates survive save/load")
+	# sea battles are recorded for the map
+	check(g.sea_fights is Array, "sea fights list exists")
+	# a battle is slow: one round a month
+	check(int(g.bal.battle_rounds_per_month) == 1, "one battle round per month")
+	var _w = W
 ## v1.0 goods update: 13 more goods with leader bonuses, and costs that rise less with development / military tech.
 func test_more_goods_and_softer_costs() -> void:
 	var g = new_game("VEN", 3)
