@@ -49,6 +49,10 @@ jobs:
           godot --headless --path . -s res://tools/month_steps_smoke.gd 2>&1 | tee steps.txt
           grep -q "MONTH STEPS OK" steps.txt
           ! grep -q "SCRIPT ERROR" steps.txt
+      - name: Rich tooltips (hover delay, lock, nested terms, touch long press)
+        run: |
+          godot --headless --path . -s res://tools/tip_test.gd 2>&1 | tee tips.txt
+          grep -q "TIP TEST OK" tips.txt
       - name: No cut-off UI text (140 % UI at 1280 and 1560 px, big touch UI)
         shell: bash  # pipefail needs bash, the container's default sh is dash
         run: |

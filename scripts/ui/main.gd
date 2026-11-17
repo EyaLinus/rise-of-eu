@@ -20,6 +20,7 @@ const GovScreen = preload("res://scripts/ui/gov_screen.gd")
 const DebugScreen = preload("res://scripts/ui/debug_screen.gd")
 const Ledger = preload("res://scripts/core/ledger.gd")
 const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
+const Tooltips = preload("res://scripts/ui/tooltips.gd")
 const SAVE_PATH := "user://save.json"  # the autosave, also what "Weiterspielen" loads
 const SAVE_META_PATH := "user://saves.json"  # nation, date and score per slot, so the slot list needs no full parse
 const SAVE_SLOTS := ["auto", "1", "2", "3"]
@@ -71,6 +72,7 @@ const WINDOW_NAMES := {"window": "Fenster", "maximized": "Maximiert", "borderles
 
 var map: MapView
 var top_labels := {}
+var top_slots := {}  # top bar: icon + value + gain of one resource, carries its tooltip
 var speed_label: Label
 var side_panel: PanelContainer
 var top_incs := {}  # small monthly-gain labels next to the adm/dip/mil points
@@ -99,8 +101,8 @@ var _press_range: Range = null  # slider pressed: no long-press tip, no panel re
 var _press_range_value := 0.0
 var _dragging := false
 var _suppress_click := false
-var _tip_panel: PanelContainer
-var _tip_label: Label
+var tips: Tooltips  # rich tooltips: hover (mouse) and long press (touch), see tooltips.gd
+var _touch_input := false  # the last pointer input came from a finger (tips by long press, not hover)
 var sfx_streams := {}
 var music := Music.new()
 const MUSIC_STEPS := [0.0, 0.25, 0.5, 0.75, 1.0]
@@ -141,6 +143,8 @@ func _ready() -> void:
 	_build_hud()
 	debug_screen.build_overlay(hud)
 	_build_modal()
+	tips = Tooltips.new(self)
+	add_child(tips)
 	hud.visible = false
 	get_tree().set_auto_accept_quit(false)
 	var preview = Game.new()
@@ -267,29 +271,33 @@ func _build_hud() -> void:
 	res.add_theme_constant_override("separation", 14)
 	res.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	strip.add_child(res)
-	for k in ["nation", "gold", "adm", "dip", "mil", "manpower", "army", "ae"]:
+	for k in ["nation", "gold", "adm", "dip", "mil", "manpower", "army", "settlers", "ae"]:
+		# icon, value and monthly gain form one hover / long-press area (not only the number)
+		var slot := HBoxContainer.new()
+		slot.add_theme_constant_override("separation", 4)
+		slot.mouse_filter = Control.MOUSE_FILTER_PASS  # tooltip, and a drag still reaches the strip
+		slot.tooltip_text = HUD_TIPS.get(k, "")
+		top_slots[k] = slot
+		res.add_child(slot)
 		var tex := Icons.texture(k)
 		if tex != null:
-			res.add_child(_icon_rect(tex, 32))
+			var ir := _icon_rect(tex, 32)
+			ir.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			slot.add_child(ir)
 		var l := Label.new()
-		l.mouse_filter = Control.MOUSE_FILTER_PASS  # tooltip, and a drag still reaches the strip
-		l.tooltip_text = HUD_TIPS.get(k, "")
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		top_labels[k] = l
+		slot.add_child(l)
 		if k in ["adm", "dip", "mil"]:  # small "+3" monthly gain right after the points
-			var pair := HBoxContainer.new()
-			pair.add_theme_constant_override("separation", 2)
-			pair.mouse_filter = Control.MOUSE_FILTER_PASS
 			var inc := Label.new()
-			inc.mouse_filter = Control.MOUSE_FILTER_PASS
+			inc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			inc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			inc.add_theme_color_override("font_color", Color(0.6, 0.9, 0.6))
-			pair.add_child(l)
-			pair.add_child(inc)
-			res.add_child(pair)
+			slot.add_child(inc)
 			top_incs[k] = inc
-		else:
-			res.add_child(l)
-	top_labels.nation.gui_input.connect(func(e): if _is_click(e): _open_panel("nation"))
+	for k in ["nation", "settlers"]:
+		top_slots[k].gui_input.connect(func(e): if _is_click(e): _open_panel("nation"))
+	top_slots.gold.gui_input.connect(func(e): if _is_click(e): _open_panel("economy"))
 	top_labels["date"] = Label.new()
 	hb.add_child(top_labels.date)
 	hb.add_child(_btn("⏸", func(): _set_speed(0), "Pause"))
@@ -965,32 +973,9 @@ func _tooltip_at(node: Node, pos: Vector2) -> Control:
 	return null
 
 
-func _show_tip(text: String, pos: Vector2) -> void:
-	if _tip_panel == null:
-		_tip_panel = PanelContainer.new()
-		_tip_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_tip_panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		_tip_panel.add_theme_stylebox_override("panel", UiTheme.box("tooltip", 12))
-		_tip_label = Label.new()
-		_tip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_tip_label.add_theme_font_size_override("font_size", 20 if _big() else 17)
-		_tip_panel.add_child(_tip_label)
-		add_child(_tip_panel)
-	var w: float = minf(520.0, size.x - 32.0)
-	_tip_label.text = text
-	# An autowrap label measures its height at its current width. Width 0 (first tip, or a panel shrunk by
-	# the previous one) gave one character per line: a box over 1000 px high with the text far below the
-	# screen, seen as a big empty tooltip (budget/invest sliders). Size the label first, then hug it.
-	_tip_label.custom_minimum_size = Vector2(w - 24, 0)
-	_tip_label.size = Vector2(w - 24, 0)
-	var h: float = _tip_label.get_minimum_size().y
-	_tip_panel.size = Vector2(w, 0)
-	_tip_panel.reset_size()
-	_tip_panel.size = Vector2(w, minf(h + 24.0, size.y - 32.0))
-	_tip_panel.position = Vector2(clampf(pos.x - w / 2, 16, size.x - w - 16),
-			clampf(pos.y - _tip_panel.size.y - 40.0, 16, size.y - _tip_panel.size.y - 16))
-	_tip_panel.visible = true
-	_sfx("click", -18.0)
+## Touch input decides how tips open: by long press (finger) or by hovering (mouse, also on touch laptops).
+func touch_mode() -> bool:
+	return _touch_input
 
 
 func _input(event: InputEvent) -> void:
@@ -998,6 +983,10 @@ func _input(event: InputEvent) -> void:
 	var up := false
 	var moved := false
 	var pos := Vector2.ZERO
+	if event is InputEventScreenTouch or event is InputEventScreenDrag:
+		_touch_input = true
+	elif event is InputEventMouse and event.device != InputEvent.DEVICE_ID_EMULATION:
+		_touch_input = false
 	if event is InputEventScreenTouch:
 		if event.index != 0:
 			return
@@ -1023,8 +1012,9 @@ func _input(event: InputEvent) -> void:
 	else:
 		return
 	if down:
-		if _tip_panel != null:
-			_tip_panel.visible = false
+		if tips.owns_point(pos):
+			return  # a tap on a locked tip: its links (terms, "▶ open") take it
+		tips.close_all()
 		_suppress_click = false
 		_dragging = false
 		_press_pos = pos
@@ -1053,8 +1043,6 @@ func _input(event: InputEvent) -> void:
 		_press_time = -1.0
 		_press_scroll = null
 		_press_range = null
-		if _tip_panel != null and not DisplayServer.is_touchscreen_available():
-			_tip_panel.visible = false  # mouse: the tip lasts while the button is held
 
 
 func _check_long_press() -> void:
@@ -1062,10 +1050,14 @@ func _check_long_press() -> void:
 		return
 	if Time.get_ticks_msec() / 1000.0 - _press_time < LONG_PRESS:
 		return
+	if not touch_mode():
+		return  # mouse: tips open by hovering (tooltips.gd)
 	var c := _tooltip_at(self, _press_pos)
 	if c != null:
 		_suppress_click = true
-		_show_tip(c.tooltip_text, _press_pos)
+		Input.vibrate_handheld(20)
+		tips.show_for(c, _press_pos, true)
+		_sfx("click", -18.0)
 
 
 ## Box hugs the text (max 420 px, wraps beyond), bottom left above the map mode strip, never under an open side panel.
@@ -1376,24 +1368,35 @@ func _update_top() -> void:
 	top_labels.manpower.text = Icons.prefix("manpower") + short_num(n.manpower)
 	top_labels.army.text = Icons.prefix("army") + "%d/%d" % [game.regs_counted(game.player), game.force_cap(game.player)]
 	top_labels.ae.text = Icons.prefix("ae") + "%d" % n.ae
+	# settlers once the realm can colonize (Atlantic realm with the exploration tech)
+	var colon: bool = game.atlantic_tags.has(game.player) and Colonial.can_explore_tech(game, n)
+	top_slots.settlers.visible = colon
+	if colon:
+		var used: int = Colonial.running_colonies(game, game.player).size()
+		var tot: int = Colonial.colonists(game, n)
+		top_labels.settlers.text = Icons.prefix("settlers") + "%d/%d" % [used, tot]
+		top_labels.settlers.add_theme_color_override("font_color", Color(0.6, 0.9, 0.6) if used < tot else Color.WHITE)
+		top_slots.settlers.tooltip_text = "🏕 Siedler\nBeschäftigt\t%d\nVerfügbar\t%d\nFrei\t%d\nJede Gruppe lässt eine Kolonie wachsen.\nKlick: Neue Welt und Siedler anwerben" % [used, tot, maxi(0, tot - used)]
 	top_labels.ae.add_theme_color_override("font_color", Color.TOMATO if n.ae >= game.coalition_threshold(game.player) * 0.7 else Color.WHITE)
 	top_labels.gold.add_theme_color_override("font_color", Color.TOMATO if n.gold < 0 else Color.WHITE)
 	top_labels.date.text = Icons.prefix("date") + game.date_string()
 	# live tooltips (long press on mobile)
 	var trib: float = game.tribute_income(game.player)
-	top_labels.gold.tooltip_text = "Gold %d · Bilanz %+.2f/Monat\nEinnahmen %.2f (Steuern %.2f, Güter %.2f, Handel %.2f)\nAusgaben %.2f%s" % [
-			n.gold, net, n.income, n.tax_income, n.prod_income, n.trade_income, n.expenses, ("\nTribut %+.2f" % trib) if trib != 0.0 else ""]
+	# tooltips: headline, then "label<TAB>value" rows (a table in the tip), then one or two short lines
+	top_slots.nation.tooltip_text = "%s\nKlick: Nation, Ränge und Boni" % nname(game.player)
+	top_slots.gold.tooltip_text = "💰 Gold %d\nBilanz\t%+.2f / Monat\nSteuern\t%+.2f\nGüter\t%+.2f\nHandel\t%+.2f%s\nAusgaben\t%+.2f\nKlick auf Gold: Wirtschaft öffnen" % [
+			n.gold, net, n.tax_income, n.prod_income, n.trade_income, ("\nTribut\t%+.2f" % trib) if trib != 0.0 else "", -n.expenses]
 	var cap := int(game.bal.power_cap)
+	var pow_use := {"adm": "Technologie, Reformen, Entwickeln", "dip": "Bündnisse, Ansprüche, Integration", "mil": "Militärtechnik, Generäle, Unruhe unterdrücken"}
 	for k in ["adm", "dip", "mil"]:
 		var gain: float = game.monthly_power(n, k)
-		top_labels[k].tooltip_text = "%s\n%+.1f pro Monat, Obergrenze %d" % [HUD_TIPS[k], gain, cap]
+		top_slots[k].tooltip_text = "%s %s %d\nPro Monat\t%+.1f\nObergrenze\t%d\nFür %s" % [Icons.emoji(k), {"adm": "Verwaltung", "dip": "Diplomatie", "mil": "Militär"}[k], int(n.get(k)), gain, cap, pow_use[k]]
 		var inc: Label = top_incs[k]
 		inc.text = "%+.0f" % gain if absf(gain - roundf(gain)) < 0.05 else "%+.1f" % gain
-		inc.tooltip_text = top_labels[k].tooltip_text
 		inc.add_theme_color_override("font_color", Color(0.6, 0.9, 0.6) if gain >= 0.0 else Color.TOMATO)
-	top_labels.manpower.tooltip_text = "Mannschaften %.0f / %.0f\nFüllen sich jeden Monat auf; Gutshöfe und Kasernen erhöhen das Maximum." % [n.manpower, n.max_manpower]
-	top_labels.army.tooltip_text = "Regimenter / Truppenlimit\nMehr Regimenter als das Limit kannst du nicht ausheben. Kasernen, Technik und Ränge erhöhen es."
-	top_labels.ae.tooltip_text = "Aggressive Expansion %d (Koalitionsgrenze %d)\nSinkt langsam; hohe Werte machen Nachbarn feindlich." % [n.ae, int(game.coalition_threshold(game.player))]
+	top_slots.manpower.tooltip_text = "👥 Mannschaften\nJetzt\t%.0f\nMaximum\t%.0f\nFüllen sich jeden Monat auf.\nGutshöfe und Kasernen erhöhen das Maximum." % [n.manpower, n.max_manpower]
+	top_slots.army.tooltip_text = "🛡️ Regimenter\nAufgestellt\t%d\nTruppenlimit\t%d\nÜber dem Limit kannst du nicht ausheben.\nKasernen, Technik und Ränge erhöhen es." % [game.regs_counted(game.player), game.force_cap(game.player)]
+	top_slots.ae.tooltip_text = "😠 Aggressive Expansion\nJetzt\t%d\nKoalitionsgrenze\t%d\nSinkt langsam.\nHohe Werte machen Nachbarn feindlich." % [n.ae, int(game.coalition_threshold(game.player))]
 	speed_label.text = "⏸" if speed == 0 else ("⚔️▶" if speed > 1 and _battle_slowdown() else "▶".repeat(speed))
 	_fit_top()
 	_update_badges()
@@ -1402,7 +1405,7 @@ func _update_top() -> void:
 ## Keep every resource of the top bar visible (AE sits last and got pushed out by big gold numbers):
 ## first tighter spacing, then the nation name collapses to the flag, then a smaller font.
 func _fit_top() -> void:
-	var res: HBoxContainer = top_labels.gold.get_parent()
+	var res: HBoxContainer = top_slots.gold.get_parent()
 	var strip: Control = res.get_parent()
 	var avail: float = strip.size.x
 	if avail <= 0.0:
@@ -1411,15 +1414,19 @@ func _fit_top() -> void:
 	var steps := [[base_sep, true, 20, 32], [6, true, 20, 32], [6, false, 20, 32], [4, false, 18, 28], [3, false, 16, 24], [2, false, 15, 20]]
 	for st in steps:
 		res.add_theme_constant_override("separation", st[0])
-		for c in res.get_children():
-			if c is TextureRect:
-				c.custom_minimum_size = Vector2(st[3], st[3])
+		for slot in res.get_children():
+			for c in slot.get_children():
+				if c is TextureRect:
+					c.custom_minimum_size = Vector2(st[3], st[3])
 		top_labels.nation.visible = st[1]
 		for k in top_labels:
 			if k != "date" and top_labels[k] is Label:
 				top_labels[k].add_theme_font_size_override("font_size", st[2])
 		for k in top_incs:
 			top_incs[k].add_theme_font_size_override("font_size", maxi(11, roundi(st[2] * 0.65)))
+		for slot in res.get_children():  # nested boxes: make sure no stale cached minimum size is read
+			slot.update_minimum_size()
+		res.update_minimum_size()
 		if res.get_combined_minimum_size().x <= avail:
 			return
 
@@ -1725,6 +1732,10 @@ func _show_settings() -> void:
 				settings.tips_seen = []
 			_save_settings()
 			_show_settings(), "Einmalige Hinweise, wenn etwas Neues passiert. Einschalten zeigt alle wieder."),
+		_btn("📃 Tooltips: %s" % ["schnell", "normal", "langsam"][clampi(int(settings.get("tip_delay", 1)), 0, 2)], func():
+			settings.tip_delay = (int(settings.get("tip_delay", 1)) + 1) % 3
+			_save_settings()
+			_show_settings(), "Wie schnell Tooltips beim Darüberfahren erscheinen.\nBleibt die Maus kurz still, rastet der Tooltip ein.\nDann: Begriffe überfahren für Erklärungen, anklicken zum Öffnen."),
 	]
 	if OS.has_feature("pc") and OS.get_name() != "Web":
 		opts.append(_btn("🖥 Fenster: %s" % WINDOW_NAMES.get(str(settings.get("window", "window")), "Fenster"), func():
