@@ -71,7 +71,7 @@ static func refresh(g, n) -> void:
 		var e := option_effects(o, level(n, qid), synergy_on(g, n, o))
 		for k in e:
 			b[k] = b.get(k, 0.0) + e[k]
-	n.bonus["ages"] = b
+	n.set_bonus("ages", b)
 
 
 ## Sets the choice for a question (also used to change it later through an event; the level is kept).

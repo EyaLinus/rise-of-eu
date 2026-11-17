@@ -10,8 +10,11 @@ var _friends := {}  # control_armies: province -> regiments of non-enemy armies 
 
 func think(g, n) -> void:
 	g.govt.ai_think(g, n)
+	g._pmark("ai.gov")
 	_spend_power(g, n)
+	g._pmark("ai.power")
 	_spend_gold(g, n)
+	g._pmark("ai.gold")
 	var slot: int = (g.month + n.capital) % 6
 	if slot == 0:
 		_diplomacy(g, n)
@@ -19,7 +22,9 @@ func think(g, n) -> void:
 		_consider_war(g, n)
 	if (g.month + n.capital) % 3 == 0:
 		_consider_peace(g, n)
+	g._pmark("ai.diplo")
 	control_armies(g, n.tag)
+	g._pmark("ai.armies")
 
 
 # ---------------------------------------------------------------- economy

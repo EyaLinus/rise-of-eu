@@ -60,7 +60,11 @@ class Nation:
 	var playable: bool = false
 	var major: bool = false  # one of the 7 great powers (rules + "major" condition), independent of playable
 	var idea: String = ""
-	var alive: bool = true
+	static var links_ver := 0  # bumped by every change of alive/overlord/embargoes (Game caches of vassals, embargoes)
+	var alive: bool = true:
+		set(v):
+			alive = v
+			links_ver += 1
 	var capital: int = -1
 	var gold: float = 0.0
 	var adm: float = 0.0
@@ -78,10 +82,47 @@ class Nation:
 	var ruler_name: String = ""
 	var ruler_names: Array = []
 	var name_counts := {}
-	var mods := {"income": 0.0, "combat": 0.0, "manpower": 0.0, "adm": 0.0, "dip": 0.0, "mil": 0.0, "ae_decay": 0.0}
+	# permanent modifiers (ideas, events, missions): key -> value
+	var mods: Dictionary:
+		get:
+			_mc.clear()  # whoever touches it may change it: drop the cached sums
+			return _mods
+		set(v):
+			_mods = v
+			_mc.clear()
 	# derived bonuses per system (e.g. "tech", "gov", "goods", "buildings"): source -> {key: value}.
 	# Not saved: each system recomputes its entry from game state. Read everything through Game.mod().
-	var bonus := {}
+	# Hot code writes through set_bonus()/clear_bonus(), which keep the cache when nothing changed.
+	var bonus: Dictionary:
+		get:
+			_mc.clear()
+			return _bonus
+		set(v):
+			_bonus = v
+			_mc.clear()
+	var _mods := {"income": 0.0, "combat": 0.0, "manpower": 0.0, "adm": 0.0, "dip": 0.0, "mil": 0.0, "ae_decay": 0.0}
+	var _bonus := {}
+	var _mc := {}  # key -> summed modifier (Game.mod), emptied whenever mods or bonus may have changed
+
+	func modv(key: String) -> float:
+		if _mc.has(key):
+			return _mc[key]
+		var v: float = float(_mods.get(key, 0.0))
+		for src in _bonus:
+			v += float(_bonus[src].get(key, 0.0))
+		_mc[key] = v
+		return v
+
+	func set_bonus(src: String, b: Dictionary) -> void:
+		if _bonus.has(src) and _bonus[src] == b:
+			return
+		_bonus[src] = b
+		_mc.clear()
+
+	func clear_bonus(src: String) -> void:
+		if _bonus.has(src):
+			_bonus.erase(src)
+			_mc.clear()
 	var relations := {}
 	var allies: Array = []
 	var truces := {}
@@ -89,7 +130,10 @@ class Nation:
 	var flags := {}
 	var missions_done := {}
 	var coalition: Array = []
-	var overlord: String = ""
+	var overlord: String = "":
+		set(v):
+			overlord = v
+			links_ver += 1
 	var vassal_since: int = 0
 	var we: float = 0.0  # war exhaustion 0..we_max
 	var techs := {}  # researched tech id -> month (scripts/core/tech.gd)
@@ -112,7 +156,12 @@ class Nation:
 	var guarantees := {}  # nations whose independence we defend
 	var rivals: Array = []  # declared rivals: cheaper wars against them, power projection from beating them
 	var power_proj: float = 0.0  # power projection 0..pp_max, earned against rivals, decays yearly
-	var embargoes: Array = []  # rivals whose trade we block (costs us a little trade too)
+	# rivals whose trade we block (costs us a little trade too). Change it only through Game.add/remove embargo
+	# or reassign it: Game.embargoed_by caches the reverse lookup
+	var embargoes: Array = []:
+		set(v):
+			embargoes = v
+			links_ver += 1
 	var templates: Array = []  # player army templates {name, inf, cav, art} (Units)
 	var recruit_tmpl: int = -1  # template for new regiments (-1 = standard mix)
 	var religion: String = "catholic"  # state religion
@@ -237,6 +286,8 @@ var urban_start: Array = []  # [rural, urban] province counts at the start (dema
 var market_cache := {}
 var east := {}  # far trade state (Trade): Cape route, Indiamen, factories, market dominance
 var levant: Array = []  # market pids that lose value once the Cape route is open
+var prof = null  # optional {phase: usec} tick profiler (tools/perf.gd); null in the game, so _pmark is a no-op
+var _pt: int = 0
 
 
 func _init() -> void:
@@ -260,7 +311,7 @@ func set_difficulty(id: String) -> void:
 func _apply_difficulty() -> void:
 	var d: Dictionary = bal.get("difficulty", {}).get(difficulty, {})
 	for tag in nations:
-		nations[tag].bonus["difficulty"] = (d.get("player", {}) if tag == player else d.get("ai", {})).duplicate()
+		nations[tag].set_bonus("difficulty", (d.get("player", {}) if tag == player else d.get("ai", {})).duplicate())
 
 
 ## A difficulty number such as "ai_aggression" (1.0 when the level does not set it).
@@ -351,6 +402,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	Colonial.setup(self, data)
 	Progression.refresh(self)
 	event_defs = data.get("events", [])
+	_ev_index = {}
 	for e in event_defs:
 		event_by_id[e.id] = e
 	# estate crises are fired by the government module, not drawn from the yearly event pool
@@ -498,12 +550,36 @@ func is_allied(a: String, b: String) -> bool:
 	return nations[a].allies.has(b) or nations[a].overlord == b or nations[b].overlord == a
 
 
-func vassals_of(tag: String) -> Array:
-	var r := []
+var _links_ver := -1
+var _vassals := {}  # overlord -> [alive vassal tags in `order`]
+var _embargoed := {}  # tag -> [alive tags embargoing it, in `order`]
+
+
+## Rebuilds the vassal and embargo lookups when an overlord, alive flag or embargo list changed.
+func _sync_links() -> void:
+	if _links_ver == Nation.links_ver:
+		return
+	_links_ver = Nation.links_ver
+	_vassals = {}
+	_embargoed = {}
 	for t in order:
-		if nations[t].alive and nations[t].overlord == tag:
-			r.append(t)
-	return r
+		var n: Nation = nations[t]
+		if not n.alive:
+			continue
+		if n.overlord != "":
+			if not _vassals.has(n.overlord):
+				_vassals[n.overlord] = []
+			_vassals[n.overlord].append(t)
+		for e in n.embargoes:
+			if not _embargoed.has(e):
+				_embargoed[e] = []
+			if not _embargoed[e].has(t):
+				_embargoed[e].append(t)
+
+
+func vassals_of(tag: String) -> Array:
+	_sync_links()
+	return _vassals.get(tag, []).duplicate()
 
 
 ## The nation and its subjects (or its overlord and fellow subjects) that always fight together.
@@ -622,10 +698,7 @@ func can_cross(tag: String, a: int, b: int) -> bool:
 
 ## Total modifier `key` of a nation: permanent mods (ideas, events, missions) plus all derived bonus sources.
 func mod(n: Nation, key: String) -> float:
-	var v: float = float(n.mods.get(key, 0.0))
-	for src in n.bonus:
-		v += float(n.bonus[src].get(key, 0.0))
-	return v
+	return n.modv(key)
 
 
 func power_of(n: Nation, kind: String) -> float:
@@ -695,41 +768,154 @@ func log_msg(text: String, tags: Array = []) -> void:
 
 # ---------------------------------------------------------------- tick
 
+## One month of the game, all at once (tests, tools, headless sims).
 func tick() -> void:
-	if game_over:
+	if not tick_begin():
 		return
+	while tick_step():
+		pass
+
+
+var _steps: Array = []  # the running month as small steps (Callables), see tick_begin()/tick_step()
+var _step_i: int = 0
+
+
+## Starts a month without running it. The UI then calls tick_step() a few times per frame until it returns
+## false, so a long month never freezes a frame. The steps run in exactly the order of tick(). False when
+## the game is over (nothing to run).
+func tick_begin() -> bool:
+	if game_over:
+		return false
+	_steps = [_t_markets]
+	for tag in order:
+		_steps.append(_t_economy.bind(tag))
+	_steps += [_t_naval, _t_voyages, _t_colonial, _t_trade, _t_armies, _t_wars]
+	for tag in order:
+		_steps.append(_t_ai.bind(tag))
+	_steps.append(_t_player)
+	_steps.append(_t_month)
+	_step_i = 0
+	return true
+
+
+## True while a month started by tick_begin() still has steps to run (saving must wait for its end).
+func ticking() -> bool:
+	return _step_i < _steps.size()
+
+
+## Runs the next step of the running month. False once the month is complete.
+func tick_step() -> bool:
+	if _step_i >= _steps.size():
+		return false
+	var s: Callable = _steps[_step_i]
+	_step_i += 1
+	_pmark("")
+	s.call()
+	if _step_i >= _steps.size():
+		_steps = []
+		_step_i = 0
+		return false
+	return true
+
+
+## Runs whatever is left of the running month (before saving, loading or quitting).
+func finish_tick() -> void:
+	while tick_step():
+		pass
+
+
+func _t_markets() -> void:
 	Economy.update_markets(self)
-	for tag in order:
-		var n: Nation = nations[tag]
-		if n.alive:
-			_economy(n)
-			govt.estates_monthly(self, n)
+	_pmark("markets")
+
+
+func _t_economy(tag: String) -> void:
+	var n: Nation = nations[tag]
+	if n.alive:
+		_economy(n)
+		_pmark("economy")
+		govt.estates_monthly(self, n)
+		_pmark("estates")
+
+
+func _t_naval() -> void:
 	Naval.monthly(self)
+	_pmark("naval")
+
+
+func _t_voyages() -> void:
 	Naval.voyages_tick(self)
+	_pmark("voyages")
+
+
+func _t_colonial() -> void:
 	Colonial.monthly(self)
+	_pmark("colonial")
+
+
+func _t_trade() -> void:
 	Trade.monthly(self)
+	_pmark("trade")
+
+
+func _t_armies() -> void:
 	_armies_tick()
+	_pmark("armies")
+
+
+func _t_wars() -> void:
 	_wars_tick()
-	for tag in order:
-		var n: Nation = nations[tag]
-		if n.alive and tag != player:
-			ai.think(self, n)
-			if (month + tag.hash()) % 6 == 0:
-				Naval.ai_build(self, n)
+	_pmark("wars")
+
+
+func _t_ai(tag: String) -> void:
+	var n: Nation = nations[tag]
+	if n.alive and tag != player:
+		ai.think(self, n)
+		if (month + tag.hash()) % 6 == 0:
+			Naval.ai_build(self, n)
+			_pmark("ai.naval")
+
+
+func _t_player() -> void:
 	if player != "" and nations[player].alive:
 		ai.control_armies(self, player)
 		Economy.autobuild(self, nations[player])
 		for t in tree.queue_tick(self, nations[player]):
 			log_msg("🔬 Forschungsplan: %s erforscht." % t, [player])
 		_overflow_develop(nations[player])
+	_pmark("player")
+
+
+func _t_month() -> void:
 	month += 1
 	if month % 12 == 0:
-		_yearly()
+		for tag in order:
+			_steps.append(_yearly_nation.bind(tag))
+		_steps.append(_yearly_prices)
+		for tag in order:
+			_steps.append(_yearly_merchants.bind(tag))
+		_steps += [_yearly_systems, _yearly_systems2, _yearly_diplo]
+	_steps.append(_t_end)
+
+
+func _t_end() -> void:
+	_pmark("yearly")
 	if month >= int(bal.total_months) and not endless:
 		game_over = true
 		log_msg("Das Zeitalter endet. Das Spiel ist vorbei.")
 	elif player != "" and not nations[player].alive:
 		game_over = true
+
+
+## Profiler: adds the time since the last mark to prof[key] ("" only restarts the clock). No-op without prof.
+func _pmark(key: String) -> void:
+	if prof == null:
+		return
+	var t := Time.get_ticks_usec()
+	if key != "":
+		prof[key] = prof.get(key, 0) + t - _pt
+	_pt = t
 
 
 ## After the final scoring the player may play on without an end date (score and hall place stay as they were).
@@ -954,35 +1140,72 @@ func reduce_we(tag: String) -> String:
 
 func _yearly() -> void:
 	for tag in order:
-		var n: Nation = nations[tag]
-		if not n.alive:
-			continue
-		n.ruler.years -= 1
-		if n.ruler.years <= 0:
-			govt.succession(self, n)
-			var who: String = n.ruler_name if n.ruler_name != "" else "Ein neuer Herrscher"
-			var tr: String = govt.trait_name(n.gov.get("ruler_trait", ""))
-			log_msg("👑 %s besteigt den Thron (📜%d 🕊️%d ⚔️%d%s)." % [who, n.ruler.adm, n.ruler.dip, n.ruler.mil, ", " + tr if tr != "" else ""], [tag])
-			_marriage_succession(n)
-			if tag == emperor:
-				hre_election()
-		govt.yearly(self, n)
-		Ages.yearly(self, n)
-		_check_events(n)
-		if tag != player:
-			for m in available_missions(tag):
-				if mission_ready(tag, m):
-					complete_mission(tag, m.id)
-	Economy.yearly(self)
+		_yearly_nation(tag)
+	_yearly_prices()
+	for tag in order:
+		_yearly_merchants(tag)
+	_yearly_systems()
+	_yearly_systems2()
+	_yearly_diplo()
+
+
+func _yearly_nation(tag: String) -> void:
+	var n: Nation = nations[tag]
+	if not n.alive:
+		return
+	n.ruler.years -= 1
+	if n.ruler.years <= 0:
+		govt.succession(self, n)
+		var who: String = n.ruler_name if n.ruler_name != "" else "Ein neuer Herrscher"
+		var tr: String = govt.trait_name(n.gov.get("ruler_trait", ""))
+		log_msg("👑 %s besteigt den Thron (📜%d 🕊️%d ⚔️%d%s)." % [who, n.ruler.adm, n.ruler.dip, n.ruler.mil, ", " + tr if tr != "" else ""], [tag])
+		_marriage_succession(n)
+		if tag == emperor:
+			hre_election()
+	_pmark("y.ruler")
+	govt.yearly(self, n)
+	Ages.yearly(self, n)
+	_pmark("y.gov_ages")
+	_check_events(n)
+	_pmark("y.events")
+	if tag != player:
+		for m in available_missions(tag):
+			if mission_ready(tag, m):
+				complete_mission(tag, m.id)
+	_pmark("y.missions")
+
+
+## The world's yearly systems, in three steps so a stepped month (tick_step) never runs them all in one frame.
+func _yearly_prices() -> void:
+	Economy.yearly_prices(self)
+	_pmark("y.prices")
+
+
+func _yearly_merchants(tag: String) -> void:
+	Economy.yearly_merchants(self, tag)
+	_pmark("y.merchants")
+
+
+func _yearly_systems() -> void:
 	Urban.yearly(self)
+	_pmark("y.urban")
 	Progression.yearly(self)
+	_pmark("y.progression")
+
+
+func _yearly_systems2() -> void:
 	Religion.yearly(self)
 	Colonial.yearly(self)
 	Trade.yearly(self)
 	Formables.ai_yearly(self)
+	_pmark("y.systems2")
+
+
+func _yearly_diplo() -> void:
 	_coalitions_yearly()
 	_liberty_yearly()
 	_record_history()
+	_pmark("y.diplo")
 	if emperor == "" or not nations[emperor].alive or nations[emperor].overlord != "":
 		hre_election()
 	govt.empire_yearly(self)
@@ -2443,6 +2666,7 @@ func set_embargo(tag: String, target: String) -> String:
 		return r
 	nations[tag].dip -= float(bal.embargo_cost)
 	nations[tag].embargoes.append(target)
+	Nation.links_ver += 1
 	add_rel(tag, target, -float(bal.embargo_rel))
 	log_msg("🚫 %s verhängt ein Handelsembargo gegen %s." % [nations[tag].name, nations[target].name], [tag, target])
 	return ""
@@ -2450,15 +2674,13 @@ func set_embargo(tag: String, target: String) -> String:
 
 func end_embargo(tag: String, target: String) -> void:
 	nations[tag].embargoes.erase(target)
+	Nation.links_ver += 1
 
 
 ## Nations currently embargoing `tag`.
 func embargoed_by(tag: String) -> Array:
-	var r := []
-	for t in order:
-		if nations[t].alive and nations[t].embargoes.has(tag):
-			r.append(t)
-	return r
+	_sync_links()
+	return _embargoed.get(tag, []).duplicate()
 
 
 func _rivals_monthly(n: Nation) -> void:
@@ -2468,17 +2690,18 @@ func _rivals_monthly(n: Nation) -> void:
 	for t in n.embargoes.duplicate():
 		if not n.rivals.has(t):
 			n.embargoes.erase(t)
+			Nation.links_ver += 1
 	var hit: int = embargoed_by(n.tag).size()
 	if hit > 0 or not n.embargoes.is_empty():
-		n.bonus["embargo"] = {"trade": -float(bal.embargo_trade) * hit - float(bal.embargo_own) * n.embargoes.size()}
+		n.set_bonus("embargo", {"trade": -float(bal.embargo_trade) * hit - float(bal.embargo_own) * n.embargoes.size()})
 	else:
-		n.bonus.erase("embargo")
+		n.clear_bonus("embargo")
 	n.power_proj = maxf(0.0, n.power_proj - float(bal.pp_decay_per_year) / 12.0)
 	if n.power_proj > 0.0:
 		var f: float = n.power_proj / float(bal.pp_max)
-		n.bonus["rivals"] = {"mil": f * float(bal.pp_mil), "prestige": f * float(bal.pp_prestige), "ae_decay": f * float(bal.pp_ae_decay)}
+		n.set_bonus("rivals", {"mil": f * float(bal.pp_mil), "prestige": f * float(bal.pp_prestige), "ae_decay": f * float(bal.pp_ae_decay)})
 	else:
-		n.bonus.erase("rivals")
+		n.clear_bonus("rivals")
 
 
 # ---- royal marriages
@@ -3041,16 +3264,35 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 	return true
 
 
+var _ev_index := {}  # tag -> [[event, year_min, year_max, flag key]] of the events it may draw (_check_events)
+
+
+## Random events a realm may draw, in event_defs order: generic ones and its own, never manual ones.
+func _events_for(tag: String) -> Array:
+	if _ev_index.has(tag):
+		return _ev_index[tag]
+	var r := []
+	for e in event_defs:
+		var t: String = e.get("tag", "*")
+		if (t != "*" and t != tag) or e.get("manual", false):
+			continue
+		var tr: Dictionary = e.get("trigger", {})
+		r.append([e, int(tr.get("year_min", -100000)), int(tr.get("year_max", 100000)), "ev_" + e.id])
+	_ev_index[tag] = r
+	return r
+
+
 func _check_events(n: Nation) -> void:
 	if n.tag == player and pending_events.size() > 2:
 		return
 	var eligible := []
-	for e in event_defs:
-		var t: String = e.get("tag", "*")
-		if (t != "*" and t != n.tag) or e.get("manual", false):
-			continue
-		if n.flags.has("ev_" + e.id):
-			if e.get("once", true) or month - int(n.flags["ev_" + e.id]) < 120:
+	var y := year()
+	for c in _events_for(n.tag):
+		if y < c[1] or y > c[2]:
+			continue  # year bounds checked here already, the cheapest and most common trigger
+		var e: Dictionary = c[0]
+		if n.flags.has(c[3]):
+			if e.get("once", true) or month - int(n.flags[c[3]]) < 120:
 				continue
 		if not check_conditions(n.tag, e.get("trigger", {})):
 			continue
@@ -3350,6 +3592,7 @@ func from_dict(d: Dictionary) -> void:
 		n.embargoes = []
 		for t in e.get("embargoes", []):
 			n.embargoes.append(str(t))
+		Nation.links_ver += 1
 		n.loans = []
 		for l in e.get("loans", []):
 			n.loans.append(float(l))
@@ -3388,7 +3631,7 @@ func from_dict(d: Dictionary) -> void:
 			nations[tag].ships = roundf(Naval.limit(self, tag) * float(bal.navy_start_share))
 	Naval.refresh(self)
 	for tag in order:
-		nations[tag].bonus["empire"] = govt.empire_effects(self, tag) if nations[tag].alive else {}
+		nations[tag].set_bonus("empire", govt.empire_effects(self, tag) if nations[tag].alive else {})
 		_update_cached(nations[tag])
 	if d.has("goods_leader"):
 		goods_leader = {}

@@ -1,82 +1,110 @@
 extends SceneTree
-## Rough per-phase timing of the monthly tick (all-AI game):
-## godot --headless --path . -s res://tools/perf.gd -- --years 150
+## Per-phase timing of the real monthly tick (Game.tick with the built-in profiler), plus memory,
+## save size and save/load time. Prints one block per interval because the cost grows over the game.
+##   godot --headless --path . -s res://tools/perf.gd -- --years 60 [--every 20] [--seed 7] [--player FRA] [--json out.json]
+## Keep runs short in CI (rule: no 200-year sims there); 40-60 years is enough for a comparison.
 
 const Data = preload("res://scripts/core/data.gd")
 const Game = preload("res://scripts/core/game.gd")
 
 
+func _arg(args: PackedStringArray, key: String, def: String) -> String:
+	var i := args.find(key)
+	return args[i + 1] if i >= 0 and i + 1 < args.size() else def
+
+
 func _init() -> void:
-	var years := 150
 	var args := OS.get_cmdline_user_args()
-	if args.size() >= 2 and args[0] == "--years":
-		years = int(args[1])
+	var years := int(_arg(args, "--years", "60"))
+	var every := int(_arg(args, "--every", "20"))
+	var seed_v := int(_arg(args, "--seed", "7"))
+	var player := _arg(args, "--player", "FRA")
+	var out := _arg(args, "--json", "")
+	var t0 := Time.get_ticks_usec()
+	var data: Dictionary = Data.load_all()
+	var t1 := Time.get_ticks_usec()
 	var g = Game.new()
-	g.setup(Data.load_all(), 7, "FRA")
-	var t := {"markets": 0, "economy": 0, "armies": 0, "wars": 0, "ai": 0, "player_ai": 0, "yearly": 0}
-	var sub := {"gov": 0, "power": 0, "gold": 0, "diplo": 0, "armies": 0}
-	for m in years * 12:
-		var a := Time.get_ticks_usec()
-		g.Economy.update_markets(g)
-		g.Economy.check_pacts(g)
-		var b := Time.get_ticks_usec()
+	g.setup(data, seed_v, player)
+	var t2 := Time.get_ticks_usec()
+	print("provinces %d  nations %d  load_data %.0f ms  setup %.0f ms" % [g.provinces.size(), g.nations.size(),
+			(t1 - t0) / 1000.0, (t2 - t1) / 1000.0])
+	var report := {"provinces": g.provinces.size(), "nations": g.nations.size(), "intervals": []}
+	var total := {}
+	var months := 0
+	for block in range(0, years, every):
+		if "prof" in g:
+			g.prof = {}
+		var n := 0
+		var w0 := Time.get_ticks_usec()
+		var worst := 0
+		var worst_step := 0
+		var worst_step_name := ""
+		for m in mini(every, years - block) * 12:
+			var a := Time.get_ticks_usec()
+			if "_steps" in g:
+				# the stepped month of the UI: also find the longest single step (one frame's worth at most)
+				if g.tick_begin():
+					while true:
+						var nxt: Callable = g._steps[g._step_i]
+						var sa := Time.get_ticks_usec()
+						var more: bool = g.tick_step()
+						var sd := Time.get_ticks_usec() - sa
+						if sd > worst_step:
+							worst_step = sd
+							worst_step_name = nxt.get_method()
+						if not more:
+							break
+			else:
+				g.tick()
+			worst = maxi(worst, Time.get_ticks_usec() - a)
+			n += 1
+		var wall := Time.get_ticks_usec() - w0
+		months += n
+		var alive := 0
 		for tag in g.order:
 			if g.nations[tag].alive:
-				g._economy(g.nations[tag])
-		var c := Time.get_ticks_usec()
-		g._armies_tick()
-		var d := Time.get_ticks_usec()
-		g._wars_tick()
-		var e := Time.get_ticks_usec()
-		for tag in g.order:
-			var nn = g.nations[tag]
-			if not nn.alive or tag == g.player:
-				continue
-			var q0 := Time.get_ticks_usec()
-			g.govt.ai_think(g, nn)
-			var q1 := Time.get_ticks_usec()
-			g.ai._spend_power(g, nn)
-			var q2 := Time.get_ticks_usec()
-			g.ai._spend_gold(g, nn)
-			var q3 := Time.get_ticks_usec()
-			var slot: int = (g.month + nn.capital) % 6
-			if slot == 0:
-				g.ai._diplomacy(g, nn)
-			elif slot == 3 and not g.is_at_war(nn.tag):
-				g.ai._consider_war(g, nn)
-			if (g.month + nn.capital) % 3 == 0:
-				g.ai._consider_peace(g, nn)
-			var q4 := Time.get_ticks_usec()
-			g.ai.control_armies(g, nn.tag)
-			var q5 := Time.get_ticks_usec()
-			sub.gov += q1 - q0
-			sub.power += q2 - q1
-			sub.gold += q3 - q2
-			sub.diplo += q4 - q3
-			sub.armies += q5 - q4
-		var f := Time.get_ticks_usec()
-		if g.nations[g.player].alive:
-			g.ai.control_armies(g, g.player)
-			g.Economy.autobuild(g, g.nations[g.player])
-		var h := Time.get_ticks_usec()
-		g.month += 1
-		if g.month % 12 == 0:
-			g._yearly()
-		var i := Time.get_ticks_usec()
-		t.markets += b - a
-		t.economy += c - b
-		t.armies += d - c
-		t.wars += e - d
-		t.ai += f - e
-		t.player_ai += h - f
-		t.yearly += i - h
-	var n := years * 12
-	for k in sub:
-		print("  ai.%-8s %7.2f ms/tick" % [k, sub[k] / 1000.0 / n])
-	var total := 0
-	for k in t:
-		total += t[k]
-	for k in t:
-		print("%-10s %7.2f ms/tick" % [k, t[k] / 1000.0 / n])
-	print("total      %7.2f ms/tick" % [total / 1000.0 / n])
+				alive += 1
+		print("\n== %d-%d  (%d alive, %d armies, %d wars)  %.2f ms/tick  worst tick %.1f ms" % [
+				g.year() - mini(every, years - block), g.year(), alive, g.armies.size(), g.wars.size(),
+				wall / 1000.0 / n, worst / 1000.0])
+		if worst_step > 0:
+			print("  longest single step: %s %.1f ms" % [worst_step_name, worst_step / 1000.0])
+		var pr: Dictionary = g.prof if "prof" in g else {}
+		var keys: Array = pr.keys()
+		keys.sort_custom(func(x, y): return pr[x] > pr[y])
+		var iv := {"year": g.year(), "ms_tick": wall / 1000.0 / n, "worst_ms": worst / 1000.0, "alive": alive,
+				"armies": g.armies.size(), "phases": {}}
+		for k in keys:
+			var ms: float = pr[k] / 1000.0 / n
+			total[k] = total.get(k, 0) + pr[k]
+			iv.phases[k] = ms
+			if ms >= 0.05:
+				print("  %-12s %7.2f ms/tick  %4.1f %%" % [k, ms, 100.0 * pr[k] / wall])
+		report.intervals.append(iv)
+		if g.game_over:
+			break
+	if "prof" in g:
+		g.prof = null
+	# save / load
+	var s0 := Time.get_ticks_usec()
+	var d: Dictionary = g.to_dict()
+	var s1 := Time.get_ticks_usec()
+	var txt := JSON.stringify(d)
+	var s2 := Time.get_ticks_usec()
+	var parsed = JSON.parse_string(txt)
+	var g2 = Game.new()
+	g2.setup(Data.load_all(), seed_v, player)
+	var s3 := Time.get_ticks_usec()
+	g2.from_dict(parsed)
+	var s4 := Time.get_ticks_usec()
+	print("\nsave: to_dict %.0f ms, stringify %.0f ms, size %.2f MB (%.2f MB gzip)  load: from_dict %.0f ms" % [
+			(s1 - s0) / 1000.0, (s2 - s1) / 1000.0, txt.length() / 1048576.0,
+			txt.to_utf8_buffer().compress(FileAccess.COMPRESSION_GZIP).size() / 1048576.0, (s4 - s3) / 1000.0])
+	print("memory: static %.1f MB (peak %.1f MB), objects %d" % [OS.get_static_memory_usage() / 1048576.0,
+			OS.get_static_memory_peak_usage() / 1048576.0, Performance.get_monitor(Performance.OBJECT_COUNT)])
+	report["save_mb"] = txt.length() / 1048576.0
+	report["mem_mb"] = OS.get_static_memory_usage() / 1048576.0
+	if out != "":
+		var f := FileAccess.open(out, FileAccess.WRITE)
+		f.store_string(JSON.stringify(report, "\t"))
 	quit()

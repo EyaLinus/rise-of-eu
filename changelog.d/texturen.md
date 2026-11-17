@@ -1,0 +1,1 @@
+- Weniger Grafikspeicher: die Kartentexturen sind jetzt GPU-komprimiert und mit Mipmaps (95 MB → 31 MB), herausgezoomt flimmert das Terrain nicht mehr. Kann Abstürze auf Handys mit wenig Grafikspeicher verhindern.

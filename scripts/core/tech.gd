@@ -357,7 +357,7 @@ func refresh(n) -> void:
 		var t: Dictionary = by_id.get(id, {})
 		for k in t.get("effects", {}):
 			b[k] = b.get(k, 0.0) + float(t.effects[k])
-	n.bonus["tech"] = b
+	n.set_bonus("tech", b)
 
 
 func to_save(n) -> Dictionary:

@@ -276,7 +276,7 @@ static func refresh_building_bonus(g, n) -> void:
 			var nat: Dictionary = g.buildings_def[bid].get("nation", {})
 			for k in nat:
 				b[k] = b.get(k, 0.0) + float(nat[k]) * int(p.buildings[bid])
-	n.bonus["buildings"] = b
+	n.set_bonus("buildings", b)
 
 
 # ---------------------------------------------------------------- production and tax
@@ -344,6 +344,13 @@ static func supply(g) -> Dictionary:
 ## Yearly: prices follow world supply against slowly growing demand; the biggest producer of a good
 ## (at least `goods_leader_share` of world output) gets that good's bonus.
 static func yearly(g) -> void:
+	yearly_prices(g)
+	for tag in g.order:
+		yearly_merchants(g, tag)
+
+
+## Yearly price update and goods leaders (first part of yearly()).
+static func yearly_prices(g) -> void:
 	_shocks_yearly(g)
 	var s := supply(g)
 	var years: float = g.year() - int(g.bal.start_year)
@@ -355,10 +362,13 @@ static func yearly(g) -> void:
 		var shock: float = float(g.shocks[k].mult) if g.shocks.has(k) else 1.0
 		g.prices[k] = snappedf(float(g.goods_def[k].price) * clampf(ratio, float(g.bal.price_min), float(g.bal.price_max)) * shock, 0.001)
 	refresh_goods_leaders(g)
-	for tag in g.order:
-		var n = g.nations[tag]
-		if n.alive and (n.merchant_auto or tag != g.player):
-			auto_merchants(g, n)
+
+
+## Yearly merchant moves of one realm (second part of yearly(), run for every realm in g.order).
+static func yearly_merchants(g, tag: String) -> void:
+	var n = g.nations[tag]
+	if n.alive and (n.merchant_auto or tag != g.player):
+		auto_merchants(g, n)
 
 
 ## How much richer the world is than at the start, as a demand factor: total output of all goods now
@@ -450,7 +460,7 @@ static func apply_goods_leaders(g) -> void:
 				var gb: Dictionary = g.goods_def[k].get("bonus", {})
 				for m in gb:
 					b[m] = b.get(m, 0.0) + float(gb[m])
-		g.nations[tag].bonus["goods"] = b
+		g.nations[tag].set_bonus("goods", b)
 
 
 # ---------------------------------------------------------------- trade
@@ -612,7 +622,7 @@ static func cancel_pact(g, tag: String, other: String) -> void:
 
 
 static func refresh_pact_bonus(g, n) -> void:
-	n.bonus["pacts"] = {"trade": float(g.bal.trade_pact_bonus) * n.trade_pacts.size()}
+	n.set_bonus("pacts", {"trade": float(g.bal.trade_pact_bonus) * n.trade_pacts.size()})
 
 
 ## Monthly: war or death ends agreements.
