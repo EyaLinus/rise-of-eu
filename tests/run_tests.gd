@@ -140,6 +140,12 @@ func test_map_connected() -> void:
 	var g = new_game()
 	var Col = load("res://scripts/core/colonial.gd")
 	check(g.nw_first > 200 and g.nw_first < g.wa_first and g.wa_first < g.provinces.size(), "the map has a New World (%d) and a West African part (%d)" % [g.nw_first, g.wa_first])
+	# the Middle East and the Horn of Africa come after the overseas block and are Old World again
+	check(g.nw_end > g.wa_first and g.nw_end < g.provinces.size(), "the map has an eastern Old World block (%d)" % g.nw_end)
+	for k in ["baghdad", "isfahan", "mecca", "amhara", "harar"]:
+		var pid: int = g.key_to_pid[k]
+		check(Col.region(g, pid) == "old" and not Col.is_new_world(g, pid) and Col.knows(g, "FRA", pid), "%s is known Old World land" % k)
+	check(Col.region(g, g.nw_end - 1) == "africa", "the overseas block ends with West Africa")
 	var seen := {}
 	for start in [0, g.nw_first]:
 		seen[start] = true

@@ -29,7 +29,7 @@ SEAS = [
     ("baltic", "Ostsee", (19.0, 56.5), [(19.0, 56.5), (14.0, 54.8), (20.0, 59.0), (25.0, 59.6), (21.0, 62.0), (11.2, 56.5), (23.0, 57.5)]),
     ("west_med", "Westliches Mittelmeer", (5.5, 39.5), [(5.5, 39.5), (2.0, 37.5), (-2.5, 36.2), (5.0, 42.5), (10.0, 39.5), (12.0, 40.5), (9.5, 43.5), (11.5, 37.5)]),
     ("adriatic", "Adria", (15.5, 42.8), [(15.5, 42.8), (13.0, 44.8), (18.0, 41.5)]),
-    ("east_med", "Östliches Mittelmeer", (24.0, 34.0), [(18.5, 37.0), (24.0, 34.0), (30.0, 33.5), (33.5, 34.5), (19.0, 33.0), (15.0, 35.0), (35.0, 36.2)]),
+    ("east_med", "Östliches Mittelmeer", (24.0, 34.0), [(18.5, 37.0), (24.0, 34.0), (30.0, 33.5), (33.5, 34.5), (19.0, 33.0), (15.0, 35.0), (35.0, 36.2), (32.4, 31.7), (34.2, 32.0)]),
     ("aegean", "Ägäis", (25.0, 38.5), [(25.0, 38.5), (25.5, 40.2), (28.0, 40.7), (26.5, 36.8)]),
     ("caspian", "Kaspisches Meer", (50.5, 42.0), [(50.5, 42.0), (51.0, 39.5), (50.0, 45.0)]),
     ("black", "Schwarzes Meer", (34.0, 43.3), [(34.0, 43.3), (30.5, 43.0), (38.0, 42.5), (35.5, 45.5), (40.5, 42.0), (31.5, 45.5)]),
@@ -38,6 +38,11 @@ SEAS = [
     # West Africa: the coast down to Sierra Leone is known from the start, the Gulf of Guinea is not
     ("west_africa", "Westafrikanische Küste", (-19.0, 17.0), [(-18.6, 21.5), (-18.2, 17.5), (-17.9, 13.5), (-16.8, 10.6), (-14.6, 8.2), (-15.5, 25.0)]),
     ("guinea", "Golf von Guinea", (-2.0, 4.6), [(-11.0, 5.2), (-7.5, 4.4), (-3.0, 4.4), (1.0, 5.3), (4.0, 4.6), (7.5, 4.2)]),
+    # the Middle East: known from the start (Old World); the Persian Gulf reaches the Arabian Sea through Hormuz, east of the map
+    ("red_sea", "Rotes Meer", (38.4, 20.6), [(38.4, 20.6), (35.6, 25.5), (40.4, 17.6), (42.2, 14.8), (33.0, 28.6), (34.6, 28.4), (36.6, 23.0)]),
+    ("aden", "Golf von Aden", (48.0, 12.6), [(46.0, 12.4), (48.5, 13.0), (51.0, 13.4), (44.0, 12.0)]),
+    ("arabian", "Arabisches Meer", (53.5, 11.0), [(53.5, 11.0), (53.0, 8.0), (50.0, 6.0), (55.0, 15.5), (48.5, 4.5), (55.0, 5.0)]),
+    ("persian_gulf", "Persischer Golf", (51.4, 27.2), [(51.4, 27.2), (49.6, 28.6), (52.4, 25.6), (54.6, 25.9), (50.6, 26.4), (48.8, 29.6)]),
     ("labrador", "Labradorsee", (-50.0, 53.0), [(-50.0, 53.0), (-50.0, 47.0), (-54.0, 57.0), (-58.0, 59.5), (-52.0, 61.0), (-47.0, 50.0)]),
     ("st_lawrence", "Sankt-Lorenz-Golf", (-62.0, 48.4), [(-62.0, 48.4), (-66.0, 49.6), (-68.8, 48.4), (-61.0, 47.0), (-64.0, 47.0)]),
     ("east_coast", "Neuenglandküste", (-69.0, 41.0), [(-69.0, 41.0), (-66.0, 43.5), (-72.0, 39.6), (-74.2, 37.0), (-75.0, 34.4), (-78.4, 31.4), (-62.0, 43.0)]),
@@ -48,6 +53,10 @@ SEAS = [
     ("hudson", "Hudsonbucht", (-86.0, 59.0), [(-86.0, 59.0), (-80.0, 56.5), (-80.0, 53.0), (-91.0, 60.0), (-71.0, 62.0), (-67.5, 59.0), (-84.0, 63.5)]),
     ("lakes", "Große Seen", (-85.0, 45.0), [(-87.5, 47.6), (-87.0, 43.5), (-82.4, 44.6), (-81.2, 42.2), (-77.8, 43.6), (-97.5, 52.5)]),
 ]
+
+
+# seas joined beyond the map edge
+EXTRA_ADJ = [("persian_gulf", "arabian")]
 
 
 def main():
@@ -112,12 +121,15 @@ def main():
     for a, b in ((label[:, :-1], label[:, 1:]), (label[:-1, :], label[1:, :])):
         mask = (a >= 0) & (b >= 0) & (a != b)
         for x, y in set(zip(a[mask].tolist(), b[mask].tolist())):
-            if {SEAS[x][0], SEAS[y][0]} in ({"caribbean", "pacific"}, {"guinea", "east_med"}):  # touch only at the map's bottom edge
+            if {SEAS[x][0], SEAS[y][0]} in ({"caribbean", "pacific"}, {"guinea", "east_med"}, {"red_sea", "east_med"}):  # map bottom edge; Suez lagoons
                 continue
             if "west_africa" in (SEAS[x][0], SEAS[y][0]) and {SEAS[x][0], SEAS[y][0]} & {"caribbean", "sargasso"}:
                 continue  # the squeezed Atlantic puts them side by side; the way west is the open ocean
             adj[SEAS[x][0]].add(SEAS[y][0])
             adj[SEAS[y][0]].add(SEAS[x][0])
+    for a, b in EXTRA_ADJ:
+        adj[a].add(b)
+        adj[b].add(a)
     for sid, name, lbl, _ in SEAS:
         out.append({"id": sid, "name": name, "center": [round(v, 1) for v in proj(*lbl)], "provinces": sorted(members[sid]),
                     "adj": sorted(adj[sid])})

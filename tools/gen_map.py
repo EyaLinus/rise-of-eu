@@ -397,6 +397,61 @@ PROVINCES = [
     ("mossi", "Mossi", -1.5, 12.2, "NAT", 4),
     ("gao", "Gao", 0.0, 16.3, "SON", 7, 2.4),
     ("dendi", "Dendi", 3.2, 12.4, "SON", 3),
+    # --- the Middle East and the Horn of Africa (appended after West Africa so every older id stays stable;
+    # "east" in map.json: Old World, known from the start, not colonial) ---
+    # Mesopotamia
+    ("baghdad", "Bagdad", 44.4, 33.3, "QAR", 10, 2.2),
+    ("basra", "Basra", 47.6, 30.6, "QAR", 6, 2.0),
+    ("kirkuk", "Kirkuk", 44.4, 35.5, "QAR", 4, 2.0),
+    ("raqqa", "Raqqa", 39.0, 35.95, "MAM", 3, 2.0),
+    # Persia
+    ("ardabil", "Ardabil", 48.3, 38.25, "SAF", 5),
+    ("gilan", "Gilan", 49.6, 37.2, "MAZ", 5),
+    ("mazandaran", "Masandaran", 52.6, 36.5, "MAZ", 5),
+    ("qazvin", "Qazvin", 50.0, 36.27, "QAR", 6),
+    ("hamadan", "Hamadan", 48.5, 34.8, "QAR", 6),
+    ("kermanshah", "Kermanschah", 47.06, 34.3, "QAR", 4),
+    ("luristan", "Luristan", 48.3, 33.4, "QAR", 3),
+    ("khuzestan", "Chusistan", 48.7, 31.3, "QAR", 5, 2.0),
+    ("rey", "Rey", 51.4, 35.6, "TIM", 6, 2.2),
+    ("isfahan", "Isfahan", 51.67, 32.65, "TIM", 10, 2.2),
+    ("yazd", "Yazd", 54.36, 31.9, "TIM", 5, 2.2),
+    ("fars", "Fars", 52.53, 29.6, "TIM", 9, 2.2),
+    ("bushehr", "Buschehr", 50.84, 28.97, "TIM", 3, 1.8),
+    ("laristan", "Laristan", 53.1, 28.3, "HOR", 3, 1.8),
+    ("hormuz", "Hormus", 54.7, 27.0, "HOR", 7, 1.8),
+    # Arabia
+    ("hasa", "al-Hasa", 49.6, 25.4, "HOR", 4, 2.2),
+    ("sinai", "Sinai", 33.8, 29.3, "MAM", 1, 1.8),
+    ("tabuk", "Tabuk", 36.6, 28.4, "MAM", 2, 2.2),
+    ("medina", "Medina", 39.6, 24.47, "HJZ", 5, 2.2),
+    ("mecca", "Mekka", 39.83, 21.42, "HJZ", 8, 2.2),
+    ("asir", "Asir", 42.5, 18.2, "HJZ", 3, 2.2),
+    ("tihama", "Tihama", 43.3, 14.6, "YEM", 5, 2.0),
+    ("sanaa", "Sanaa", 44.2, 15.35, "YEM", 7, 1.8),
+    ("aden", "Aden", 45.0, 12.9, "YEM", 7, 1.8),
+    ("hadramaut", "Hadramaut", 48.8, 15.9, "YEM", 3, 2.6),
+    ("dhofar", "Dhofar", 53.8, 17.2, "YEM", 2, 2.4),
+    # the Nile and the Red Sea
+    ("aswan", "Assuan", 32.9, 24.1, "MAM", 3, 2.0),
+    ("suakin", "Suakin", 37.2, 19.1, "MAM", 3, 2.0),
+    ("dongola", "Dongola", 30.5, 19.2, "ALO", 2, 2.4),
+    ("alwa", "Alwa", 32.6, 15.6, "ALO", 4, 2.2),
+    ("sennar", "Sennar", 33.6, 13.0, "ALO", 4, 2.2),
+    # Ethiopia
+    ("medri_bahri", "Medri Bahri", 38.9, 15.4, "ETH", 4, 2.0),
+    ("tigray", "Tigray", 39.0, 13.8, "ETH", 6, 1.8),
+    ("begemder", "Begemder", 37.6, 12.4, "ETH", 6, 1.8),
+    ("gojjam", "Gojjam", 37.3, 10.6, "ETH", 5, 1.8),
+    ("amhara", "Amhara", 39.4, 11.2, "ETH", 7, 1.8),
+    ("shewa", "Schoa", 38.8, 9.0, "ETH", 6, 1.8),
+    ("damot", "Damot", 36.6, 8.2, "ETH", 3, 2.0),
+    # Adal and the Somali coast
+    ("danakil", "Danakil", 41.2, 13.0, "ADA", 2, 2.0),
+    ("harar", "Harar", 42.1, 9.3, "ADA", 7, 1.8),
+    ("zeila", "Zeila", 43.4, 11.2, "ADA", 5, 1.8),
+    ("berbera", "Berbera", 45.0, 10.2, "ADA", 3, 2.0),
+    ("ogaden", "Ogaden", 44.0, 7.4, "ADA", 2, 2.6),
 ]
 
 # Extra sea/strait connections (province keys)
@@ -414,18 +469,23 @@ STRAITS = [
     ("havana", "florida"), ("havana", "yucatan"), ("oriente", "ayiti"), ("oriente", "jamaica"),
     ("quisqueya", "boriken"), ("boriken", "antilles"), ("antilles", "trinidad"), ("lucayas", "florida"),
     ("lucayas", "camaguey"), ("newfoundland", "labrador"), ("newfoundland", "mikmaq"),
+    # the Red Sea, the Gulf of Aden and the Persian Gulf
+    ("aden", "zeila"), ("tihama", "danakil"), ("mecca", "suakin"), ("hasa", "bushehr"),
 ]
 
 # land borders the coarse polygons miss (isthmus, small gaps): adjacency only, not sea crossings
 LAND_LINKS = [("constantinople", "edirne"), ("morea", "thessaly"), ("crimea", "zaporozhia"),
               # caravan routes across the Sahara (slow: long march distance)
-              ("sous", "taghaza"), ("taghaza", "timbuktu"), ("taghaza", "walata")]
+              ("sous", "taghaza"), ("taghaza", "timbuktu"), ("taghaza", "walata"),
+              # the Hejaz road and the Nile (desert gaps the radius clip leaves open)
+              ("tabuk", "medina"), ("basra", "hasa"), ("aswan", "upper_egypt"), ("aswan", "dongola"), ("dongola", "alwa")]
 
 sys.path.insert(0, os.path.dirname(__file__))
 from mapproj import LAT0, MIN_LAT, NEW_WORLD, NW_MIN_LAT, OLD_WORLD, SCALE, proj, size  # noqa: E402
 
 FIRST_NEW_WORLD = "tenochtitlan"  # provinces from here on are overseas/colonial ("nw" in map.json)
 FIRST_AFRICA = "arguin"  # ... and from here on they are West Africa ("wa" in map.json, also "nw")
+FIRST_EAST = "baghdad"  # ... up to here: the Middle East and the Horn are Old World again ("east" in map.json)
 # big lakes cut out of the New World land (Natural Earth lakes); Europe keeps its old shapes
 LAKES = {"Lake Superior", "Lake Michigan", "Lake Huron", "Lake Erie", "Lake Ontario", "Lake Winnipeg", "Lago de Nicaragua"}
 
@@ -457,6 +517,8 @@ def main(land_path, lakes_path):
                 if wi == 1:
                     part = part.difference(lakes)
                 land_parts.append(project_geom(part))
+    # Natural Earth cuts the Suez Canal (1869) through the isthmus: close it again
+    land_parts.append(project_geom(box(32.1, 29.94, 32.7, 31.32)))
     land = unary_union(land_parts).buffer(0)
     full_land = land
 
@@ -472,6 +534,7 @@ def main(land_path, lakes_path):
 
     nw_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_NEW_WORLD)
     wa_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_AFRICA)
+    east_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_EAST)
     max_r = 3.2 * SCALE
     raw = []
     for i, p in enumerate(PROVINCES):
@@ -530,10 +593,12 @@ def main(land_path, lakes_path):
             "center": [round(pts[i][0], 1), round(pts[i][1], 1)],
             "polys": [[[round(x, 1), round(y, 1)] for x, y in list(q.exterior.coords)[:-1]] for q in polys],
         }
-        if i >= nw_first:
+        if east_first > i >= nw_first:
             d["nw"] = True
-        if i >= wa_first:
+        if east_first > i >= wa_first:
             d["wa"] = True
+        if i >= east_first:
+            d["east"] = True
         provinces.append(d)
 
     key_to_id = {p[0]: i for i, p in enumerate(PROVINCES)}

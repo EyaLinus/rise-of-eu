@@ -1041,7 +1041,7 @@ func _draw_voyages() -> void:
 ## (at every zoom level, so the race for the New World and Africa can be followed on the map).
 func _draw_colonies() -> void:
 	var fs := 12 if zoom < 0.8 else 14
-	for pid in range(game.nw_first, game.provinces.size()):
+	for pid in range(game.nw_first, game.nw_end):
 		var p = game.provinces[pid]
 		if p.colonist == "" or not known(pid):
 			continue

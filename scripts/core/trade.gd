@@ -5,7 +5,7 @@ extends RefCounted
 ## East India trade: an Atlantic realm with enough diplomatic technology sends a voyage around the
 ## Cape of Good Hope. Whoever comes back first opens the spice route. From then on every realm that
 ## knows the route sends Indiamen (bought with gold, small upkeep) and founds trading posts (factories)
-## at Sofala, Hormuz, Goa ... Each realm's share of the route's value = its power (ships + factories)
+## at Sofala, Muscat, Goa ... Each realm's share of the route's value = its power (ships + factories)
 ## over everyone's power. The route grows richer every year, and once it is open the Levant loses:
 ## Venice, Alexandria and Constantinople trade less. Rivals at war raid each other's ships and storm
 ## each other's factories.
@@ -19,7 +19,7 @@ extends RefCounted
 ## Off-map trading posts on the spice route. power = route power for the holder, year = earliest year.
 const FACTORIES := [
 	{"id": "sofala", "name": "Sofala", "emoji": "🪙", "power": 3.0, "year": 1490, "desc": "Gold und Elfenbein der ostafrikanischen Küste."},
-	{"id": "hormuz", "name": "Hormus", "emoji": "🏜️", "power": 4.0, "year": 1500, "desc": "Das Tor zum Persischen Golf."},
+	{"id": "muscat", "name": "Maskat", "emoji": "🏜️", "power": 4.0, "year": 1500, "desc": "Hafen am Golf von Oman, vor den Toren von Hormus."},
 	{"id": "goa", "name": "Goa", "emoji": "🏛️", "power": 6.0, "year": 1500, "desc": "Hauptstadt des Gewürzhandels an der Malabarküste."},
 	{"id": "calicut", "name": "Kalikut", "emoji": "🫘", "power": 5.0, "year": 1498, "desc": "Pfeffer, Ingwer und Zimt in Hülle und Fülle."},
 	{"id": "ceylon", "name": "Ceylon", "emoji": "🌲", "power": 4.0, "year": 1505, "desc": "Die Zimtinsel."},
@@ -28,7 +28,7 @@ const FACTORIES := [
 	{"id": "macau", "name": "Macau", "emoji": "🧵", "power": 5.0, "year": 1557, "desc": "Seide und Porzellan aus China."},
 ]
 ## Market centers that lose value once the Cape route is open (spices bypass the Levant).
-const LEVANT := ["venice", "alexandria", "constantinople", "genoa"]
+const LEVANT := ["venice", "alexandria", "constantinople", "genoa", "aden"]
 
 
 static func setup(g) -> void:
@@ -266,7 +266,7 @@ static func take_factory(g, tag: String, id: String) -> String:
 # ---------------------------------------------------------------- overseas markets
 
 static func is_overseas_market(g, m: int) -> bool:
-	return m >= g.nw_first
+	return g.Colonial.is_new_world(g, m)
 
 
 ## "" if `tag` may trade in market `m`. New World markets need knowledge and a way across the ocean.
@@ -282,7 +282,7 @@ static func market_block_reason(g, tag: String, m: int) -> String:
 
 ## Value factor of a province's goods in its market: colonial goods are worth more in Europe.
 static func value_mult(g, p) -> float:
-	if p.id >= g.nw_first and p.owner != g.Colonial.NATIVE and not g.Colonial.is_native_realm(g, p.owner):
+	if g.Colonial.is_new_world(g, p.id) and p.owner != g.Colonial.NATIVE and not g.Colonial.is_native_realm(g, p.owner):
 		return float(g.bal.colonial_trade_mult)
 	return 1.0
 

@@ -27,11 +27,16 @@ DESERT_LAT = 31.2
 FOREST_LAT = 57.0  # northern taiga and Baltic woods
 MARSH_KEYS = {"holland"}
 # river plains next to big ridges: the ridge glow overstates them
-HILL_KEYS = {"milan", "barcelona", "florence"}
+HILL_KEYS = {"milan", "barcelona", "florence", "khuzestan", "tihama"}
 # the New World: woodland unless listed (no latitude rule: the Caribbean is not the Sahara)
 NW_DESERT = {"coahuila", "apacheria", "llano", "zacatecas", "nuevo_leon"}
 WA_MARSH = {"niger_delta"}
 WA_FOREST = {"oyo", "benin"}
+# the Middle East and the Horn of Africa ("east" in map.json): desert unless listed; ridges make the highlands
+EAST_PLAINS = {"ardabil", "baghdad", "kirkuk", "khuzestan", "hamadan", "qazvin", "rey", "isfahan", "kermanshah", "sennar", "alwa",
+               "begemder", "gojjam", "amhara", "shewa", "tigray", "harar", "medri_bahri", "fars", "sanaa"}
+EAST_FOREST = {"gilan", "mazandaran", "damot"}
+EAST_MARSH = {"basra"}
 NW_MARSH = {"delta", "florida", "mosquitia", "tabasco"}
 NW_PLAINS = {"pawnee", "wichita", "lakota", "dakota", "ioway", "hasinai", "karankawa", "illinois", "assiniboine",
              "yucatan", "campeche", "bajio", "tamaulipas", "tenochtitlan", "tlaxcala", "cahokia", "natchez"}
@@ -63,6 +68,9 @@ def main():
             t = "mountains"
         elif relief > 0.2 or peak > 0.6 or p["key"] in HILL_KEYS:
             t = "hills"
+        elif p.get("east"):
+            k = p["key"]
+            t = "plains" if k in EAST_PLAINS else "forest" if k in EAST_FOREST else "marsh" if k in EAST_MARSH else "desert"
         elif p.get("wa"):  # West Africa: Sahara and Sahel, savanna, rain forest on the Guinea coast
             k = p["key"]
             t = "desert" if lat > 15.5 else "marsh" if k in WA_MARSH else "forest" if lat < 8.0 or k in WA_FOREST else "plains"
