@@ -2399,9 +2399,31 @@ func feast_ready_in(tag: String) -> int:
 	return maxi(0, int(nations[tag].flags.get("feast_month", -9999)) + int(bal.feast_cooldown) - month)
 
 
-## A court festival costs a few months of income (so it stays a real price for rich realms).
+## A court festival costs a few months of income, scaled by the realm's prestige rank in the world:
+## the most prestigious courts pay the full feast_income_months, the least prestigious
+## rank_cost_bottom of it (a grand court is expected to throw a grand party).
 func feast_cost(tag: String) -> float:
-	return maxf(float(bal.feast_min_cost), nations[tag].income * float(bal.feast_income_months))
+	return maxf(float(bal.feast_min_cost), nations[tag].income * float(bal.feast_income_months) * prestige_rank_mult(tag))
+
+
+## 0.0 for the realm with the most prestige, 1.0 for the one with the least (living realms).
+func prestige_rank_share(tag: String) -> float:
+	var me: float = nations[tag].prestige
+	var above := 0
+	var alive := 0
+	for t in order:
+		var o: Nation = nations[t]
+		if not o.alive:
+			continue
+		alive += 1
+		if o.prestige > me:
+			above += 1
+	return float(above) / float(maxi(1, alive - 1))
+
+
+## Cost multiplier from the prestige rank: 1.0 at the top, rank_cost_bottom at the bottom.
+func prestige_rank_mult(tag: String) -> float:
+	return lerpf(1.0, float(bal.get("rank_cost_bottom", 1.0)), clampf(prestige_rank_share(tag), 0.0, 1.0))
 
 
 func hold_feast(tag: String) -> String:
