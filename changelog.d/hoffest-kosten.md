@@ -1,0 +1,1 @@
+- **Hoffest und Zugeständnisse günstiger:** Ein Hoffest kostet höchstens 3 statt 4 Monatseinnahmen (rund 60 % statt 80 % des Jahresüberschusses einer reichen Großmacht) und skaliert jetzt mit dem Prestige-Rang in der Welt: Die angesehensten Höfe zahlen den vollen Preis, die unbedeutendsten nur 60 % davon. Zugeständnisse an die Stände kosten 3 statt 6 Monatseinnahmen.

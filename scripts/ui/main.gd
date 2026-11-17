@@ -3206,8 +3206,8 @@ func _nation_monuments(me: String) -> void:
 	var fr: int = game.feast_ready_in(me)
 	side_box.add_child(_btn(("👑 Hoffest ausrichten (%d 💰)" % int(game.feast_cost(me))) if fr == 0 else ("👑 Hoffest (wieder in %d Monaten)" % fr),
 			func(): _act(game.hold_feast(me), "👑 Ein prächtiges Fest!"),
-			"+%d ⭐ Prestige, −%d Kriegsmüdigkeit. Kostet %d Monatseinnahmen, höchstens alle %d Jahre." % [
-			int(game.bal.feast_prestige), int(game.bal.feast_we), int(game.bal.feast_income_months), int(game.bal.feast_cooldown) / 12]))
+			"+%d ⭐ Prestige, −%d Kriegsmüdigkeit. Kostet %.1f Monatseinnahmen (je höher dein Prestige-Rang in der Welt, desto prächtiger und teurer, bis %d), höchstens alle %d Jahre." % [
+			int(game.bal.feast_prestige), int(game.bal.feast_we), float(game.bal.feast_income_months) * game.prestige_rank_mult(me), int(game.bal.feast_income_months), int(game.bal.feast_cooldown) / 12]))
 	if not n.monument_build.is_empty():
 		var bm: Dictionary = game.monument_defs[n.monument_build.id]
 		side_box.add_child(_lbl("🔨 %s %s: noch %d Monate" % [bm.emoji, bm.name, int(n.monument_build.months)], 16, Color(0.6, 0.8, 1.0)))

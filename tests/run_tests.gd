@@ -1529,6 +1529,15 @@ func test_monuments_and_feast() -> void:
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
 	check(g2.nations.FRA.monuments.has("cathedral") and g2.mod(g2.nations.FRA, "unrest") < u0 + 0.001, "great works are saved")
 	var p0: float = n.prestige
+	# the feast price follows the prestige rank: full price at the top, rank_cost_bottom at the bottom
+	n.income = 100.0
+	n.prestige = 1000.0
+	check(absf(g.prestige_rank_mult("FRA") - 1.0) < 0.001 and absf(g.feast_cost("FRA") - 100.0 * float(g.bal.feast_income_months)) < 0.01, "most prestigious court pays the full feast")
+	var p_keep: float = n.prestige
+	n.prestige = -1000.0
+	check(absf(g.prestige_rank_mult("FRA") - float(g.bal.rank_cost_bottom)) < 0.001, "least prestigious court pays the bottom share")
+	n.prestige = p_keep
+	n.prestige = p0
 	check(g.hold_feast("FRA") == "" and n.prestige > p0, "a feast brings prestige")
 	check(g.hold_feast("FRA") != "", "feasts have a cooldown")
 
