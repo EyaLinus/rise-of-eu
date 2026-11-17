@@ -508,8 +508,8 @@ func _pick_company() -> void:
 	var n = g.nations[me]
 	m._open_modal()
 	m.modal_box.add_child(m._lbl("🏦 Kompanie gründen", 26))
-	m.modal_box.add_child(m._lbl("Kosten: %d %s (etwa %d Monatseinkommen). Kompanien bleiben, bis du sie auflöst." % [
-			gv.company_cost(g, n, ""), Icons.emoji("gold"), int(gv.cfg.get("company_months", 18))], 16))
+	m.modal_box.add_child(m._lbl("Kosten: %d %s (steigt langsam mit den Jahren und ein wenig mit dem Einkommen). Kompanien bleiben, bis du sie auflöst." % [
+			gv.company_cost(g, n, ""), Icons.emoji("gold")], 16))
 	var pool: Array = gv.company_pool(g, me).duplicate()
 	pool.sort_custom(func(x, y): return x.has("tag") and not y.has("tag"))
 	for c in pool:

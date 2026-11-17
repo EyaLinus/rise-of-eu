@@ -34,6 +34,7 @@ func _init() -> void:
 		"test_urban",
 		"test_units_and_templates",
 		"test_colonial",
+		"test_alert_bar",
 		"test_west_africa",
 		"test_south_africa",
 		"test_troop_transport",
@@ -2145,7 +2146,19 @@ func test_companies() -> void:
 	var n = g.nations.ENG
 	n.gold = 5000.0
 	var cost: float = g.govt.company_cost(g, n, "lombarden")
-	check(cost >= float(data.government.company_min_gold), "company has a minimum price")
+	check(cost >= float(data.government.company_base_gold), "company costs at least the base price")
+	# slow linear growth with the years plus a small share of the yearly income
+	var inc0: float = n.income
+	n.income = 0.0
+	var c0: float = g.govt.company_cost(g, n, "lombarden")
+	g.month = 100 * 12
+	var c100: float = g.govt.company_cost(g, n, "lombarden")
+	check(absf(c100 - c0 * (1.0 + 100.0 * float(data.government.company_year_scale))) < 1.0, "price grows linearly with the years (%d -> %d)" % [c0, c100])
+	n.income = 300.0
+	check(absf(g.govt.company_cost(g, n, "lombarden") - c100 - 12.0 * 300.0 * float(data.government.company_income_share)) < 1.0, "plus a small share of the yearly income")
+	g.month = 0
+	n.income = inc0
+	cost = g.govt.company_cost(g, n, "lombarden")
 	check(g.govt.found_company(g, "ENG", "eng_muscovy") != "", "Muscovy Company only from 1555")
 	check(g.govt.found_company(g, "ENG", "fra_lyon") != "", "foreign company blocked")
 	check(g.govt.found_company(g, "ENG", "lombarden") == "", "found company")
@@ -3921,3 +3934,21 @@ func test_playable_flavour() -> void:
 	g.choose_event_option("VEN", "pf_ven_arsenal", 0)
 	check(g.log_lines.size() == lines + 1, "AI decision not logged")
 
+
+
+func test_alert_bar() -> void:
+	var AB = load("res://scripts/ui/alert_bar.gd")
+	var items := [{"id": "hint", "kind": ""}, {"id": "debt", "kind": "bad"}, {"id": "tech", "kind": "good"}, {"id": "revolt", "kind": "bad"}]
+	var ids := []
+	for it in AB.order(items, {}):
+		ids.append(it.id)
+	check(ids == ["debt", "revolt", "tech", "hint"], "alerts: trouble first, rewards next, hints last, stable (%s)" % [ids])
+	check(AB.order(items, {"debt": true}).size() == 3, "a dismissed alert is hidden")
+	# 4 icons of 44 px with 6 px gaps need 194 px; one px less turns the 4th slot into "+N"
+	check(AB.fit_count(4, 194.0, 44.0, 6.0) == 4, "all alerts fit")
+	check(AB.fit_count(4, 193.0, 44.0, 6.0) == 2, "too narrow: two icons and the +N button")
+	check(AB.fit_count(9, 20.0, 44.0, 6.0) == 0, "no room: nothing")
+	var tip: String = AB.tip_text({"text": "💸 Kasse im Minus", "why": "W", "todo": "T"}, true)
+	check(tip.contains("Warum: W") and tip.contains("Was tun: T"), "tooltip says why and what to do")
+	for e in ["💸", "💀", "📉", "✊", "🏰", "🏳️", "🌾", "⚠️", "👥", "🕊️", "🎯", "👑", "🤝", "🔬", "🎓", "⚖️", "⚔️", "🏬", "🧭", "⛵", "📜", "🏕", "🏙️", "🏗️", "⛪"]:
+		check(AB.glyph_texture(e) != null, "alert icon %s has a pixel glyph" % e)

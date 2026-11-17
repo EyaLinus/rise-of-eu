@@ -70,6 +70,26 @@ func _init() -> void:
 	check(bb.count("\n") >= 4 and bb.contains("kw:unrest"), "modifier lists become one line each, terms are links")
 	check(m.tips.format("A\nB\tC").contains("[table=2]"), "TAB rows become a table")
 	check(m.tips.format("Militärtechnik").find("kw:") < 0, "no term inside a longer word")
+	# quick actions (right click / long press on a province)
+	var g = m.game
+	var paris: int = g.key_to_pid["paris"]
+	m._on_province_context(paris, Vector2(400, 300))
+	check(m.quick.visible and m.quick.box.get_child_count() >= 5, "right click on an own province opens the quick menu")
+	var labels := []
+	for e in m.quick.entries(paris):
+		labels.append(e[0])
+	check(labels.any(func(t): return t.contains("Entwickeln")) and labels.any(func(t): return t.contains("Regiment")), "own province: develop and recruit are one click away")
+	g.nations.FRA.gold = 5000.0
+	var before: int = g.provinces[paris].constructing.size()
+	m.quick.entries(paris)[0][1].call()
+	check(not g.provinces[paris].constructing.is_empty() or before > 0, "first quick entry starts the best building")
+	var london: int = g.key_to_pid["london"]
+	var fl := []
+	for e in m.quick.entries(london):
+		fl.append(e[0])
+	check(fl.any(func(t): return t.contains("Krieg")) and fl.any(func(t): return t.contains("Diplomatie")), "foreign province: war and diplomacy in the quick menu")
+	m.quick.close()
+	m.selected_army = -1
 	# touch: long press opens a locked tip
 	m._touch_input = true
 	m._press_pos = at
