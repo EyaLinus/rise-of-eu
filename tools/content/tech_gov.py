@@ -94,13 +94,13 @@ TREE = {
     "mil": [
         ("taktik", "Taktik", [
             ("mil_pikenhaufen", "Pikenhaufen", {"combat": 0.03}),
-            ("mil_ordonnanz", "Ordonnanzkompanien", {"combat": 0.03}),
+            ("mil_ordonnanz", "Ordonnanzkompanien", {"combat": 0.03, "command": 0.1}),
             ("mil_arkebusiere", "Arkebusiere", {"combat": 0.04}),
             ("mil_gevierthaufen", "Gevierthaufen", {"combat": 0.04}),
             ("mil_pistoliere", "Reiterpistoliere", {"combat": 0.04}),
             ("mil_exerzieren", "Exerzierreglement", {"combat": 0.05, "army_power": 0.05}),
             ("mil_salven", "Salvenfeuer", {"combat": 0.05}),
-            ("mil_brigade", "Schwedische Brigade", {"combat": 0.05}),
+            ("mil_brigade", "Schwedische Brigade", {"combat": 0.05, "command": 0.1}),
             ("mil_lineartaktik", "Lineartaktik", {"combat": 0.06}),
             ("mil_bajonett", "Bajonett", {"combat": 0.05}),
         ]),
@@ -126,7 +126,7 @@ TREE = {
             ("mil_garnisonen", "Stehende Garnisonen", {"unrest": -0.25, "force_limit": 1}),
             ("mil_kasernen", "Kasernen", {"manpower": 0.1, "force_limit": 2}),
             ("mil_stehendes_heer", "Stehendes Heer", {"mil": 1, "army_power": 0.1}),
-            ("mil_kommissariat", "Generalkriegskommissariat", {"maintenance": -0.05, "force_limit": 2}),
+            ("mil_kommissariat", "Generalstab", {"maintenance": -0.05, "force_limit": 2, "general_start": 1, "command": 0.1}),
         ]),
     ],
 }
@@ -814,7 +814,7 @@ TECH_FLAVOUR = {
     "mil_garnisonen": "Truppen bleiben auch im Frieden unter Waffen.",
     "mil_kasernen": "Soldaten wohnen nicht mehr bei den Bürgern.",
     "mil_stehendes_heer": "Ein Heer, das nie aufgelöst wird.",
-    "mil_kommissariat": "Beamte organisieren Sold, Nachschub und Aushebung.",
+    "mil_kommissariat": "Ein Generalstab plant die Feldzüge, Beamte organisieren Sold, Nachschub und Aushebung. Neue Generäle beginnen eine Stufe höher.",
 }
 
 def build():

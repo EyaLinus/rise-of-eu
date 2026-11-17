@@ -917,7 +917,8 @@
    "name": "Ordonnanzkompanien",
    "year": 1462,
    "effects": {
-    "combat": 0.03
+    "combat": 0.03,
+    "command": 0.1
    },
    "text": "Bezahlte Reiterkompanien stehen jederzeit bereit.",
    "req": [
@@ -1002,7 +1003,8 @@
    "name": "Schwedische Brigade",
    "year": 1594,
    "effects": {
-    "combat": 0.05
+    "combat": 0.05,
+    "command": 0.1
    },
    "text": "Kleinere, bewegliche Verbände mit leichten Kanonen.",
    "req": [
@@ -1309,13 +1311,15 @@
    "id": "mil_kommissariat",
    "cat": "mil",
    "branch": "heerwesen",
-   "name": "Generalkriegskommissariat",
+   "name": "Generalstab",
    "year": 1638,
    "effects": {
     "maintenance": -0.05,
-    "force_limit": 2
+    "force_limit": 2,
+    "general_start": 1,
+    "command": 0.1
    },
-   "text": "Beamte organisieren Sold, Nachschub und Aushebung.",
+   "text": "Ein Generalstab plant die Feldzüge, Beamte organisieren Sold, Nachschub und Aushebung. Neue Generäle beginnen eine Stufe höher.",
    "req": [
     "mil_stehendes_heer"
    ]

@@ -9,8 +9,8 @@
   "text": "Gelehrte aus ganz Europa: Technologie 8 % billiger, +1 Verwaltung im Monat."},
  "exchange": {"name": "Börse", "emoji": "🏦", "cost": 500, "months": 48, "tech": ["dip", 10], "bonus": {"trade": 0.05, "merchants": 1.0},
   "text": "Wechsel, Anleihen und Handelshäuser: +5 % Handel und ein Händler mehr."},
- "academy": {"name": "Kriegsakademie", "emoji": "🎯", "cost": 500, "months": 48, "tech": ["mil", 10], "bonus": {"combat": 0.05, "mil": 1.0},
-  "text": "Offiziere lernen ihr Handwerk: +5 % Kampfkraft, +1 Militär im Monat."},
+ "academy": {"name": "Kriegsakademie", "emoji": "🎯", "cost": 500, "months": 48, "tech": ["mil", 10], "bonus": {"combat": 0.05, "mil": 1.0, "general_start": 1.0, "command": 0.15},
+  "text": "Offiziere lernen ihr Handwerk: +5 % Kampfkraft, +1 Militär im Monat, neue Generäle beginnen auf Stufe 2 und führen 15 % mehr Regimenter."},
  "palace": {"name": "Prunkpalast", "emoji": "🏛️", "cost": 800, "months": 72, "tech": ["adm", 14], "bonus": {"prestige": 1.5, "dip": 1.0, "unrest": -0.5},
   "text": "Ein Palast, der ganz Europa staunen lässt: viel Prestige, +1 Diplomatie, ruhigeres Land."}
 }

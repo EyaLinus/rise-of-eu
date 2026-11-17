@@ -101,17 +101,27 @@ func _power_actions(g, n, cap: float) -> void:
 
 
 ## The largest army without a commander gets a general: in war as soon as military power allows,
-## in peace only from a large surplus.
+## in peace only from a large surplus. Then the general of the army furthest over its command
+## limit rises a level (only for armies that really lead more regiments than he can command).
 func _hire_general(g, n, cap: float) -> void:
-	var need: float = float(g.bal.general_cost) + (30.0 if g.is_at_war(n.tag) else cap * 0.3)
-	if n.mil < need:
+	var reserve: float = 30.0 if g.is_at_war(n.tag) else cap * 0.3
+	if n.mil < float(g.bal.general_cost) + reserve:
 		return
 	var best = null
+	var promote = null
+	var over := 0.0
 	for a in g.armies_of(n.tag):
 		if a.general == 0 and a.regs >= 3.0 and (best == null or a.regs > best.regs):
 			best = a
+		elif a.general > 0 and g.promote_cost(a) > 0.0:
+			var o: float = a.regs - g.command_limit(a)
+			if o > over:
+				over = o
+				promote = a
 	if best != null:
 		g.hire_general(n.tag, best.id)
+	elif promote != null and n.mil >= g.promote_cost(promote) + reserve:
+		g.promote_general(n.tag, promote.id)
 
 
 func _cheapest_province(g, tag: String) -> int:
@@ -613,7 +623,7 @@ func control_armies(g, tag: String) -> void:
 	_friends = {}
 	for e in g.armies:
 		if enemies.has(e.owner):
-			enemy_power[e.pid] = enemy_power.get(e.pid, 0.0) + e.regs * g.combat_mult(e.owner) * g.power_factor(e)
+			enemy_power[e.pid] = enemy_power.get(e.pid, 0.0) + g.command_regs(e) * g.combat_mult(e.owner) * g.power_factor(e)
 		else:
 			var at: int = e.target if e.target >= 0 else e.pid
 			_friends[at] = _friends.get(at, 0.0) + e.regs
@@ -639,7 +649,7 @@ func _command(g, a, enemies: Array, enemy_power: Dictionary) -> void:
 	if g.Warfare.in_battle(g, a):
 		return  # locked in battle until it is decided
 	var defend: bool = a.stance == "defend"
-	var my_power: float = a.regs * g.combat_mult(tag) * g.power_factor(a)
+	var my_power: float = g.command_regs(a) * g.combat_mult(tag) * g.power_factor(a)
 	# exhausted armies fall back to friendly land to recover before fighting again
 	if a.power < 0.3 * g.power_max(tag) and not _friendly(g, tag, g.provinces[a.pid].controller):
 		var back: int = _nearest(g, a, func(pid): return _friendly(g, tag, g.provinces[pid].controller) and enemy_power.get(pid, 0.0) == 0.0)
