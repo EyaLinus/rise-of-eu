@@ -37,6 +37,9 @@ EAST_PLAINS = {"ardabil", "baghdad", "kirkuk", "khuzestan", "hamadan", "qazvin",
                "begemder", "gojjam", "amhara", "shewa", "tigray", "harar", "medri_bahri", "fars", "sanaa"}
 EAST_FOREST = {"gilan", "mazandaran", "damot"}
 EAST_MARSH = {"basra"}
+AF_DESERT = {"fezzan", "air", "tibesti", "kanem", "majerteen", "damaraland", "namaqua", "kalahari", "karoo", "androy"}
+AF_MARSH = {"sudd", "okavango"}
+AF_FOREST = {"cameroon", "ogowe", "loango", "tio", "congo_basin", "ubangi", "ituri", "maniema", "kuba", "azande", "betsimisaraka", "buganda"}
 NW_MARSH = {"delta", "florida", "mosquitia", "tabasco"}
 NW_PLAINS = {"pawnee", "wichita", "lakota", "dakota", "ioway", "hasinai", "karankawa", "illinois", "assiniboine",
              "yucatan", "campeche", "bajio", "tamaulipas", "tenochtitlan", "tlaxcala", "cahokia", "natchez"}
@@ -71,6 +74,9 @@ def main():
         elif p.get("east"):
             k = p["key"]
             t = "plains" if k in EAST_PLAINS else "forest" if k in EAST_FOREST else "marsh" if k in EAST_MARSH else "desert"
+        elif p.get("af"):  # Africa south of the Sahara: savanna, the Congo rain forest, the Kalahari and the Namib
+            k = p["key"]
+            t = "desert" if k in AF_DESERT else "marsh" if k in AF_MARSH else "forest" if k in AF_FOREST else "plains"
         elif p.get("wa"):  # West Africa: Sahara and Sahel, savanna, rain forest on the Guinea coast
             k = p["key"]
             t = "desert" if lat > 15.5 else "marsh" if k in WA_MARSH else "forest" if lat < 8.0 or k in WA_FOREST else "plains"

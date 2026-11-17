@@ -12,12 +12,14 @@ for p in m['provinces']:
     shapes[p['key']] = unary_union(polys)
 W, H = m['size']
 inner = box(4, 4, W - 4, H - 4)  # the map border is not sea
+# inland provinces whose outline only touches a sliver of unclaimed land between Voronoi discs (Africa)
+INLAND = {'kordofan', 'ogaden', 'bale', 'borana', 'limpopo'}
 coastal = []
 for p in m['provinces']:
     me = shapes[p['key']]
     others = unary_union([s for k, s in shapes.items() if k != p['key']] + land).buffer(2.0)
     rest = me.boundary.difference(others).intersection(inner)
-    if rest.length > 12.0:
+    if rest.length > 12.0 and p['key'] not in INLAND:
         coastal.append(p['key'])
 json.dump(sorted(coastal), open('data/coastal.json', 'w'), indent=0)
 print(len(coastal), 'of', len(m['provinces']), 'coastal')

@@ -115,7 +115,7 @@ static func reveal_world(g, tag: String) -> int:
 	var c := 0
 	for s in g.seas:
 		c += Colonial.reveal_sea(g, tag, s.id)
-	for pid in range(g.nw_first, g.provinces.size()):
+	for pid in g.overseas:
 		if Colonial.reveal(g, tag, pid):
 			c += 1
 	_mark(g)

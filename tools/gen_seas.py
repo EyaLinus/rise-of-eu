@@ -43,6 +43,15 @@ SEAS = [
     ("aden", "Golf von Aden", (48.0, 12.6), [(46.0, 12.4), (48.5, 13.0), (51.0, 13.4), (44.0, 12.0)]),
     ("arabian", "Arabisches Meer", (53.5, 11.0), [(53.5, 11.0), (53.0, 8.0), (50.0, 6.0), (55.0, 15.5), (48.5, 4.5), (55.0, 5.0)]),
     ("persian_gulf", "Persischer Golf", (51.4, 27.2), [(51.4, 27.2), (49.6, 28.6), (52.4, 25.6), (54.6, 25.9), (50.6, 26.4), (48.8, 29.6)]),
+    # Africa south of the equator: unknown to Europe until explored; the Swahili coast is known to the
+    # monsoon traders of Arabia (Colonial.MONSOON) and to the Swahili towns themselves
+    ("south_atlantic", "Südatlantik", (6.0, -14.0), [(8.0, -1.0), (5.0, -4.0), (10.5, -8.0), (11.0, -14.0), (11.5, -20.0), (13.0, -26.0), (15.0, -31.0),
+                                                   (0.0, -15.0), (-8.0, -5.0), (-14.0, -22.0), (-6.0, -32.0), (4.0, -26.0), (-18.0, -8.0)]),
+    ("cape", "Kap der Guten Hoffnung", (22.0, -35.0), [(18.0, -35.2), (21.0, -35.3), (25.0, -34.6), (28.5, -33.8), (31.0, -31.8), (15.5, -34.8)]),
+    ("mozambique", "Straße von Mosambik", (41.0, -20.0), [(41.0, -17.0), (38.0, -21.0), (41.5, -23.0), (36.5, -24.5), (42.5, -14.0), (34.5, -27.0), (40.0, -26.0)]),
+    ("swahili", "Swahiliküste", (42.5, -4.0), [(41.5, -1.5), (40.5, -5.5), (41.0, -9.0), (43.5, -1.0), (44.5, -6.0), (46.5, 0.5), (41.2, -12.0)]),
+    ("indian", "Indischer Ozean", (53.0, -18.0), [(52.0, -10.0), (52.0, -20.0), (50.0, -28.0), (54.5, -3.0), (45.0, -32.0), (53.5, -30.0)]),
+    ("af_lakes", "Afrikanische Seen", (33.0, -1.0), [(33.0, -1.0), (29.6, -6.5), (34.5, -12.0), (32.6, -2.2), (30.5, -8.0), (34.7, -10.5), (34.3, -13.6)]),
     ("labrador", "Labradorsee", (-50.0, 53.0), [(-50.0, 53.0), (-50.0, 47.0), (-54.0, 57.0), (-58.0, 59.5), (-52.0, 61.0), (-47.0, 50.0)]),
     ("st_lawrence", "Sankt-Lorenz-Golf", (-62.0, 48.4), [(-62.0, 48.4), (-66.0, 49.6), (-68.8, 48.4), (-61.0, 47.0), (-64.0, 47.0)]),
     ("east_coast", "Neuenglandküste", (-69.0, 41.0), [(-69.0, 41.0), (-66.0, 43.5), (-72.0, 39.6), (-74.2, 37.0), (-75.0, 34.4), (-78.4, 31.4), (-62.0, 43.0)]),
@@ -121,8 +130,12 @@ def main():
     for a, b in ((label[:, :-1], label[:, 1:]), (label[:-1, :], label[1:, :])):
         mask = (a >= 0) & (b >= 0) & (a != b)
         for x, y in set(zip(a[mask].tolist(), b[mask].tolist())):
-            if {SEAS[x][0], SEAS[y][0]} in ({"caribbean", "pacific"}, {"guinea", "east_med"}, {"red_sea", "east_med"}):  # map bottom edge; Suez lagoons
+            if {SEAS[x][0], SEAS[y][0]} in ({"caribbean", "pacific"}, {"guinea", "east_med"}, {"red_sea", "east_med"}, {"pacific", "ocean"}):  # map bottom edge; Suez lagoons
                 continue
+            if "af_lakes" in (SEAS[x][0], SEAS[y][0]):
+                continue  # the African lakes are inland water
+            if {SEAS[x][0], SEAS[y][0]} & {"south_atlantic", "cape"} and {SEAS[x][0], SEAS[y][0]} & {"pacific", "caribbean", "gulf", "sargasso"}:
+                continue  # the map's empty south-west corner: no shortcut from the Americas to the Cape
             if "west_africa" in (SEAS[x][0], SEAS[y][0]) and {SEAS[x][0], SEAS[y][0]} & {"caribbean", "sargasso"}:
                 continue  # the squeezed Atlantic puts them side by side; the way west is the open ocean
             adj[SEAS[x][0]].add(SEAS[y][0])
@@ -144,7 +157,8 @@ def main():
     print("coastal without sea:", lone)
 
 
-NEW_SEAS = {"guinea", "ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes"}
+NEW_SEAS = {"guinea", "ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes",
+            "south_atlantic", "cape", "mozambique", "swahili", "indian", "af_lakes"}
 FOG_CELL = 8
 
 

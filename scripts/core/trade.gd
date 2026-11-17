@@ -5,7 +5,7 @@ extends RefCounted
 ## East India trade: an Atlantic realm with enough diplomatic technology sends a voyage around the
 ## Cape of Good Hope. Whoever comes back first opens the spice route. From then on every realm that
 ## knows the route sends Indiamen (bought with gold, small upkeep) and founds trading posts (factories)
-## at Sofala, Muscat, Goa ... Each realm's share of the route's value = its power (ships + factories)
+## at the Maldives, Muscat, Goa ... Each realm's share of the route's value = its power (ships + factories)
 ## over everyone's power. The route grows richer every year, and once it is open the Levant loses:
 ## Venice, Alexandria and Constantinople trade less. Rivals at war raid each other's ships and storm
 ## each other's factories.
@@ -18,7 +18,7 @@ extends RefCounted
 
 ## Off-map trading posts on the spice route. power = route power for the holder, year = earliest year.
 const FACTORIES := [
-	{"id": "sofala", "name": "Sofala", "emoji": "🪙", "power": 3.0, "year": 1490, "desc": "Gold und Elfenbein der ostafrikanischen Küste."},
+	{"id": "maldives", "name": "Malediven", "emoji": "🪙", "power": 3.0, "year": 1490, "desc": "Kaurimuscheln, das Geld des Indischen Ozeans."},
 	{"id": "muscat", "name": "Maskat", "emoji": "🏜️", "power": 4.0, "year": 1500, "desc": "Hafen am Golf von Oman, vor den Toren von Hormus."},
 	{"id": "goa", "name": "Goa", "emoji": "🏛️", "power": 6.0, "year": 1500, "desc": "Hauptstadt des Gewürzhandels an der Malabarküste."},
 	{"id": "calicut", "name": "Kalikut", "emoji": "🫘", "power": 5.0, "year": 1498, "desc": "Pfeffer, Ingwer und Zimt in Hülle und Fülle."},
@@ -52,7 +52,8 @@ static func load_save(g, d: Dictionary) -> void:
 	for t in d.get("ships", {}):
 		g.east.ships[str(t)] = int(d.ships[t])
 	for f in d.get("factories", {}):
-		g.east.factories[str(f)] = str(d.factories[f])
+		if not factory_def(str(f)).is_empty():  # Sofala is a map province since the Africa update
+			g.east.factories[str(f)] = str(d.factories[f])
 	for m in d.get("dom", {}):
 		g.east.dom[int(m)] = str(d.dom[m])
 

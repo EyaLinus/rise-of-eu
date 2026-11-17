@@ -2983,7 +2983,7 @@ func _new_world_section() -> void:
 	if not game.atlantic_tags.has(me):
 		return
 	if not _section("nat_newworld", "🧭 Neue Welt und Afrika", true,
-			"Entdeckungsfahrten decken die Meere und Küsten Amerikas und den Golf von Guinea auf, Siedler gründen dort und an der westafrikanischen Küste Kolonien. Ab Diplomatie-Technologie %d." % int(game.bal.explore_dip_tech)):
+			"Entdeckungsfahrten decken die Meere und Küsten Amerikas und Afrikas auf (Golf von Guinea, Südatlantik, Kap, Indischer Ozean), Siedler gründen dort Kolonien. Ab Diplomatie-Technologie %d." % int(game.bal.explore_dip_tech)):
 		return
 	var running: Array = Colonial.running_colonies(game, me)
 	var chips := [
@@ -2993,10 +2993,10 @@ func _new_world_section() -> void:
 				Colonial.recruited(n), int(game.bal.recruit_colonist_max)]),
 		_chip("🌍 %d Kolonien" % Colonial.colonies_owned(game, me), "Fertige Kolonien in Amerika und Afrika."),
 		_chip("🗺️ Nach Amerika", "Karte nach Amerika schwenken."),
-		_chip("🌍 Nach Afrika", "Karte nach Westafrika schwenken."),
+		_chip("🌍 Nach Afrika", "Karte nach Afrika schwenken."),
 	]
 	chips[3].gui_input.connect(func(e): if _is_click(e): map.focus(game.provinces[game.nw_first].center, 0.6); map.refresh())
-	chips[4].gui_input.connect(func(e): if _is_click(e): map.focus(game.provinces[mini(game.wa_first, game.provinces.size() - 1)].center, 0.6); map.refresh())
+	chips[4].gui_input.connect(func(e): if _is_click(e): map.focus(game.provinces[game.key_to_pid.get("kongo", mini(game.wa_first, game.provinces.size() - 1))].center, 0.5); map.refresh())
 	chips.append(Control.new())
 	side_box.add_child(_grid(chips))
 	var rw: String = Colonial.recruit_block_reason(game, me)

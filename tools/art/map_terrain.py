@@ -5,7 +5,7 @@ mountain ranges (real lon/lat polylines) as relief plus small peak glyphs, darke
 outside the playable provinces. Colours come from the art_profile palette; noise only blends
 between neighbouring ramp colours. Needs numpy, scipy, pillow, pyyaml.
 
-    python3 tools/art/map_terrain.py   # writes assets/art/map/terrain.png and terrain_half.png
+    python3 tools/art/map_terrain.py   # writes assets/art/map/terrain.png, terrain_south.png and terrain_half.png
 """
 import json
 import math
@@ -63,6 +63,20 @@ RANGES = [
     (0.3, [(34.6, 25.0), (35.6, 22.5), (36.6, 20.0)]),  # Red Sea hills
     (0.45, [(41.2, 9.4), (43.0, 9.8), (45.4, 10.0), (47.4, 10.5), (49.0, 11.0)]),  # Harar plateau, Somali ridge
     (0.3, [(53.2, 17.3), (54.6, 17.4)]),  # Dhofar
+    # Africa south of the Sahara
+    (0.5, [(17.2, 21.6), (18.2, 20.8), (19.0, 20.2)]),  # Tibesti
+    (0.3, [(8.4, 18.8), (8.8, 17.6)]),  # Aïr
+    (0.4, [(9.2, 4.2), (10.2, 5.6), (11.5, 6.6), (13.5, 7.3)]),  # Cameroon line, Adamawa
+    (0.35, [(23.0, 13.4), (24.2, 13.0)]),  # Jebel Marra
+    (0.55, [(29.9, 0.8), (29.9, 0.0), (29.4, -1.5)]),  # Rwenzori, Virunga
+    (0.75, [(35.8, 1.0), (36.6, 0.0), (37.3, -0.2), (37.0, -2.0), (37.35, -3.1)]),  # Kenyan highlands, Kilimanjaro
+    (0.35, [(34.5, -8.0), (34.2, -9.6), (33.8, -11.0)]),  # southern highlands, Livingstone
+    (0.4, [(32.7, -18.0), (32.9, -19.6)]),  # Eastern Highlands (Zimbabwe)
+    (0.7, [(27.4, -31.0), (28.4, -30.0), (29.2, -29.2), (29.6, -28.4), (30.4, -27.0), (30.9, -25.6)]),  # Drakensberg
+    (0.4, [(19.4, -33.4), (21.0, -33.6), (23.0, -33.5), (24.8, -33.4)]),  # Cape Fold Belt
+    (0.35, [(14.6, -19.6), (15.6, -22.2), (16.4, -25.0), (17.0, -27.4)]),  # Namib escarpment
+    (0.3, [(15.0, -11.6), (15.6, -13.0)]),  # Bié plateau
+    (0.5, [(49.0, -13.6), (48.2, -16.4), (47.4, -18.8), (46.9, -21.4), (46.6, -23.6)]),  # Madagascar highlands
     # the New World
     (0.55, [(-84.6, 34.4), (-83.0, 35.6), (-81.4, 36.6), (-79.8, 38.0), (-78.4, 39.6), (-76.8, 41.0), (-75.0, 42.0), (-73.8, 43.4), (-72.2, 44.4), (-70.8, 45.0)]),  # Appalachians
     (0.35, [(-74.6, 44.0), (-74.0, 44.4)]),  # Adirondacks
@@ -144,6 +158,13 @@ def main():
     dist = ndimage.gaussian_filter(dist, 2.0)
     dist = np.asarray(Image.fromarray(dist).resize((W, H), Image.BILINEAR)) / 2.0
     n_sea = fbm(H, W, rng, 4, 5)
+    # the part of the map no texture covers (south-west of "terrain_south") is drawn in plain sea_deep:
+    # fade the sea noise out towards it so the texture edge does not show
+    sx, sy = m.get("terrain_south", [0, H])
+    if sy < H:
+        bare = np.zeros((H, W), bool)
+        bare[sy:, :sx] = True
+        n_sea = 0.5 + (n_sea - 0.5) * np.clip(ndimage.distance_transform_edt(~bare) / 80.0, 0, 1)
     t = np.clip(dist / 90.0, 0, 1) ** 0.6 + (n_sea - 0.5) * 0.25
     sea = ramp(1 - t, [P["sea_deep"], P["sea"], P["sea_shallow"]])
     # coastal ripple lines, fading outwards (classic atlas hatching)
@@ -207,11 +228,19 @@ def main():
         d.line([left, top, right], fill=tuple(int(c) for c in P["rock_dark"]), width=1)
 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    out.save(OUT, optimize=True)
+    # Android caps textures at 4096 px: the map below the Gulf of Guinea ("terrain_south" in map.json)
+    # is its own texture, and it only covers Africa (open sea west of it is the plain sea colour)
+    out.crop((0, 0, W, sy)).save(OUT, optimize=True)
+    south = OUT.replace("terrain.png", "terrain_south.png")
+    files = [OUT]
+    if sy < H:
+        out.crop((sx, sy, W, H)).save(south, optimize=True)
+        files.append(south)
     # half size for zoomed-out views (no mipmaps: .import files are not versioned)
     half = OUT.replace("terrain.png", "terrain_half.png")
     out.resize((W // 2, H // 2), Image.LANCZOS).save(half, optimize=True)
-    for f in (OUT, half):
+    files.append(half)
+    for f in files:
         print(f, os.path.getsize(f) // 1024, "KiB")
 
 

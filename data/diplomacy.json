@@ -47,6 +47,10 @@
     [
       "ADA",
       "YEM"
+    ],
+    [
+      "MLD",
+      "AJU"
     ]
   ],
   "rivals": [
@@ -137,6 +141,22 @@
     [
       "SAF",
       "QAR"
+    ],
+    [
+      "MBA",
+      "MLD"
+    ],
+    [
+      "KIL",
+      "MBA"
+    ],
+    [
+      "BOR",
+      "KAN"
+    ],
+    [
+      "KON",
+      "NDO"
     ]
   ],
   "claims": {

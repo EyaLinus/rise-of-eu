@@ -53,6 +53,22 @@ func _run(m) -> void:
 	await _shot("map_middle_east")
 	m.map.focus(g.provinces[g.key_to_pid["amhara"]].center, 1.2)
 	await _shot("map_horn")
+	# Africa south of the Sahara: fogged for France, then revealed (two terrain textures meet at the
+	# Gulf of Guinea; zoomed out the half-size texture covers everything)
+	var kongo: Vector2 = g.provinces[g.key_to_pid["kongo"]].center if g.key_to_pid.has("kongo") else paris
+	m.map.focus(kongo + Vector2(400, 0), 0.4)
+	m.map.refresh()
+	await _shot("map_africa_fog")
+	load("res://scripts/core/debug_tools.gd").reveal_world(g, "FRA")
+	m.map.refresh()
+	await _shot("map_africa")
+	m.map.focus(kongo + Vector2(0, -250), 1.0)
+	await _shot("map_congo_seam")
+	if g.key_to_pid.has("kilwa"):
+		m.map.focus(g.provinces[g.key_to_pid["kilwa"]].center, 1.2)
+		await _shot("map_swahili")
+		m.map.focus(g.provinces[g.key_to_pid["highveld"]].center, 1.0)
+		await _shot("map_south_africa")
 	# selection, hover tooltip, war map mode
 	m.map.focus(paris, 1.4)
 	m.map.selected_pid = g.key_to_pid["paris"]
