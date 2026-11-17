@@ -767,13 +767,14 @@ func _has_manual_save() -> bool:
 
 
 func _load_game(slot: String = "auto") -> void:
-	var f := FileAccess.open(_slot_path(slot), FileAccess.READ)
-	if f == null:
-		_toast("❌ Kein Spielstand gefunden.")
-		return
-	var d = JSON.parse_string(f.get_as_text())
+	var path := _slot_path(slot)
+	var d = _read_save(path)
+	if d == null and FileAccess.file_exists(path + ".bak"):
+		d = _read_save(path + ".bak")  # the save before the last one (crash while saving)
+		if d != null:
+			_toast("⚠️ Spielstand beschädigt: der vorherige wurde geladen.")
 	if d == null:
-		_toast("❌ Spielstand beschädigt.")
+		_toast("❌ Spielstand beschädigt." if FileAccess.file_exists(path) else "❌ Kein Spielstand gefunden.")
 		return
 	game = Game.new()
 	game.setup(data, 1, d.player)
@@ -782,15 +783,33 @@ func _load_game(slot: String = "auto") -> void:
 	_close_modal()
 
 
+## Parsed save file, or null when it is missing or broken.
+func _read_save(path: String):
+	if not FileAccess.file_exists(path):
+		return null
+	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
+	return d if d is Dictionary and d.has("player") else null
+
+
 ## Writes the running game into a slot ("auto" = the yearly autosave) and notes what is in it.
 func _save_game(slot: String = "auto") -> bool:
 	if game == null or game.game_over:
 		return false
-	var f := FileAccess.open(_slot_path(slot), FileAccess.WRITE)
+	# crash-safe: write a temp file, keep the last good save as .bak, then swap the new one in,
+	# so a crash or a full disk while saving never leaves only a broken save behind
+	var path := _slot_path(slot)
+	var f := FileAccess.open(path + ".tmp", FileAccess.WRITE)
 	if f == null:
 		return false
 	f.store_string(JSON.stringify(game.to_dict()))
 	f.close()
+	if f.get_error() != OK:
+		return false
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path + ".bak")
+		DirAccess.rename_absolute(path, path + ".bak")
+	if DirAccess.rename_absolute(path + ".tmp", path) != OK:
+		return false
 	var meta := _save_meta()
 	meta[slot] = {"name": game.nations[game.player].name, "date": game.date_string(), "score": game.score(game.player),
 			"difficulty": game.difficulty}

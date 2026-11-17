@@ -1,0 +1,1 @@
+- **Absturzsicheres Speichern:** Spielstände werden erst in eine Zwischendatei geschrieben und dann ausgetauscht; der vorherige Stand bleibt als Sicherung liegen. Ist ein Spielstand nach einem Absturz beschädigt, lädt das Spiel automatisch den vorherigen statt nur „beschädigt" zu melden.

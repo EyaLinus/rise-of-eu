@@ -65,6 +65,15 @@ func _run(tags: Array, years: int) -> void:
 			if m.game.month != mo or m.game.player != tag or not m._save_meta().has("3"):
 				push_error("SMOKE slot 3 round trip broken")
 			g = m.game
+			# a save broken by a crash while writing: loading falls back to the previous save (.bak)
+			m._save_game("3")
+			var bf := FileAccess.open(m._slot_path("3"), FileAccess.WRITE)
+			bf.store_string("{\"player\": \"FR")
+			bf.close()
+			m._load_game("3")
+			if m.game == g or m.game.player != tag:
+				push_error("SMOKE broken save did not fall back to the backup")
+			g = m.game
 		m._show_game_over()
 		m._show_hall()
 		m._close_modal()
