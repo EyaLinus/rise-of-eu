@@ -20,8 +20,8 @@ static func setup(g, data: Dictionary) -> void:
 		g.markets.append(g.key_to_pid[k])
 	_assign_markets(g)
 	g.prices = {}
-	for k in g.goods_def:
-		g.prices[k] = float(g.goods_def[k].price)
+	for k in g.goods_def:  # start at the general price level, so the first yearly update makes no jump
+		g.prices[k] = snappedf(float(g.goods_def[k].price) * price_level(g), 0.001)
 	g.prev_prices = g.prices.duplicate()
 	g.shocks = {}
 	g.base_supply = supply(g)
