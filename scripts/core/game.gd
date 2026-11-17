@@ -3104,7 +3104,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "embargoes": n.embargoes, "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "fleet_mission": n.fleet_mission, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "embargoes": n.embargoes, "religion": n.religion, "ships": snappedf(n.ships, 0.0001), "fleet_sea": n.fleet_sea, "fleet_mission": n.fleet_mission, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
 				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n), "colonial": Colonial.nation_save(n), "age_picks": Ages.to_save(n)}
 	d.nations = ns
 	var ar := []
