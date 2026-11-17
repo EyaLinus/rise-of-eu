@@ -1,2 +1,0 @@
-- **Kompanien günstiger im Spätspiel:** Gründen und Ausbauen kostet am Anfang etwa 15 % mehr, steigt danach aber nur noch langsam und linear mit den Jahren (+1 % pro Jahr) plus 3 % des Jahreseinkommens, statt 18 Monatseinkommen. Um 1600 kostet eine Kompanie damit grob 600 statt 4500 Gold.
-- **Halbes Tempo:** Neue Stufe ½ unter dem normalen Tempo (Tasten 1 – 3 = ½, normal, schnell). ➕ aus der Pause startet weiter mit normalem Tempo.

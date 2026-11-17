@@ -1,5 +1,0 @@
-- Neue Region: ganz Südamerika (86 Provinzen) mit den Andenreichen Inka, Chimor, Muisca, Quitu-Cara und Colla, Amazonas, Pampa, Patagonien, Feuerland und den Falklandinseln; Potosí-Silber, brasilianischer Zucker und Brasilholz, Gold aus Antioquia und Minas, Viehzucht in der Pampa. Neue Märkte Cusco und Bahia.
-- Nordamerikanische Ostküste feiner geschnitten: 10 neue Landeplätze wie Manahatta, Wampanoag (Plymouth), Guale, Timucua, Calusa und Penobscot; alle bisherigen Provinzen bleiben erhalten.
-- Sieben neue Meere zum Erkunden (Guayanaküste, Amazonasmündung, Brasilianische Küste, Südbrasilien und La Plata, Patagonische See, Kap Hoorn, Humboldtsee). In den Pazifik kommt man nur um Kap Hoorn.
-- Neue Flüsse: Amazonas, Orinoco, Paraná, Paraguay, Uruguay, São Francisco, Magdalena, Madeira, Rio Negro, Ucayali, Tocantins, Delaware und James.
-- Karte: die Südhälfte besteht jetzt aus zwei Texturkacheln (Afrika, Südamerika), damit jede Textur unter 4096 px bleibt.
