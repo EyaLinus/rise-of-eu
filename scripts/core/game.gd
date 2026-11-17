@@ -237,6 +237,8 @@ var urban_start: Array = []  # [rural, urban] province counts at the start (dema
 var market_cache := {}
 var east := {}  # far trade state (Trade): Cape route, Indiamen, factories, market dominance
 var levant: Array = []  # market pids that lose value once the Cape route is open
+var prof = null  # optional {phase: usec} tick profiler (tools/perf.gd); null in the game, so _pmark is a no-op
+var _pt: int = 0
 
 
 func _init() -> void:
@@ -698,38 +700,61 @@ func log_msg(text: String, tags: Array = []) -> void:
 func tick() -> void:
 	if game_over:
 		return
+	_pmark("")
 	Economy.update_markets(self)
+	_pmark("markets")
 	for tag in order:
 		var n: Nation = nations[tag]
 		if n.alive:
 			_economy(n)
+			_pmark("economy")
 			govt.estates_monthly(self, n)
+			_pmark("estates")
 	Naval.monthly(self)
+	_pmark("naval")
 	Naval.voyages_tick(self)
+	_pmark("voyages")
 	Colonial.monthly(self)
+	_pmark("colonial")
 	Trade.monthly(self)
+	_pmark("trade")
 	_armies_tick()
+	_pmark("armies")
 	_wars_tick()
+	_pmark("wars")
 	for tag in order:
 		var n: Nation = nations[tag]
 		if n.alive and tag != player:
 			ai.think(self, n)
 			if (month + tag.hash()) % 6 == 0:
 				Naval.ai_build(self, n)
+				_pmark("ai.naval")
 	if player != "" and nations[player].alive:
 		ai.control_armies(self, player)
 		Economy.autobuild(self, nations[player])
 		for t in tree.queue_tick(self, nations[player]):
 			log_msg("🔬 Forschungsplan: %s erforscht." % t, [player])
 		_overflow_develop(nations[player])
+	_pmark("player")
 	month += 1
 	if month % 12 == 0:
 		_yearly()
+	_pmark("yearly")
 	if month >= int(bal.total_months) and not endless:
 		game_over = true
 		log_msg("Das Zeitalter endet. Das Spiel ist vorbei.")
 	elif player != "" and not nations[player].alive:
 		game_over = true
+
+
+## Profiler: adds the time since the last mark to prof[key] ("" only restarts the clock). No-op without prof.
+func _pmark(key: String) -> void:
+	if prof == null:
+		return
+	var t := Time.get_ticks_usec()
+	if key != "":
+		prof[key] = prof.get(key, 0) + t - _pt
+	_pt = t
 
 
 ## After the final scoring the player may play on without an end date (score and hall place stay as they were).
@@ -966,13 +991,17 @@ func _yearly() -> void:
 			_marriage_succession(n)
 			if tag == emperor:
 				hre_election()
+		_pmark("y.ruler")
 		govt.yearly(self, n)
 		Ages.yearly(self, n)
+		_pmark("y.gov_ages")
 		_check_events(n)
+		_pmark("y.events")
 		if tag != player:
 			for m in available_missions(tag):
 				if mission_ready(tag, m):
 					complete_mission(tag, m.id)
+		_pmark("y.missions")
 	Economy.yearly(self)
 	Urban.yearly(self)
 	Progression.yearly(self)
@@ -980,9 +1009,11 @@ func _yearly() -> void:
 	Colonial.yearly(self)
 	Trade.yearly(self)
 	Formables.ai_yearly(self)
+	_pmark("y.systems")
 	_coalitions_yearly()
 	_liberty_yearly()
 	_record_history()
+	_pmark("y.diplo")
 	if emperor == "" or not nations[emperor].alive or nations[emperor].overlord != "":
 		hre_election()
 	govt.empire_yearly(self)
