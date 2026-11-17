@@ -62,6 +62,7 @@ func _init() -> void:
 		"test_cape_route",
 		"test_overseas_markets",
 		"test_market_dominance",
+		"test_debug_tools",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		if not only.is_empty() and not only.has(t):
@@ -3517,3 +3518,30 @@ func test_chronicle() -> void:
 	var g2 = new_game("FRA")
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
 	check(g2.chronicle.size() == g.chronicle.size() and g2.chronicle[0][1] == g.chronicle[0][1], "chronicle survives save/load")
+
+
+func test_debug_tools() -> void:
+	var DT = load("res://scripts/core/debug_tools.gd")
+	var g = new_game("FRA")
+	var snap: Dictionary = DT.snapshot(g)
+	check(int(snap.armies) == g.armies.size() and int(snap.nations_alive) > 20 and snap.has("max_stacks_in_province"), "snapshot counts the game lists")
+	var crowd: Array = DT.crowded_provinces(g, 3)
+	check(crowd.size() == 3 and int(crowd[0][1]) >= int(crowd[2][1]), "crowded provinces sorted by stacks")
+	var n = g.nations["FRA"]
+	var gold0: float = n.gold
+	check(DT.add_resources(g, "FRA", 1000.0, 50.0) == "" and is_equal_approx(n.gold, gold0 + 1000.0), "resource cheat")
+	check(int(g.stats.get("debug_used", 0)) > 0, "cheats are marked in the stats")
+	# take all of Navarra: it dies
+	for pid in g.provinces_of("NAV").duplicate():
+		check(DT.take_province(g, "FRA", pid) == "", "take province %d" % pid)
+	check(not g.nations["NAV"].alive and g.provinces_of("NAV").is_empty(), "taking the last province ends a realm")
+	check(DT.take_province(g, "FRA", g.nations["FRA"].capital) != "", "own province cannot be taken")
+	check(DT.reveal_world(g, "FRA") > 0 and DT.reveal_world(g, "FRA") == 0, "reveal world, second time nothing new")
+	g.declare_war("FRA", "ENG")
+	check(g.at_war("FRA", "ENG") and DT.end_wars(g, "FRA") >= 1 and not g.at_war("FRA", "ENG"), "white peace in all wars")
+	check(DT.switch_player(g, "ENG") == "" and g.player == "ENG" and DT.switch_player(g, "NAV") != "", "play as another living realm")
+	var ids: Array = DT.event_ids(g, "war_", 5)
+	check(ids.size() == 5 and String(ids[0]).begins_with("war_"), "event id search")
+	check(DT.fire_event(g, "ENG", "no_such_event") != "", "unknown event is an error")
+	var m0: int = g.month
+	check(DT.skip_months(g, 24) == 24 and g.month == m0 + 24 and g.pending_events.is_empty() and g.pending_peace.is_empty(), "skip 2 years answers player decisions")

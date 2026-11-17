@@ -179,6 +179,15 @@ add("⌨", "keyboard", layer(["aaaaaaaaaaaa", "agggggggggga", "agwgwgwgwgga", "a
 add("🖥", "monitor", layer(["aaaaaaaaaaaa", "aBBBBBBBBBBd", "aBwBBBBBBBNd", "aBBBBBBBBBNd", "aBBBBBBBBNNd", "aBBBBBBBNNNd",
                           "aNNNNNNNNNNd", "dddddddddddd", ".....gd.....", "....aggd....", "...gggggd..."], 2, 3))
 
+# fast forward (debug: skip years) and clipboard (debug: copy report)
+add("⏩", "fast_forward", layer(["w.....w.....", "www...www...", "wwwww.wwwww.", "wwwwwwwwwwww", "wwwwwwwwwwww", "wwwwaawwwwa.", "wwa...wwa...", "a.....a....."], 2, 4))
+add("📋", "clipboard", layer(["...gaaag...", "OOOgddgOOO.", "OPPPPPPPPO.", "OPkkkkkkPO.", "OPPPPPPPPO.", "OPkkkkkPPO.",
+                             "OPPPPPPPPO.", "OPkkkkkkPO.", "OPPPPPPPPO.", "OPkkkPPPPO.", "OPPPPPPPPO.", "HHHHHHHHHH."], 2, 2))
+
+# ladybug: debug mode (settings + debug panel, scripts/ui/debug_screen.gd)
+add("🐞", "bug", layer(["...k..k.....", "....kk......", "...kkkk.....", "..RRRkRRR...", ".RRkRkRkRR..", ".RRRRkRRRR..",
+                       "RkRRRkRRRkR.", "RRRRRkRRRRE.", ".RRkRkRkRE..", ".RRRRkRRRE..", "..EERkREE...", "....EEE....."], 2, 2))
+
 if __name__ == "__main__":
     os.makedirs(SRC, exist_ok=True)
     os.makedirs(OUT, exist_ok=True)

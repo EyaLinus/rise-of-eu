@@ -16,6 +16,7 @@ const Warfare = preload("res://scripts/core/warfare.gd")
 const Naval = preload("res://scripts/core/naval.gd")
 const FirstSteps = preload("res://scripts/core/first_steps.gd")
 const GovScreen = preload("res://scripts/ui/gov_screen.gd")
+const DebugScreen = preload("res://scripts/ui/debug_screen.gd")
 const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
 const SAVE_PATH := "user://save.json"  # the autosave, also what "Weiterspielen" loads
 const SAVE_META_PATH := "user://saves.json"  # nation, date and score per slot, so the slot list needs no full parse
@@ -102,10 +103,12 @@ const MUSIC_STEPS := [0.0, 0.25, 0.5, 0.75, 1.0]
 var last_battles := 0
 var tech_screen := TechScreen.new(self)
 var gov_screen := GovScreen.new(self)
+var debug_screen := DebugScreen.new(self)  # debug mode, performance overlay, crash watch
 
 
 func _ready() -> void:
 	_load_settings()
+	debug_screen.start_session()
 	_setup_theme()
 	for k in ["click", "event", "war", "peace", "battle", "success"]:
 		var path := "res://assets/sfx/%s.wav" % k
@@ -132,6 +135,7 @@ func _ready() -> void:
 	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hud)
 	_build_hud()
+	debug_screen.build_overlay(hud)
 	_build_modal()
 	hud.visible = false
 	get_tree().set_auto_accept_quit(false)
@@ -1034,6 +1038,7 @@ func _place_toast() -> void:
 
 func _process(delta: float) -> void:
 	_check_long_press()
+	debug_screen.process()
 	if toast_time > 0.0:
 		_place_toast()
 		toast_time -= delta
@@ -1044,7 +1049,7 @@ func _process(delta: float) -> void:
 	if _refresh_pending and _press_range == null and Time.get_ticks_msec() - _last_refresh_ms >= PANEL_REFRESH_MS:
 		_refresh_pending = false
 		_last_refresh_ms = Time.get_ticks_msec()
-		if game != null and side_panel.visible and panel_mode != "peace":
+		if game != null and side_panel.visible and panel_mode != "peace" and not debug_screen.typing():
 			_refresh()
 	if game == null or modal.visible or speed == 0 or game.game_over:
 		return
@@ -1056,7 +1061,9 @@ func _process(delta: float) -> void:
 	acc = minf(acc, spm * 2.0)
 	while acc >= spm and steps < 4 and (steps == 0 or Time.get_ticks_msec() - t0 < 12):
 		acc -= spm
+		var tick_t0 := Time.get_ticks_usec()
 		game.tick()
+		debug_screen.note_tick(Time.get_ticks_usec() - tick_t0)
 		steps += 1
 		if game.month % 12 == 0 and Time.get_ticks_msec() - _last_autosave_ms >= AUTOSAVE_MS:
 			_save_game()
@@ -1091,7 +1098,7 @@ func _after_tick() -> void:
 	if not game.pending_peace.is_empty():
 		_show_peace_offer(game.pending_peace[0])
 		return
-	if side_panel.visible and panel_mode != "peace":
+	if side_panel.visible and panel_mode != "peace" and not debug_screen.typing():
 		# never rebuild the panel under a slider that is being dragged
 		if _press_range == null and Time.get_ticks_msec() - _last_refresh_ms >= PANEL_REFRESH_MS:
 			_refresh_pending = false
@@ -1410,6 +1417,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_next_army()
 	elif (k == KEY_S or (k == KEY_F and event.ctrl_pressed)) and not modal.visible:
 		_show_search()
+	elif k == KEY_F12 and debug_screen.enabled():
+		if side_panel.visible and panel_mode == "debug":
+			_close_panel()
+		else:
+			debug_screen.open()
 	elif k == KEY_F5:
 		_act("" if _save_game() else "Speichern fehlgeschlagen", "💾 Gespeichert")
 	elif (k == KEY_F1 or k == KEY_H) and not modal.visible:
@@ -1428,7 +1440,13 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		_save_game()
 		get_tree().quit()
+	elif what == NOTIFICATION_EXIT_TREE:
+		debug_screen.end_session()  # clean quit (window closed, menu "Beenden")
+	elif what == NOTIFICATION_APPLICATION_RESUMED:
+		debug_screen.resume_session()
 	elif what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		if what == NOTIFICATION_APPLICATION_PAUSED:
+			debug_screen.end_session(true)  # Android may kill a paused app: that is no crash
 		_save_game()
 	elif what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		if modal.visible and game != null and game.pending_events.is_empty() and game.pending_peace.is_empty():
@@ -1466,6 +1484,8 @@ func _show_menu() -> void:
 	]
 	if _has_keyboard():
 		acts.append(_btn("⌨️ Tastenkürzel", _show_shortcuts, "Alle Tasten auf einen Blick (F1)"))
+	if debug_screen.enabled():
+		acts.append(_btn("🐞 Debug", func(): _close_modal(); debug_screen.open(), "Leistung, Spielzustand, Absturzinfo, Cheats (am PC: F12)"))
 	acts.append(_btn("🏠 Hauptmenü", func(): _save_game(); game = null; _show_start_menu(), "Speichert und kehrt zum Startmenü zurück."))
 	if OS.get_name() != "Android" and OS.get_name() != "Web":
 		acts.append(_btn("🚪 Beenden", func(): _save_game(); get_tree().quit(), "Speichert und beendet das Spiel."))
@@ -1615,6 +1635,10 @@ func _show_settings() -> void:
 			settings.big_ui = not settings.get("big_ui", false)
 			_save_settings()
 			_show_settings(), "Größere Bedienelemente für Touchscreens. Die Leisten ändern sich nach einem Neustart."))
+	opts.append(_btn("🐞 Debug-Modus: %s" % ("an" if settings.get("debug", false) else "aus"), func():
+		settings.debug = not settings.get("debug", false)
+		_save_settings()
+		_show_settings(), "Leistungsanzeige über der Karte, Debug-Fenster (F12 oder im Menü) mit Speicher, Spielzustand, Absturzinfo und Test-Cheats."))
 	if opts.size() % 2 == 1:
 		opts.append(Control.new())
 	modal_box.add_child(_grid(opts))
@@ -1626,7 +1650,7 @@ const SHORTCUTS := [
 	["Pfeile", "Karte verschieben"], ["Bild ↑ ↓", "Zoom (auch Mausrad)"], ["Tab", "nächster Kartenmodus"],
 	["V", "Kartenmodi + Legende"], ["N", "Nation"], ["E", "Wirtschaft"], ["T", "Technologie"], ["G", "Regierung"],
 	["D", "Diplomatie"], ["K", "Kriege"], ["F", "Flotte / Marine"], ["M", "Missionen"], ["L", "Chronik"], ["R", "Ratgeber"],
-	["S / Strg+F", "Provinz oder Nation suchen"], ["A", "nächste Armee (untätige zuerst)"], ["F5", "Schnellspeichern"], ["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F1", "diese Übersicht"],
+	["S / Strg+F", "Provinz oder Nation suchen"], ["A", "nächste Armee (untätige zuerst)"], ["F5", "Schnellspeichern"], ["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F1", "diese Übersicht"], ["F12", "Debug-Fenster (Debug-Modus)"],
 ]
 
 
@@ -2030,6 +2054,8 @@ func _refresh() -> void:
 			_panel_modifiers()
 		"advice":
 			_panel_advice()
+		"debug":
+			debug_screen.build()
 	side_scroll.set_deferred("scroll_vertical", scroll)
 	_fit_title.call_deferred()
 

@@ -106,6 +106,14 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "navy", "missions", "log", "ranking", "hre", "advice"]:
 		m._open_panel(mode)
 		n += 1
+	if month % 60 == 12:  # debug panel (debug mode), with the event search filled in
+		m.settings.debug = true
+		m.debug_screen.event_filter = "war_"
+		m.debug_screen.open()
+		m.debug_screen.process()
+		m.debug_screen.event_filter = ""
+		m.settings.debug = false
+		n += 1
 	if month % 108 == 36:  # beginner goals, a few passes only: every jump opens, finished ones get claimed
 		for it in m.FirstSteps.steps(g, tag):
 			m._first_step_go(it.id, it.mode)
