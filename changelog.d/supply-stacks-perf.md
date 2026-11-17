@@ -1,0 +1,5 @@
+- Versorgungslimit: Jede Provinz ernährt nur eine bestimmte Zahl Regimenter (mehr Entwicklung und Straßen = mehr, im eigenen und verbündeten Land das 1,5-fache). Stehen im Krieg mehr dort, schwindet der Überschuss jeden Monat und es gibt keinen Nachschub. Im Frieden bleibt das eigene Land ohne Verluste. Anzeige 🌾 im Armee-Fenster und im Provinz-Reiter „Armee“.
+- KI-Armeen: mehrere Stapel eines Landes in einer Provinz vereinen sich automatisch, statt als viele Einzelregimenter herumzustehen. Zu große Heere teilt die KI auf und belagert getrennt.
+- Karte: In vollen Provinzen werden höchstens drei Armeen gezeichnet (die ausgewählte, die eigenen, dann die größten), der Rest steht als „+N · Regimenter“ darunter.
+- Tempo: Die Karte zeichnet nach jedem Monat nur noch die Provinzen neu, an denen sich etwas geändert hat (im Schnitt weniger als eine statt aller), ebenso Grenzen, Straßen und Städte nur bei Änderung. Zoomen zeichnet die Provinzflächen nicht mehr neu.
+- Armeen in einer Provinz stehen sauber untereinander statt übereinander.

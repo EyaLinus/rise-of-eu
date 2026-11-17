@@ -159,6 +159,7 @@ var armies: Array = []
 var voyages: Array = []  # armies at sea (Naval.transport): {"army", "from", "to", "left", "total"}
 var wars: Array = []
 var battles: Array = []  # running Warfare.Battle
+var over_supply := {}  # Warfare.attrition: camps over their supply limit this month (pid * 2 + side)
 var straits := {}  # sea crossings, Warfare.strait_key -> true
 var seas: Array = []  # Naval: {"id", "name", "center", "provinces"}
 var sea_by_id := {}
@@ -1132,11 +1133,32 @@ func _armies_tick() -> void:
 	Warfare.battles_tick(self)
 	for p in provinces:
 		_siege(p)
+	_merge_ai_stacks()
+	Warfare.attrition(self)
 	for a in armies:
 		if Warfare.in_battle(self, a):
 			continue
 		_reinforce(a)
 		_recover_power(a)
+
+
+## AI realms never keep several stacks in one province: they join into one army (as long as the land
+## can feed it), so the map shows one counter instead of a pile of single regiments.
+func _merge_ai_stacks() -> void:
+	var seen := {}  # "tag:pid" -> first army there
+	var again := {}
+	for a in armies:
+		if a.owner == player or Warfare.in_battle(self, a):
+			continue
+		var key := "%s:%d" % [a.owner, a.pid]
+		if seen.has(key):
+			again[key] = a
+		else:
+			seen[key] = a
+	for key in again:
+		var a: Army = again[key]
+		if not is_at_war(a.owner) or Warfare.supply_load(self, a.pid, a.owner) <= Warfare.supply_limit(self, a.pid, a.owner):
+			merge_armies(a.owner, a.pid)
 
 
 func _side_power(arms: Array, pid: int) -> float:
@@ -1254,6 +1276,8 @@ func _reinforce(a: Army) -> void:
 	if p.controller != a.owner and not is_allied(a.owner, p.controller):
 		return
 	var n: Nation = nations[a.owner]
+	if is_at_war(a.owner) and Warfare.over_supply(self, a):
+		return  # the land cannot feed more men
 	var amt: float = minf(a.full - a.regs, minf(a.full * float(bal.reinforce_rate), n.manpower))
 	if amt <= 0.0 or n.gold < 0.0:
 		return
