@@ -350,8 +350,13 @@ func log_tail(previous: bool, lines: int) -> String:
 	return "\n".join(all.slice(maxi(0, all.size() - lines)))
 
 
+## "v1.0.2": the game version from project.godot (application/config/version, bumped at every release).
+static func version() -> String:
+	return "v" + str(ProjectSettings.get_setting("application/config/version", "?"))
+
+
 func report() -> String:
-	var lines := ["Rise of EU %s · %s · Godot %s" % [ProjectSettings.get_setting("application/config/version", "?"), OS.get_name(), Engine.get_version_info().string],
+	var lines := ["Rise of EU %s · %s · Godot %s" % [version(), OS.get_name(), Engine.get_version_info().string],
 		"FPS %d, längster Frame %.0f ms, Monat %.1f ms (max %.1f), %s" % [int(Performance.get_monitor(Performance.TIME_FPS)), frame_worst_ms,
 			tick_avg_ms(), tick_max_ms(), mem_text()]]
 	if m.game != null:
@@ -360,6 +365,62 @@ func report() -> String:
 		lines.append("Letzte Sitzung abgestürzt: " + JSON.stringify(last_crash))
 		lines.append("Log davor:\n" + log_tail(true, 30))
 	return "\n".join(lines)
+
+
+# ---------------------------------------------------------------- crash reporter
+
+const CRASH_REPORT_PATH := "user://crash_report.txt"
+
+
+## Report about the session that ended unexpectedly: version, device, the last heartbeat (game state a few
+## seconds before) and the end of that session's log (with flush_stdout_on_print the engine's crash
+## backtrace lands there too). Also written to user://crash_report.txt.
+func crash_report() -> String:
+	var d := last_crash
+	var lines := [
+		"Rise of EU %s · Absturzbericht" % version(),
+		"System: %s %s · %s · %s · Godot %s" % [OS.get_name(), OS.get_version(), OS.get_model_name(),
+			RenderingServer.get_video_adapter_name(), Engine.get_version_info().string],
+		"Abgestürzt: %s, nach %d Min. Spielzeit (letztes Lebenszeichen)" % [d.get("time", "?"), int(d.get("minutes", 0))],
+	]
+	var gs: Dictionary = d.get("game", {})
+	if not gs.is_empty():
+		lines.append("Spiel: %s, Jahr %d · %s" % [str(d.get("player", "?")), int(gs.get("year", 0)), JSON.stringify(gs)])
+	lines.append("Leistung davor: FPS %s, Monat %s ms, längster Frame %s ms, VRAM %s MB" % [str(d.get("fps", "?")),
+		str(d.get("tick_ms", "?")), str(d.get("frame_worst_ms", "?")), str(d.get("vram_mb", "?"))])
+	var tail := log_tail(true, 60)
+	lines.append("Log (Ende):\n" + (tail if tail != "" else "(leer)"))
+	var txt := "\n".join(lines)
+	var f := FileAccess.open(CRASH_REPORT_PATH, FileAccess.WRITE)
+	if f != null:
+		f.store_string(txt)
+	return txt
+
+
+## Popup on the start screen after a crash (every build, not only in debug mode): what happened, the
+## report to copy (clipboard works on PC and Android) and on PC the folder with report and logs.
+func show_crash_dialog(on_close: Callable) -> void:
+	var txt := crash_report()
+	m._open_modal()
+	m.modal_box.add_child(m._lbl("💀 Das Spiel ist abgestürzt", 28))
+	m.modal_box.add_child(m._lbl("Die letzte Sitzung wurde nicht normal beendet. Der Spielstand vom letzten Autosave ist noch da. Hilf beim Beheben: Bericht kopieren und einfügen, wo du Fehler meldest.", 16, Color(0.85, 0.85, 0.9)))
+	var t := TextEdit.new()
+	t.text = txt
+	t.editable = false
+	t.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	t.custom_minimum_size = Vector2(0, 260)
+	t.add_theme_font_size_override("font_size", 12)
+	m.modal_box.add_child(t)
+	var copy: Button = m._btn("📋 Bericht kopieren", func():
+		DisplayServer.clipboard_set(txt)
+		m._toast("📋 Absturzbericht in der Zwischenablage."))
+	var folder: Button = m._btn("📂 Ordner öffnen", func():
+		OS.shell_show_in_file_manager(ProjectSettings.globalize_path(CRASH_REPORT_PATH)),
+		"Ordner mit crash_report.txt und den Logs.", not OS.has_feature("pc"))
+	m.modal_box.add_child(m._grid([copy, folder]))
+	m.modal_box.add_child(m._btn("Weiter", func():
+		last_crash = {}
+		on_close.call()))
 
 
 func _copy_report() -> void:

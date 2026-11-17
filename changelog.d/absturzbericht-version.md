@@ -1,0 +1,2 @@
+- **Absturzbericht:** Wenn die letzte Sitzung abgestürzt ist, zeigt das Spiel beim nächsten Start ein Fenster mit einem Bericht: Version, System und Grafikkarte, Spielstand kurz vor dem Absturz und das Ende des Logs. Mit „Bericht kopieren“ (PC und Android) kommt er in die Zwischenablage, am PC öffnet „Ordner öffnen“ den Ordner mit crash_report.txt und den Logs. Das gibt es in jedem Build, auch ohne Debug-Modus.
+- **Versionsnummer** im Startmenü und im Pause-Menü.
