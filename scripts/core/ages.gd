@@ -135,11 +135,12 @@ static func open_questions(g, n) -> Array:
 	return r
 
 
-## Yearly: put the due questions (popup for the player, weighted choice for the AI) and let the AI deepen a
+## Yearly: put the next due question (popup for the player, weighted choice for the AI) and let the AI deepen a
 ## choice now and then when it can still afford its next technology afterwards.
 static func yearly(g, n) -> void:
-	for q in open_questions(g, n):
-		g.fire_event(n.tag, "age_q_" + q.id)
+	var due := open_questions(g, n)
+	if not due.is_empty():  # one question a year, so an old save does not get a row of popups
+		g.fire_event(n.tag, "age_q_" + due[0].id)
 	if n.tag == g.player or g.rng.randf() > float(g.age_cfg.get("ai_up_chance", 0.2)):
 		return
 	for qid in n.age_picks:
