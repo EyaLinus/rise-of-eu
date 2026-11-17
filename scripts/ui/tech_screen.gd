@@ -8,6 +8,7 @@ extends RefCounted
 
 const Tech = preload("res://scripts/core/tech.gd")
 const Icons = preload("res://scripts/ui/icons.gd")
+const Ages = preload("res://scripts/core/ages.gd")
 
 const CAT_NAMES := {"adm": "Verwaltung", "dip": "Diplomatie", "mil": "Militär"}
 
@@ -63,10 +64,13 @@ func build() -> void:
 	var age: Dictionary = gv.age_of_year(g.year())
 	var age_txt := "🏆 %d/%d" % [gv.age_goals_done(n, age), age.goals.size()] if not age.is_empty() else "🏆"
 	var goals: Button = m._btn(age_txt, _ages, "Zeitalter-Ziele: erreichte Ziele geben dauerhafte Boni")
+	var ways: Button = m._btn("⚖ %d" % n.age_picks.size(), _decisions, "Weichen der Zeitalter: deine großen Entscheidungen, ihre Boni und ihr Ausbau")
 	var sum: Button = m._btn("📈 Gesamt", _overview, "Gesamtwirkung deiner Technologien")
 	var plan: Button = m._btn("📜 Plan %d" % n.tech_queue.size(), _plan, "Forschungsplan: vorgemerkte Technologien werden automatisch erforscht")
-	m.side_box.add_child(m._row([il, goals, plan, sum]))
-	for b in [goals, plan, sum]:
+	m.side_box.add_child(m._row([il, goals, ways, plan, sum]))
+	if _can_deepen(g, me):
+		ways.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
+	for b in [goals, ways, plan, sum]:
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		b.size_flags_horizontal = Control.SIZE_SHRINK_END
 		b.clip_text = false
@@ -170,6 +174,61 @@ func _ages() -> void:
 		box.add_child(m._lbl(tl, 16, Color(1.0, 0.85, 0.4) if won else Color(0.85, 0.85, 0.85)))
 		if running or won:
 			box.add_child(effects_rich(age.triumph.reward, 14))
+	box.add_child(m._btn("Schließen", m._close_modal))
+
+
+func _can_deepen(g, me: String) -> bool:
+	for qid in g.nations[me].age_picks:
+		if Ages.up_block(g, me, qid) == "":
+			return true
+	return false
+
+
+## Popup with the age decisions: what was chosen, what it gives, deepening it, and what is still to come.
+func _decisions() -> void:
+	var g = m.game
+	var me: String = g.player
+	var n = g.nations[me]
+	var y: int = g.year()
+	m._open_modal()
+	var box: VBoxContainer = m.modal_box
+	box.add_child(m._lbl("⚖ Weichen der Zeitalter", 26))
+	box.add_child(m._lbl("Jedes Zeitalter stellt dein Reich vor drei große Fragen. Die Antwort gilt für den Rest des Spiels, lässt sich zweimal vertiefen und wirkt mit manchen früheren Antworten zusammen (🔗). Nur Ereignisse können eine Weiche später noch umstellen.", 15, Color(0.72, 0.75, 0.82)))
+	var ages: Array = g.age_cfg.get("ages", [])
+	for i in ages.size():
+		var age: Dictionary = ages[i]
+		var running: bool = y >= int(age.from) and (i + 1 >= ages.size() or y < int(ages[i + 1].from))
+		box.add_child(m._lbl(("▶ " if running else "") + "%s (ab %d)" % [age.name, int(age.from)], 20, Color(1.0, 0.9, 0.6) if running else Color(0.75, 0.78, 0.85)))
+		if running:
+			box.add_child(m._lbl(age.motto, 14, Color(0.8, 0.8, 0.7)))
+		for q in Ages.questions(g):
+			if q.age != age.id:
+				continue
+			var o: Dictionary = Ages.chosen(g, n, q.id)
+			if o.is_empty():
+				var soon: String = "%d: %s" % [int(q.year), q.title] if y < int(q.year) else "%s (die Entscheidung steht an)" % q.title
+				box.add_child(m._lbl("· " + soon, 15, Color(0.6, 0.62, 0.68)))
+				continue
+			var lvl: int = Ages.level(n, q.id)
+			box.add_child(m._lbl("%s – %s · Stufe %d/%d" % [q.title, o.name, lvl, Ages.max_level(g)], 16, Color(0.7, 0.95, 0.7)))
+			box.add_child(effects_rich(Ages.option_effects(o, lvl, Ages.synergy_on(g, n, o)), 14))
+			if o.has("synergy"):
+				var on: bool = Ages.synergy_on(g, n, o)
+				box.add_child(m._lbl("🔗 %s „%s“: %s" % ["aktiv mit" if on else "wäre stärker mit", g.age_opt[o.synergy["with"]][1].name, Tech.effects_text(o.synergy.effects)],
+						14, Color(0.7, 0.85, 1.0) if on else Color(0.6, 0.62, 0.68)))
+			if lvl < Ages.max_level(g):
+				var cost: float = Ages.up_cost(g, n, q.id)
+				var go := func():
+					var err: String = Ages.upgrade(g, me, q.id)
+					m._close_modal()
+					m._act(err, "⚖ %s vertieft" % o.name)
+					if err == "":
+						_decisions()
+				var b: Button = m._btn("➕ Vertiefen: %s (%d %s)" % [Tech.effects_text(o.up), cost, Icons.emoji(o.power)], go,
+						"Stufe %d: verstärkt diese Weiche dauerhaft. Du hast %d %s." % [lvl + 1, n.get(o.power), Icons.emoji(o.power)], Ages.up_block(g, me, q.id) != "")
+				b.clip_text = false
+				b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				box.add_child(b)
 	box.add_child(m._btn("Schließen", m._close_modal))
 
 

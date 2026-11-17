@@ -11,6 +11,7 @@ const Tech = preload("res://scripts/core/tech.gd")
 const Faith = preload("res://scripts/core/religion.gd")
 const Colonial = preload("res://scripts/core/colonial.gd")
 const Monuments = preload("res://scripts/core/monuments.gd")
+const Ages = preload("res://scripts/core/ages.gd")
 const Formables = preload("res://scripts/core/formables.gd")
 const Warfare = preload("res://scripts/core/warfare.gd")
 const Naval = preload("res://scripts/core/naval.gd")
@@ -2891,7 +2892,7 @@ func _panel_nation() -> void:
 
 
 const MOD_SOURCES := {"": "Nationalgeist & Ereignisse", "goods": "Handelsgüter", "buildings": "Gebäude", "rank": "Rang",
-		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "rivals": "Rivalen", "embargo": "Embargos", "blockade": "Blockaden", "escort": "Handelsschutz", "formed": "Reichsgründung"}
+		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "rivals": "Rivalen", "embargo": "Embargos", "blockade": "Blockaden", "escort": "Handelsschutz", "formed": "Reichsgründung", "ages": "Weichen der Zeitalter"}
 const MOD_GROUPS := [
 	["💰 Wirtschaft", ["income", "tax", "production", "trade", "merchants", "build_cost", "develop_cost"]],
 	["⚔️ Militär", ["combat", "army_power", "army_power_regen", "manpower", "force_limit", "maintenance", "siege", "naval"]],
@@ -3979,6 +3980,28 @@ func effects_text(e: Dictionary) -> String:
 	return ", ".join(parts)
 
 
+## An age decision as effect parts: lasting modifiers, the one-time payment and the synergy with an earlier choice.
+func _age_pick_parts(qid: String, oid: String) -> Array:
+	var parts := []
+	if not game.age_opt.has(oid):
+		return parts
+	var n = game.nations[game.player]
+	var o: Dictionary = game.age_opt[oid][1]
+	if n.age_picks.has(qid):  # an event changes an earlier choice
+		parts.append(["⚖ Neue Weiche: %s" % o.name, 0])
+	for r in UiTheme.mod_rows(Ages.option_effects(o, maxi(1, Ages.level(n, qid)), false)):
+		parts.append(["%s %s" % [r[1], r[0]], 1 if r[2] else -1])
+	if o.has("once") and not n.age_picks.has(qid):
+		for p in effect_parts(o.once):
+			parts.append([p[0] + " (einmalig)", p[1]])
+	if o.has("synergy"):
+		var on: bool = Ages.synergy_on(game, n, o)
+		for r in UiTheme.mod_rows(o.synergy.effects):
+			parts.append(["🔗 %s %s (mit „%s“%s)" % [r[1], r[0], game.age_opt[o.synergy["with"]][1].name, "" if on else ", nicht gewählt"],
+					(1 if r[2] else -1) if on else 0])
+	return parts
+
+
 ## Effects as BBCode: buffs green with an up arrow, nerfs red with a down arrow, neutral grey.
 func effects_bb(e: Dictionary, sep: String = "   ") -> String:
 	var parts := []
@@ -4058,6 +4081,8 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["🍷 Nächstes Hoffest sofort möglich", 1])
 		elif k == "ships":
 			parts.append(["⚓ Schiffe %+d" % int(v), sgn.call(float(v))])
+		elif k == "age_pick":
+			parts.append_array(_age_pick_parts(str(v[0]), str(v[1])))
 		elif k == "power_proj":
 			parts.append(["🎯 Machtprojektion %+d" % int(v), sgn.call(float(v))])
 		elif k == "rival_rel":

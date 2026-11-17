@@ -153,6 +153,8 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 		m._close_modal()
 		m.tech_screen._ages()
 		m._close_modal()
+		m.tech_screen._decisions()
+		m._close_modal()
 		g.tree.queue_add(g, tag, g.tree.techs_for(tag, g.POWERS[month % 3])[(month / 12) % 30].id)
 		m.tech_screen._plan()
 		m._close_modal()
