@@ -454,24 +454,30 @@ func _build_modal() -> void:
 	modal_box.add_theme_constant_override("separation", 10)
 	sc.add_child(modal_box)
 	modal.visible = false
-	modal_box.resized.connect(_fit_modal)
+	modal_box.resized.connect(_fit_modal.call_deferred)
 	# a window resize or UI-size change while a popup is open must shrink it too, or its end (and the
 	# close button) sits below the screen edge where no scrolling reaches it
 	get_viewport().size_changed.connect(_fit_modal.call_deferred)
 
 
-## Popup height: its content, at most the screen minus a margin (then it scrolls). Width shrinks on narrow screens.
+## Popup height: its content, at most the screen minus a margin (then it scrolls). Always deferred, never
+## during a container sort: changing sizes mid-sort left the popup unsorted (squeezed, overlapping text).
+## The width stays fixed (640); only the height follows content and screen.
 func _fit_modal() -> void:
-	if modal_box == null:
+	if modal_box == null or not modal.visible:
 		return
+	var cap: float = get_viewport_rect().size.y - 60.0
+	if cap < 120.0:
+		return  # minimised or not yet sized: keep the last good height
 	var sc := modal_box.get_parent() as ScrollContainer
-	var pc := sc.get_parent() as PanelContainer
-	var vp: Vector2 = get_viewport_rect().size
-	var pad: Vector2 = pc.get_theme_stylebox("panel").get_minimum_size() if pc.has_theme_stylebox("panel") else Vector2.ZERO
-	pc.custom_minimum_size.x = minf(640.0, vp.x - 16.0)
-	sc.custom_minimum_size.x = maxf(200.0, pc.custom_minimum_size.x - 20.0)
-	sc.custom_minimum_size.y = maxf(0.0, minf(modal_box.get_combined_minimum_size().y, vp.y - 32.0 - pad.y))
-	pc.reset_size()  # drop the old (taller) size, CenterContainer re-centres it
+	var need: float = modal_box.get_combined_minimum_size().y
+	var h: float = minf(need, cap)
+	if absf(sc.custom_minimum_size.y - h) > 0.5:
+		sc.custom_minimum_size.y = h
+	# the scroll bar switches on once per popup and never back: an AUTO bar at the height limit toggled
+	# endlessly (bar on -> narrower -> other wrap -> bar off ...), flooded the message queue and froze the game
+	if need > cap + 1.0 and sc.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_SHOW_ALWAYS:
+		sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS
 
 
 # ---------------------------------------------------------------- helpers
@@ -1571,6 +1577,9 @@ func _notification(what: int) -> void:
 
 func _open_modal() -> void:
 	_clear(modal_box)
+	var sc := modal_box.get_parent() as ScrollContainer
+	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER  # _fit_modal shows it if needed
+	sc.scroll_vertical = 0
 	modal.visible = true
 	_fit_modal.call_deferred()  # same-height content fires no resized signal
 
