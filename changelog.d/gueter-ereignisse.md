@@ -1,0 +1,1 @@
+- **Geschichten zu den neuen Gütern:** 13 Ereignisse für Seide, Gewürze, Baumwolle, Glas, Papier, Pferde, Olivenöl, Bernstein, Schiffsbedarf, Elfenbein, Farbstoffe, Kaffee und Weihrauch (für Reiche, die das Gut herstellen), dazu zwei skurrile Hofgeschichten.

@@ -66,6 +66,7 @@ func _init() -> void:
 		"test_market_dominance",
 		"test_debug_tools",
 		"test_ledger",
+		"test_goods_events",
 		"test_more_goods_and_softer_costs",
 		"test_supply_and_ai_stacks",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
@@ -3810,3 +3811,15 @@ func test_supply_and_ai_stacks() -> void:
 	W.attrition(g)
 	check(absf(small.regs - 3.0) < 0.01, "an army within the limit loses nothing")
 
+
+
+func test_goods_events() -> void:
+	var g = new_game("VEN", 3)
+	var n := 0
+	for e in g.event_defs:
+		if String(e.id).begins_with("gds_"):
+			n += 1
+			var good = e.trigger.get("produces", "")
+			check(good == "" or g.goods_def.has(good), "%s: good %s exists" % [e.id, good])
+	check(n >= 15, "goods events present (%d)" % n)
+	check(g.check_conditions("VEN", g.event_by_id["gds_glass_secret"].trigger) == (g.year() >= 1450), "Venice makes glass, so the glass story can fire")
