@@ -18,6 +18,7 @@ const Urban = preload("res://scripts/core/urban.gd")
 const Colonial = preload("res://scripts/core/colonial.gd")
 const Trade = preload("res://scripts/core/trade.gd")
 const Landmarks = preload("res://scripts/core/landmarks.gd")
+const Stability = preload("res://scripts/core/stability.gd")
 
 const POWERS := ["adm", "dip", "mil"]
 const MONTH_NAMES := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
@@ -177,6 +178,8 @@ class Nation:
 	var fleet_sea: String = ""  # player's fleet station: "" = spread over all own coastal seas
 	var fleet_mission: String = "patrol"  # Naval.MISSIONS
 	var army_stance: String = ""  # player's default for new armies: "" manual, "attack" or "defend"
+	var stability: float = 0.0  # -100..100 (Stability)
+	var rank: int = 0  # realm rank, index into Progression.RANKS
 
 
 class Army:
@@ -421,7 +424,10 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		if data.nations[tag].has("colonial"):
 			colonial_drive[tag] = float(data.nations[tag].colonial)
 	Colonial.setup(self, data)
-	Progression.refresh(self)
+	Progression.start_ranks(self)
+	for tag in order:
+		nations[tag].stability = float(bal.stab_start)
+		Stability.refresh_bonus(self, nations[tag])
 	event_defs = data.get("events", [])
 	_ev_index = {}
 	for e in event_defs:
@@ -1023,6 +1029,7 @@ func _economy(n: Nation) -> void:
 		nations[n.overlord].gold += tribute
 	n.gold += n.income - n.expenses
 	_rivals_monthly(n)
+	Stability.monthly(self, n)
 	var cap := float(bal.power_cap)
 	n.adm = minf(cap, n.adm + monthly_power(n, "adm"))
 	n.dip = minf(cap, n.dip + monthly_power(n, "dip"))
@@ -1096,8 +1103,9 @@ func unrest_parts(pid: int) -> Dictionary:
 	if p.suppress_months > 0:
 		r.suppressed = -float(bal.unrest_suppress)
 	r.estates = float(n.bonus.get("estates", {}).get("unrest", 0.0))  # angry or loyal estates
-	r.policy = mod(n, "unrest") - r.estates  # techs, advisors, laws
-	r.total = maxf(0.0, r.uncored + r.war + r.garrison + r.suppressed + r.policy + r.estates + r.buildings + r.religion)
+	r.stability = float(n.bonus.get("stability", {}).get("unrest", 0.0))  # Stability
+	r.policy = mod(n, "unrest") - r.estates - r.stability  # techs, advisors, laws
+	r.total = maxf(0.0, r.uncored + r.war + r.garrison + r.suppressed + r.policy + r.estates + r.stability + r.buildings + r.religion)
 	return r
 
 
@@ -1145,6 +1153,7 @@ func _revolt(p: Province) -> void:
 			stats.died_revolt = stats.get("died_revolt", 0) + 1
 		return
 	stats.revolts += 1
+	Stability.add(self, owner, -float(bal.stab_revolt))
 	p.dev = maxi(1, p.dev - 1)
 	nations[owner].gold -= p.dev * 2.0
 	p.suppress_months = 24
@@ -1201,6 +1210,7 @@ func _yearly_nation(tag: String) -> void:
 	n.ruler.years -= 1
 	if n.ruler.years <= 0:
 		govt.succession(self, n)
+		Stability.add(self, tag, -float(bal.stab_succession), "Thronwechsel")
 		var who: String = n.ruler_name if n.ruler_name != "" else "Ein neuer Herrscher"
 		var tr: String = govt.trait_name(n.gov.get("ruler_trait", ""))
 		log_msg("👑 %s besteigt den Thron (📜%d 🕊️%d ⚔️%d%s)." % [who, n.ruler.adm, n.ruler.dip, n.ruler.mil, ", " + tr if tr != "" else ""], [tag])
@@ -1749,6 +1759,7 @@ func declare_war(att: String, def: String, coalition_members: Array = []) -> Str
 			return "Zu wenig Diplomatie für einen Krieg ohne Kriegsgrund."
 		n.dip -= float(bal.nocb_war_dip)
 		n.ae += float(bal.ae_no_cb) * ae_mult(att)
+		Stability.add(self, att, -float(bal.stab_nocb_war), "Krieg ohne Kriegsgrund")
 	var w := War.new()
 	w.id = next_war_id
 	next_war_id += 1
@@ -1852,6 +1863,12 @@ func make_peace(w: War, winner_att: bool, pids: Array, vassalize: bool = false) 
 	peace_offer_memo.erase(w.id)
 	var winners: Array = side_tags(w, winner_att)
 	var losers: Array = side_tags(w, not winner_att)
+	for t in winners:
+		if nations[t].alive:
+			Stability.add(self, t, float(bal.stab_war_won), "Sieg im Krieg")
+	for t in losers:
+		if nations[t].alive:
+			Stability.add(self, t, -float(bal.stab_war_lost) * (1.0 if not pids.is_empty() or vassalize else 0.5), "Niederlage im Krieg")
 	var lead: String = winners[0]
 	var new_vassal: String = losers[0] if vassalize else ""
 	# fun over realism: one peace deal never costs the player more AE than ae_peace_cap_player
@@ -3051,6 +3068,8 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 					a.power = clampf(a.power + float(v) * power_max(tag), 0.0, power_max(tag))
 			"power_proj":
 				add_power_proj(tag, float(v))
+			"stability":
+				Stability.add(self, tag, float(v))
 			"rival_rel":
 				for t in n.rivals:
 					add_rel(tag, t, float(v))
@@ -3361,6 +3380,18 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"power_proj_min":
 				if n.power_proj < float(v):
 					return false
+			"stability_min":
+				if n.stability < float(v):
+					return false
+			"stability_max":
+				if n.stability > float(v):
+					return false
+			"rank_min":
+				if n.rank < int(v):
+					return false
+			"rank_max":
+				if n.rank > int(v):
+					return false
 			"rival_at_war":
 				var fighting := false
 				for t in n.rivals:
@@ -3535,7 +3566,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "embargoes": n.embargoes, "templates": n.templates, "recruit_tmpl": n.recruit_tmpl, "religion": n.religion, "ships": snappedf(n.ships, 0.0001), "fleet_sea": n.fleet_sea, "fleet_mission": n.fleet_mission, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "stability": n.stability, "rank": n.rank, "embargoes": n.embargoes, "templates": n.templates, "recruit_tmpl": n.recruit_tmpl, "religion": n.religion, "ships": snappedf(n.ships, 0.0001), "fleet_sea": n.fleet_sea, "fleet_mission": n.fleet_mission, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
 				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n), "colonial": Colonial.nation_save(n), "age_picks": Ages.to_save(n)}
 	d.nations = ns
 	var ar := []
@@ -3729,6 +3760,8 @@ func from_dict(d: Dictionary) -> void:
 		for t in e.get("rivals", []):
 			n.rivals.append(str(t))
 		n.power_proj = float(e.get("power_proj", 0.0))
+		n.stability = float(e.get("stability", bal.stab_start))
+		n.rank = int(e.get("rank", -1))
 		n.embargoes = []
 		for t in e.get("embargoes", []):
 			n.embargoes.append(str(t))
@@ -3782,6 +3815,10 @@ func from_dict(d: Dictionary) -> void:
 	else:
 		Economy.refresh_goods_leaders(self)
 	Economy.update_markets(self)
+	for t in order:
+		if nations[t].rank < 0:  # saves from before ranks could be bought: title by history and size
+			nations[t].rank = maxi(int(Progression.START_RANKS.get(t, 0)), mini(Progression.size_rank(self, t), 3))
+		Stability.refresh_bonus(self, nations[t])
 	Progression.refresh(self)
 	for t in order:
 		Economy.refresh_pact_bonus(self, nations[t])
