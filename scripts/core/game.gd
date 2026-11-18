@@ -18,6 +18,8 @@ const Urban = preload("res://scripts/core/urban.gd")
 const Colonial = preload("res://scripts/core/colonial.gd")
 const Trade = preload("res://scripts/core/trade.gd")
 const Landmarks = preload("res://scripts/core/landmarks.gd")
+const Council = preload("res://scripts/core/council.gd")
+const Regime = preload("res://scripts/core/regime.gd")
 const Stability = preload("res://scripts/core/stability.gd")
 
 const POWERS := ["adm", "dip", "mil"]
@@ -336,6 +338,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	bal = data.balance
 	tree = Tech.new(data.get("techs", {}))
 	govt = Government.new(data.get("government", {}))
+	govt.council_cfg = data.get("council", {})
 	rng.seed = seed_value
 	player = player_tag
 	for pd in data.map.provinces:
@@ -392,6 +395,8 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		order.append(tag)
 		provinces[n.capital].fort = 1
 	_rebuild_owned()
+	if not govt.council_cfg.is_empty():
+		Regime.setup(self)
 	Religion.setup(self, data)
 	monument_defs = data.get("monuments", {})
 	Formables.setup(self, data)
@@ -929,6 +934,7 @@ func _t_ai(tag: String) -> void:
 func _t_player() -> void:
 	if player != "" and nations[player].alive:
 		ai.control_armies(self, player)
+		Council.monthly(self, nations[player])
 		Economy.autobuild(self, nations[player])
 		for t in tree.queue_tick(self, nations[player]):
 			log_msg("🔬 Forschungsplan: %s erforscht." % t, [player])
@@ -2288,14 +2294,14 @@ func cheapest_develop(tag: String) -> int:
 	return best
 
 
-## Power that reached the cap would be lost: spend it on the cheapest development instead
-## (after the research plan had its turn).
+## Power that reached the cap would be lost: spend it on development instead (after the research plan had
+## its turn). The development councillor sets target (capital/lowest/highest/cheapest/off) and threshold.
 func _overflow_develop(n: Nation) -> void:
-	var cap := float(bal.power_cap)
+	var at: float = Council.dev_threshold(self, n) if not govt.council_cfg.is_empty() else float(bal.power_cap)
 	for kind in POWERS:
-		if n.get(kind) < cap:
+		if n.get(kind) < at:
 			continue
-		var pid := cheapest_develop(n.tag)
+		var pid: int = Council.dev_target(self, n) if not govt.council_cfg.is_empty() else cheapest_develop(n.tag)
 		if pid >= 0 and develop(n.tag, pid, kind) == "":
 			log_msg("🏘️ Volle %s-Punkte: %s automatisch entwickelt." % [{"adm": "Verwaltungs", "dip": "Diplomatie", "mil": "Militär"}[kind], provinces[pid].name], [n.tag])
 
@@ -2344,7 +2350,7 @@ func army_cost_mult(tag: String) -> float:
 
 
 func regiment_cost(tag: String) -> float:
-	return float(bal.regiment_cost) * army_cost_mult(tag)
+	return float(bal.regiment_cost) * army_cost_mult(tag) * maxf(0.3, 1.0 + mod(nations[tag], "recruit_cost"))
 
 
 func regiment_upkeep(tag: String) -> float:
@@ -3093,6 +3099,8 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 					Landmarks.free_level(self, tag)
 			"age_pick":
 				Ages.pick(self, tag, str(v[0]), str(v[1]))
+			"elect":
+				Regime.elect(self, tag, int(v))
 			"ships":
 				# never above the fleet limit (or the current fleet, if that is already larger)
 				n.ships = clampf(n.ships + float(v), 0.0, maxf(Naval.limit(self, tag), n.ships))
@@ -3823,3 +3831,5 @@ func from_dict(d: Dictionary) -> void:
 	for t in order:
 		Economy.refresh_pact_bonus(self, nations[t])
 	Landmarks.refresh_bonus(self)
+	if not govt.council_cfg.is_empty():
+		Regime.after_load(self)

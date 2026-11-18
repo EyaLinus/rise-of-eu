@@ -79,7 +79,7 @@ func _init() -> void:
 		"test_more_goods_and_softer_costs",
 		"test_supply_and_ai_stacks",
 		"test_landmarks", "test_daily_gain",
-		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
+		"test_old_save_tech_levels", "test_council", "test_elections", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		if not only.is_empty() and not only.has(t):
 			continue
@@ -1473,6 +1473,8 @@ func test_religion() -> void:
 			prot += 1
 	check(prot == 1, "the Reformation starts in one province")
 	h.bal.reformation_spread = 1.0
+	var drift = h.bal.religion_drift
+	h.bal.religion_drift = 0.0  # drift back to the ruler's faith would make this depend on the rng path
 	for i in 3:
 		h.month += 12
 		F.yearly(h)
@@ -1481,6 +1483,7 @@ func test_religion() -> void:
 		if p.religion == "protestant":
 			prot2 += 1
 	check(prot2 > prot, "Protestantism spreads")
+	h.bal.religion_drift = drift
 	check(h.check_conditions("FRA", {"religion": "catholic"}) and not h.check_conditions("FRA", {"religion": "sunni"}), "religion condition")
 
 
@@ -1568,8 +1571,9 @@ func test_marriage() -> void:
 	check(g2.nations.FRA.marriages.has("SAV"), "marriages are saved")
 	# personal union on succession
 	g.bal.marriage_union_chance = 1.0
+	var lord0: String = g.nations.SAV.overlord  # 24 months of play may have made SAV a vassal or married it again
 	g._marriage_succession(g.nations.SAV)
-	check(g.nations.SAV.overlord == "" or g.nations.SAV.overlord == "FRA", "union only to the partner")
+	check(g.nations.SAV.overlord == lord0 or g.nations.SAV.marriages.has(g.nations.SAV.overlord), "union only to the partner (%s -> %s)" % [lord0, g.nations.SAV.overlord])
 	var h = new_game("ENG", 5)
 	h.nations.FRA.marriages.append("SAV")
 	h.nations.SAV.marriages.append("FRA")
@@ -4360,6 +4364,126 @@ func test_landmarks() -> void:
 	for id in L.of(g, "FRA"):
 		any = any or L.building(g, id)
 	check(any, "a rich AI invests in its landmarks")
+
+
+## Council of state: hire, salary, passive effects, promotion, automations with limits, AI, save.
+func test_council() -> void:
+	var g = new_game("FRA", 3)
+	var C = g.Council
+	var n = g.nations.FRA
+	check(C.seats(g).size() == 9, "nine council seats")
+	check(C.seat_name(g, n, "war") != C.seat_name(g, g.nations.VEN, "war"), "seat names depend on the government family")
+	n.gold = 2000.0
+	check(C.pool(g, n, "army").size() == 3, "three candidates per seat")
+	var mp_before: float = g.regiment_cost("FRA")
+	check(C.hire(g, "FRA", "army", 0) == "", "hire a councillor")
+	check(C.skill(n, "army") >= 1 and C.auto_on(n, "army"), "player councillors start with automation on")
+	check(g.regiment_cost("FRA") < mp_before, "army seat makes regiments cheaper")
+	check(g.govt.budget_cost(g, n) > 0.0, "council salary is part of the budget")
+	n.mil = 900.0
+	var lvl: int = C.skill(n, "army")
+	check(C.promote(g, "FRA", "army") == "" and C.skill(n, "army") == lvl + 1, "promotion with military power")
+	# experience: free level after experience_years on one level
+	C.members(n).army.lvl_since = g.month - int(C.cfg(g).experience_years) * 12
+	C.yearly(g, n)
+	check(C.skill(n, "army") == lvl + 2, "experience raises the level")
+	# army automation: recruits towards the target share of the force limit, respecting the gold reserve
+	n.manpower = 100.0
+	var regs: float = g.army_regs("FRA")
+	C.members(n).army.opt.target = 100.0
+	C.monthly(g, n)
+	check(g.army_regs("FRA") > regs, "army automation recruits (%.1f -> %.1f)" % [regs, g.army_regs("FRA")])
+	n.gold = 50.0
+	regs = g.army_regs("FRA")
+	C.monthly(g, n)
+	check(g.army_regs("FRA") == regs, "the gold reserve stops recruitment")
+	C.set_auto(g, "FRA", "army", false)
+	n.gold = 2000.0
+	C.monthly(g, n)
+	check(g.army_regs("FRA") == regs, "automation off: nothing happens")
+	# development seat: target and threshold
+	check(C.hire(g, "FRA", "development", 0) == "", "hire development councillor")
+	C.members(n).development.opt.mode = "capital"
+	C.members(n).development.opt.at = 25.0
+	var cap: int = n.capital
+	var d0: int = g.provinces[cap].dev
+	n.adm = float(g.bal.power_cap) * 0.3
+	n.dip = 0.0
+	n.mil = 0.0
+	g._overflow_develop(n)
+	check(g.provinces[cap].dev == d0 + 1, "development councillor develops the capital at the threshold (%d -> %d, cost %d, adm %d, target %d cap %d)" % [d0, g.provinces[cap].dev, g.develop_cost(cap), n.adm, C.dev_target(g, n), cap])
+	C.members(n).development.opt.mode = "off"
+	n.adm = float(g.bal.power_cap)
+	g._overflow_develop(n)
+	check(g.provinces[cap].dev == d0 + 1, "mode off spends nothing")
+	C.members(n).development.opt.mode = "lowest"
+	var low: int = C.dev_target(g, n)
+	for pid in g.provinces_of("FRA"):
+		if g.provinces[pid].controller == "FRA" and g.provinces[pid].dev < int(g.bal.max_dev):
+			check(g.provinces[pid].dev >= g.provinces[low].dev, "lowest picks the lowest development")
+			break
+	check(C.cycle_opt(g, "FRA", "development", "mode") == "" and C.opt(g, n, "development", "mode") == "highest", "options cycle")
+	# coin seat: emergency loan before the treasury runs dry
+	check(C.hire(g, "FRA", "coin", 0) == "", "hire treasurer")
+	n.gold = -5.0
+	var loans: int = n.loans.size()
+	C.monthly(g, n)
+	check(n.loans.size() == loans + 1, "emergency loan")
+	# save keeps the council and its settings
+	var g2 = new_game("FRA", 4)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	var n2 = g2.nations.FRA
+	check(C.skill(n2, "army") == C.skill(n, "army") and C.opt(g2, n2, "development", "mode") == "highest" and not C.auto_on(n2, "army"),
+			"council saved")
+	check(absf(g2.regiment_cost("FRA") - g.regiment_cost("FRA")) < 0.001, "council bonus restored after load")
+	# AI fills seats with spare gold
+	var ai = g.nations.ENG
+	ai.gold = 2000.0
+	C.ai_think(g, ai)
+	check(C.members(ai).size() == 1, "AI appoints a councillor")
+	C.dismiss(g, "FRA", "army")
+	check(C.member(n, "army").is_empty(), "dismiss")
+
+
+## Government types: republics elect every term (player via event popup), theocracies at death, monarchies inherit.
+func test_elections() -> void:
+	var g = new_game("VEN", 3)
+	var R = g.Regime
+	var n = g.nations.VEN
+	check(R.kind(g, n) == "republic" and R.kind(g, g.nations.FRA) == "hereditary" and R.kind(g, g.nations.PAP) == "elective", "government kinds")
+	check(int(n.ruler.years) <= R.term_years(g), "republics start within one term")
+	check(str(n.gov.get("agenda", "")) != "" and not R.agenda_effects(g, n).is_empty(), "republic has a programme")
+	g.govt.succession(g, n)
+	check(R.pending(n) and g.pending_events.has(R.EVENT_ID) and g.event_by_id.has(R.EVENT_ID), "election event for the player")
+	var opts: Array = R.options(n)
+	check(opts.size() == 4 and opts[3].get("incumbent", false), "three candidates and the incumbent")
+	# save during the election: event comes back
+	var g2 = new_game("VEN", 5)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(R.pending(g2.nations.VEN) and g2.pending_events.has(R.EVENT_ID) and g2.event_by_id[R.EVENT_ID].options.size() == 4, "pending election survives save/load")
+	var c: Dictionary = opts[1]
+	g.choose_event_option("VEN", R.EVENT_ID, 1)
+	check(not R.pending(n) and not g.pending_events.has(R.EVENT_ID), "election decided")
+	check(int(n.ruler.adm) == int(c.adm) and int(n.ruler.years) == R.term_years(g) and n.gov.agenda == c.faction, "winner rules one term with his programme")
+	var t0: float = R.tradition(n)
+	g.govt.succession(g, n)
+	g.choose_event_option("VEN", R.EVENT_ID, R.options(n).size() - 1)
+	check(R.tradition(n) < t0 and int(n.gov.terms) == 2, "re-election costs tradition")
+	R.yearly(g, n)
+	check(R.tradition(n) > t0 - 15.0, "tradition grows every year")
+	# AI theocracy: elects at once when the ruler dies
+	var p = g.nations.PAP
+	var name0: String = p.ruler_name
+	g.govt.succession(g, p)
+	check(not R.pending(p) and str(p.gov.agenda) != "" and int(p.ruler.years) >= 8, "AI theocracy elects a successor for life")
+	check(p.ruler_name != name0 or p.ruler_name == "", "new ruler")
+	# hereditary monarchy keeps the heir
+	var f = g.nations.FRA
+	var heir: String = str(f.gov.heir.name)
+	g.govt.succession(g, f)
+	check(f.ruler_name == heir and not R.pending(f), "monarchies inherit")
+	# a change to a republic shortens the reign to one term
+	check(R.tradition_effects(g, g.nations.FRA).is_empty(), "no tradition outside republics")
 
 
 func test_daily_gain() -> void:
