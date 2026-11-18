@@ -2687,14 +2687,34 @@ func _panel_province(pid: int) -> void:
 	var Urb = game.Urban
 	var city_good: bool = Urb.is_city_good(game, p.good)
 	var fit: bool = city_good == p.urban
-	chips.append(_chip(("🏙️ Stadt" if p.urban else "🌾 Land") + (" · Umbau %d Mon." % p.urban_months if p.urban_months > 0 else ""),
-			("Stadt: +%d %% Steuern, +%d %% Handelsmacht, ein Bauplatz mehr, aber %d %% weniger Mannschaften und +%.1f Unruhe. Stadtgüter (Tuch, Wein, Salz, Metalle) werden hier +%d %% besser hergestellt%s." % [
-				int(float(game.bal.urban_local.tax) * 100), int(float(game.bal.urban_local.trade_power) * 100), int(-float(game.bal.urban_local.manpower) * 100), float(game.bal.urban_local.unrest), int(float(game.bal.goods_fit_production) * 100),
-				(" – passt zu %s" % gd.name) if fit else (" – %s ist ein Landgut und passt nicht" % gd.name)]) if p.urban else
-			("Land: +%d %% Mannschaften und %.1f Unruhe. Landgüter (Getreide, Vieh, Wolle, Fisch, Holz, Pelze) werden hier +%d %% besser hergestellt%s. Ab Entwicklung %d kann die Provinz zur Stadt ausgebaut werden." % [
+	var tier: int = Urb.tier(game, p)
+	var nxt: int = Urb.next_dev(game, p)
+	var bar := ""
+	var pr: float = Urb.progress(game, p)
+	for i in 5:
+		bar += "●" if float(i) < pr * 5.0 - 0.001 else "·"
+	var step_txt: String = ("%s %d%% (noch %d Entwicklung)" % [bar, int(pr * 100.0), nxt]) if nxt > 0 else "höchste Stufe"
+	var tier_icon: String = ["🌾", "🏙️", "🏛️", "👑"][tier]
+	var city_info := "Stadt: +%d %% Steuern, +%d %% Handelsmacht, ein Bauplatz mehr, aber %d %% weniger Mannschaften und +%.1f Unruhe. Stadtgüter (Tuch, Wein, Salz, Metalle) werden hier +%d %% besser hergestellt%s." % [
+			int(float(game.bal.urban_local.tax) * 100), int(float(game.bal.urban_local.trade_power) * 100), int(-float(game.bal.urban_local.manpower) * 100), float(game.bal.urban_local.unrest), int(float(game.bal.goods_fit_production) * 100),
+			(" – passt zu %s" % gd.name) if fit else (" – %s ist ein Landgut und passt nicht" % gd.name)]
+	if tier >= 2:
+		var te: Dictionary = game.bal.urban_tier_local[str(tier)]
+		city_info += "\n%s: zusätzlich +%d %% Steuern, +%d %% Handelsmacht, +%d Bauplätze, +%.1f Unruhe." % [Urb.tier_name(tier), int(float(te.tax) * 100), int(float(te.trade_power) * 100), int(game.bal.urban_tier_slots[tier - 2]), float(te.unrest)]
+	var next_info := ""
+	if tier == 0:
+		next_info = "\nFortschritt zur Stadt: Ab Entwicklung %d wächst Land von selbst zur Stadt (oder gründe sie früher selbst, ab Entwicklung %d)." % [int(game.bal.urban_auto_dev), int(game.bal.urban_min_dev)]
+	elif tier == 1:
+		next_info = "\nFortschritt zur Großstadt: ab Entwicklung %d, zur Metropole ab %d." % [int(game.bal.urban_big_dev), int(game.bal.urban_metro_dev)]
+	elif tier == 2:
+		next_info = "\nFortschritt zur Metropole: ab Entwicklung %d." % int(game.bal.urban_metro_dev)
+	chips.append(_chip("%s %s%s" % [tier_icon, Urb.tier_name(tier), (" · Umbau %d Mon." % p.urban_months) if p.urban_months > 0 else ""],
+			(city_info if p.urban else
+			("Land: +%d %% Mannschaften und %.1f Unruhe. Landgüter (Getreide, Vieh, Wolle, Fisch, Holz, Pelze) werden hier +%d %% besser hergestellt%s." % [
 				int(float(game.bal.rural_local.manpower) * 100), float(game.bal.rural_local.unrest), int(float(game.bal.goods_fit_production) * 100),
-				(" – passt zu %s" % gd.name) if fit else (" – %s ist ein Stadtgut und passt nicht" % gd.name), int(game.bal.urban_min_dev)]),
+				(" – passt zu %s" % gd.name) if fit else (" – %s ist ein Stadtgut und passt nicht" % gd.name)])) + next_info,
 			"" if fit else "bad"))
+	chips.append(_chip(step_txt, "Entwicklungsfortschritt zur nächsten Siedlungsstufe: Land → Stadt → Großstadt (Entwicklung %d) → Metropole (%d)." % [int(game.bal.urban_big_dev), int(game.bal.urban_metro_dev)]))
 	chips.append(_chip("%s %s %.2f 💰" % [gd.emoji, gd.name, Eco.production_value(game, p)],
 			"%s: %.1f Einheiten × Marktpreis %.2f = %.2f Gold im Monat. Die Menge wächst mit Entwicklung, Werkstatt, Manufaktur und Hafen; der Preis ändert sich jährlich mit Angebot und Nachfrage. Marktführer bei %s erhält: %s." % [
 			gd.name, Eco.units(game, p), price, Eco.production_value(game, p), gd.name, gd.bonus_text]))
@@ -2787,8 +2807,8 @@ func _panel_province(pid: int) -> void:
 			acts.append(_btn("⛪ Missionar %d 💰" % int(Faith.convert_cost(game, p)), func(): _act(Faith.send_missionary(game, me, pid), "⛪ Der Missionar ist unterwegs"),
 					"In %d Monaten nimmt die Provinz deinen Glauben (%s) an: −%.0f Unruhe. Höchstens %d Missionare gleichzeitig.%s" % [
 					int(game.bal.convert_months), Faith.faith_name(game.nations[me].religion), float(game.bal.religion_unrest), int(game.bal.max_missionaries), ("\n❌ " + cv) if cv != "" else ""], cv != ""))
-		if p.urban_months == 0:
-			var to_city: bool = not p.urban
+		if p.urban_months == 0 and not p.urban:
+			var to_city: bool = true
 			var ub: String = Urb.block_reason(game, me, pid, to_city)
 			var uc: int = int(Urb.change_cost(game, p, to_city))
 			acts.append(_btn(("🏙️ Stadt gründen %d 💰" % uc) if to_city else ("🌾 Zum Land %d 💰" % uc),

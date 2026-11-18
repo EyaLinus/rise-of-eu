@@ -47,6 +47,7 @@ class Province:
 	var convert_months: int = 0  # a missionary is at work
 	var terrain: String = "plains"  # data/terrain.json: march time and defence (Warfare)
 	var urban: bool = false  # city (Stadt) or countryside (Land), see scripts/core/urban.gd
+	var tier_seen: int = 0  # settlement tier last applied to loc (Urban.refresh_tiers), not saved
 	var urban_months: int = 0  # months until a running change of that status finishes
 	var colonist: String = ""  # realm settling this native land (scripts/core/colonial.gd)
 	var colony_months: int = 0  # months the colony has grown
@@ -1030,7 +1031,10 @@ func _economy(n: Nation) -> void:
 	if over > 0:  # too many alliances and vassals: diplomats overworked, prestige suffers
 		n.dip = maxf(0.0, n.dip - over * float(bal.diplo_over_dip))
 		n.prestige -= over * float(bal.diplo_over_prestige)
-	n.manpower = minf(n.max_manpower, n.manpower + manpower_gain(n))
+	if n.manpower < n.max_manpower:
+		n.manpower = minf(n.max_manpower, n.manpower + manpower_gain(n))
+	else:  # an event overflow stays and melts away slowly instead of vanishing at once
+		n.manpower = maxf(n.max_manpower, n.manpower - (n.manpower - n.max_manpower) * float(bal.manpower_overflow_decay))
 	n.ae = maxf(0.0, n.ae - ae_decay_monthly(n))
 	if n.ae < 0.001:
 		n.ae = 0.0
@@ -2456,7 +2460,7 @@ func conscript_ready_in(tag: String) -> int:
 
 func conscript_gain(tag: String) -> float:
 	var n: Nation = nations[tag]
-	return minf(n.max_manpower - n.manpower, n.max_manpower * float(bal.conscript_share))
+	return maxf(0.0, minf(n.max_manpower - n.manpower, n.max_manpower * float(bal.conscript_share)))
 
 
 func conscript(tag: String) -> String:
@@ -2966,7 +2970,7 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 			"prestige":
 				n.prestige += float(v)
 			"manpower":
-				n.manpower = maxf(0.0, n.manpower + float(v))
+				n.manpower = clampf(n.manpower + float(v), 0.0, maxf(n.manpower, n.max_manpower * float(bal.manpower_overflow_max)))
 			"regs":
 				if float(v) > 0:
 					var placed := false
