@@ -226,6 +226,7 @@ M["SCO"] = (saltire(solid("B"), "w"), "Scotland – saltire")
 M["IRE"] = (centred(solid("L"), HARP, cy=3), "Irish lords – gold harp on green")
 M["BRI"] = (ermine(), "Brittany – ermine")
 M["BUR"] = (saltire(solid("w"), "R"), "Burgundy – red saltire on white")
+M["NED"] = (field("O", "w", "B"), "Netherlands – Prince's flag, orange, white, blue")
 f = field("G", "G", "R")
 for y in range(5, FH):
     for x in range(FW):

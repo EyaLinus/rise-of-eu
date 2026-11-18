@@ -262,6 +262,15 @@ SPECIAL = {
         ("eth_portuguese", "mil", "Portugiesische Musketiere", 1541, "mil_arkebusiere", {"combat": 0.06},
          "Christliche Verbündete aus Europa bringen Feuerwaffen ins Hochland."),
     ],
+    # playable since v1.0.3 (thread "Add fog of war and NA west coast")
+    "NED": [
+        ("ned_fluyt", "dip", "Die Fleute", 1444, "dip_messen", {"naval": 0.1, "trade": 0.05},
+         "Ein bauchiges Frachtschiff mit kleiner Mannschaft: billiger fährt niemand über die Meere."),
+        ("ned_bank", "dip", "Wisselbank von Amsterdam", 1484, "dip_wechsel", {"income": 0.06, "trade": 0.05},
+         "Eine Bank der Stadt garantiert gute Münze: Kaufleute aus ganz Europa legen ihr Geld hier an."),
+        ("ned_waterlinie", "mil", "Die Wasserlinie", 1500, "mil_bombarden", {"combat": 0.04, "unrest": -0.25},
+         "Im Notfall öffnen die Holländer die Deiche und setzen das Land vor dem Feind unter Wasser."),
+    ],
 }
 
 # ---------------------------------------------------------------- government
@@ -310,6 +319,9 @@ NATIONAL_ADVISORS = [
     ("eth_zara", "ETH", "Abt Giyorgis von Gasicha", "adm", 1444, 1470, {"unrest": -0.5, "prestige": 0.25}),
     ("eth_eleni", "ETH", "Kaiserin Eleni", "dip", 1468, 1522, {"dip": 1, "ae_decay": 0.05}),
     ("eth_dawit", "ETH", "Ras Wossen Seged", "mil", 1490, 1540, {"combat": 0.05}),
+    ("ned_oldenbarnevelt", "NED", "Johan van Oldenbarnevelt", "adm", 1576, 1619, {"adm": 1, "income": 0.03}),
+    ("ned_grotius", "NED", "Hugo Grotius", "dip", 1600, 1645, {"dip": 1, "ae_decay": 0.05}),
+    ("ned_piet_hein", "NED", "Piet Hein", "mil", 1610, 1629, {"naval": 0.15, "prestige": 0.5}),
     ("fra_coeur", "FRA", "Jacques Cœur", "dip", 1444, 1456, {"trade": 0.15, "income": 0.03}),
     ("fra_bureau", "FRA", "Jean Bureau", "mil", 1444, 1463, {"siege": 0.3, "combat": 0.03}),
     ("fra_sully", "FRA", "Herzog von Sully", "adm", 1597, 1611, {"income": 0.1, "unrest": -0.5}),
@@ -376,6 +388,7 @@ NATIONAL_COMPANIES = [
     ("hun_besztercebanya", "HUN", "Kupferhandel von Neusohl", 1495, {"income": 0.12, "production": 0.05}, "Thurzó und die Fugger fördern das Kupfer Oberungarns."),
     ("mam_khan_khalili", "MAM", "Khan el-Khalili", 1444, {"trade": 0.15, "tax": 0.03}, "Der große Basar von Kairo."),
     ("qar_silk_caravans", "QAR", "Seidenkarawanen von Täbris", 1450, {"trade": 0.15, "production": 0.03}, "Seide aus dem Norden für die Märkte von Aleppo und Bursa."),
+    ("ned_voc", "NED", "Vereenigde Oostindische Compagnie", 1500, {"trade": 0.2, "naval": 0.05}, "Die erste Aktiengesellschaft der Welt: Pfeffer, Muskat und Zimt aus Ostindien."),
     ("eth_aksum_trade", "ETH", "Hochlandhandel von Aksum", 1450, {"trade": 0.12, "income": 0.03}, "Gold, Elfenbein und Kaffee auf dem Weg zum Roten Meer."),
     ("fra_lyon", "FRA", "Seidenmanufaktur von Lyon", 1466, {"production": 0.15, "tax": -0.03}, "Ludwig XI. holt italienische Seidenweber ins Land."),
     ("eng_muscovy", "ENG", "Muscovy Company", 1555, {"trade": 0.2, "prestige": -0.25}, "Händler auf der Nordroute nach Moskau."),
@@ -556,6 +569,7 @@ GOV_FORMS = {
     "CIR": "Stammesföderation",
     "ETH": "Kaiserreich", "SAF": "Theokratie", "HJZ": "Theokratie", "TIM": "Sultanat", "HOR": "Sultanat",
     "YEM": "Sultanat", "ADA": "Sultanat", "MAZ": "Sultanat",
+    "NED": "Kaufmannsrepublik",
 }
 
 # Every form of government has a small, permanent trade-off (part of the "gov" bonus source).
@@ -643,6 +657,9 @@ FLAVOUR = {
     "eth_zara": "Ein strenger Abt, der die Kirche des Hochlands ordnet.",
     "eth_eleni": "Kaiserin und Regentin, sie schreibt Briefe nach Lissabon.",
     "eth_dawit": "Feldherr der Grenzmarken gegen Adal.",
+    "ned_oldenbarnevelt": "Landesadvokat von Holland, der die Republik der Generalstaaten zusammenhält.",
+    "ned_grotius": "Gelehrter des Völkerrechts: das Meer gehört allen, und wer mit Holland handelt, soll Frieden haben.",
+    "ned_piet_hein": "Der Admiral, der die spanische Silberflotte kaperte.",
     # advisors
     "kaemmerer": "Zählt jede Münze zweimal, bevor sie die Schatzkammer verlässt.",
     "steuermeister": "Holt aus jedem Dorf das Letzte heraus. Die Bürger fluchen.",

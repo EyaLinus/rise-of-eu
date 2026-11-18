@@ -40,6 +40,7 @@ STYLE = {
     "MOR": ("Fes", "Kastilien, Portugal und die Berber der Wüste", {"combat": 0.02}),
     "QAR": ("die Schwarzen Hammel", "die Weißen Hammel, die Timuriden und die Osmanen", {"manpower": 0.05}),
     "ETH": ("der Kaiser von Äthiopien", "Adal, die Osmanen und die Herren des Roten Meeres", {"combat": 0.02}),
+    "NED": ("die Generalstaaten", "die Hanse, Burgund und England", {"trade": 0.03}),
 }
 
 

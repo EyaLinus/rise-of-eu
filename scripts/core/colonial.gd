@@ -15,36 +15,46 @@ const NATIVE := "NAT"  # owner of uncolonized native land
 ## West African coast down to Sierra Leone, which Portuguese caravels reached by 1444).
 const NEW_SEAS := ["guinea", "ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes",
 		"south_atlantic", "cape", "mozambique", "swahili", "indian", "af_lakes",
-		"guiana", "amazon", "brazil", "plata", "patagonian", "horn", "humboldt"]
+		"guiana", "amazon", "brazil", "plata", "patagonian", "horn", "humboldt", "cortez", "california", "cascadia"]
 ## Monsoon trade: realms with a coast on one of these known seas also know the Swahili coast from the start.
 const MONSOON := {"swahili": ["aden", "arabian", "persian_gulf"]}
 
 
 static func setup(g, data: Dictionary) -> void:
-	g.nw_first = g.provinces.size()
-	g.wa_first = g.provinces.size()
-	g.nw_end = g.provinces.size()
-	g.af_first = g.provinces.size()
-	g.sa_first = g.provinces.size()
-	for i in data.map.provinces.size():
+	# overseas and African provinces by their map.json flags ("nw", "wa"); the blocks are appended over time
+	# (Americas + West Africa, the Old World east, Africa, South America, the North American west, the Low
+	# Countries), so the first ids below are only landmarks for the UI and tests
+	var n_prov: int = g.provinces.size()
+	g.nw_mask = PackedByteArray()
+	g.nw_mask.resize(n_prov)
+	g.wa_mask = PackedByteArray()
+	g.wa_mask.resize(n_prov)
+	g.nw_first = n_prov
+	g.wa_first = n_prov
+	g.nw_end = n_prov
+	g.af_first = n_prov
+	g.sa_first = n_prov
+	g.pac_first = n_prov
+	for i in mini(n_prov, data.map.provinces.size()):
 		var pd: Dictionary = data.map.provinces[i]
-		if pd.get("sa", false):
-			if g.sa_first == g.provinces.size():
-				g.sa_first = i  # South America and the finer North American east coast: after Africa, region "america"
-			continue
-		if pd.get("af", false):
-			if g.af_first == g.provinces.size():
-				g.af_first = i  # Africa south of the Sahara: overseas again, after the east block
-			continue
-		if pd.get("nw", false) and g.nw_first == g.provinces.size():
+		var nw: bool = pd.get("nw", false)
+		g.nw_mask[i] = 1 if nw else 0
+		g.wa_mask[i] = 1 if pd.get("wa", false) else 0
+		if nw and g.nw_first == n_prov:
 			g.nw_first = i
-		if pd.get("wa", false) and g.wa_first == g.provinces.size():
+		if pd.get("wa", false) and g.wa_first == n_prov:
 			g.wa_first = i
-		if g.nw_first < g.provinces.size() and not pd.get("nw", false) and i > g.nw_first and g.nw_end == g.provinces.size():
-			g.nw_end = i  # the Middle East and the Horn ("east") follow the overseas block: Old World again
+		if not nw and g.nw_first < n_prov and g.nw_end == n_prov:
+			g.nw_end = i  # the Middle East and the Horn ("east") follow the first overseas block: Old World again
+		if pd.get("af", false) and g.af_first == n_prov:
+			g.af_first = i
+		if pd.get("sa", false) and g.sa_first == n_prov:
+			g.sa_first = i
+		if pd.get("pac", false) and g.pac_first == n_prov:
+			g.pac_first = i
 	g.overseas = []
 	g.africa = []
-	for pid in g.provinces.size():
+	for pid in n_prov:
 		if is_new_world(g, pid):
 			g.overseas.append(pid)
 			if region(g, pid) == "africa":
@@ -118,7 +128,7 @@ static func reset_knowledge(g, n) -> void:
 static func region(g, pid: int) -> String:
 	if not is_new_world(g, pid):
 		return "old"
-	return "africa" if pid >= g.wa_first and pid < g.sa_first else "america"
+	return "africa" if g.wa_mask[pid] == 1 else "america"
 
 
 static func is_native_realm(g, tag: String) -> bool:
@@ -126,7 +136,7 @@ static func is_native_realm(g, tag: String) -> bool:
 
 
 static func is_new_world(g, pid: int) -> bool:
-	return (pid >= g.nw_first and pid < g.nw_end) or pid >= g.af_first
+	return pid < g.nw_mask.size() and g.nw_mask[pid] == 1
 
 
 static func is_native_land(g, pid: int) -> bool:

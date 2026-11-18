@@ -2040,6 +2040,51 @@
     "combat": 0.06
    },
    "text": "Christliche Verbündete aus Europa bringen Feuerwaffen ins Hochland."
+  },
+  {
+   "id": "ned_fluyt",
+   "tag": "NED",
+   "cat": "dip",
+   "name": "Die Fleute",
+   "year": 1444,
+   "req": [
+    "dip_messen"
+   ],
+   "effects": {
+    "naval": 0.1,
+    "trade": 0.05
+   },
+   "text": "Ein bauchiges Frachtschiff mit kleiner Mannschaft: billiger fährt niemand über die Meere."
+  },
+  {
+   "id": "ned_bank",
+   "tag": "NED",
+   "cat": "dip",
+   "name": "Wisselbank von Amsterdam",
+   "year": 1484,
+   "req": [
+    "dip_wechsel"
+   ],
+   "effects": {
+    "income": 0.06,
+    "trade": 0.05
+   },
+   "text": "Eine Bank der Stadt garantiert gute Münze: Kaufleute aus ganz Europa legen ihr Geld hier an."
+  },
+  {
+   "id": "ned_waterlinie",
+   "tag": "NED",
+   "cat": "mil",
+   "name": "Die Wasserlinie",
+   "year": 1500,
+   "req": [
+    "mil_bombarden"
+   ],
+   "effects": {
+    "combat": 0.04,
+    "unrest": -0.25
+   },
+   "text": "Im Notfall öffnen die Holländer die Deiche und setzen das Land vor dem Feind unter Wasser."
   }
  ]
 }

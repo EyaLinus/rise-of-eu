@@ -14,6 +14,9 @@ const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
 const Warfare = preload("res://scripts/core/warfare.gd")
 const Naval = preload("res://scripts/core/naval.gd")
 const Colonial = preload("res://scripts/core/colonial.gd")
+const Vision = preload("res://scripts/core/vision.gd")
+## Fog of war (Vision): a dark veil over known land the player cannot see right now.
+const FOG_OF_WAR := Color(0.06, 0.06, 0.09, 0.4)
 ## Terra incognita (data/fog.json from tools/gen_seas.py): a coarse grid of New World regions.
 const FOG_PATH := "res://data/fog.json"
 const FOG := Color("2f2c26")
@@ -45,6 +48,7 @@ var _terrain_rect: TextureRect
 var _terrain_tiles: Array = []  # TextureRects of the southern tiles (map.json "terrain_tiles")
 var terrain_tile_defs: Array = []  # [file, x, y, w, h] in map pixels
 var terrain_split := 0.0  # terrain.png covers the full width down to this y (map.json "terrain_split")
+var terrain_main := Rect2()  # the part terrain.png covers (map.json "terrain_main"; default: full width down to terrain_split)
 var _world: Node2D  # container of the world layer pieces (map_world_layer.gd)
 var _world_zoom := -1.0
 const WorldLayer = preload("res://scripts/ui/map_world_layer.gd")
@@ -57,6 +61,7 @@ var _sea_rect: ColorRect
 var _fog: Dictionary = {}  # parsed fog.json: cell, w, h, ids, cells (PackedInt32Array, 0 = never fogged)
 var _fog_sprite: Sprite2D
 var _fog_sig := ""
+var _sight := PackedByteArray()  # Vision.player_sight, empty = no fog of war (everything visible)
 ## Border segments in world space: points 2e and 2e+1 between provinces edge_l[e] and edge_r[e] (-1 = sea)
 var edge_pts := PackedVector2Array()
 var edge_l := PackedInt32Array()
@@ -114,6 +119,8 @@ func setup(g, map_data: Dictionary) -> void:
 	world_size = Vector2(map_data.size[0], map_data.size[1])
 	terrain_split = float(map_data.get("terrain_split", map_data.size[1]))
 	terrain_tile_defs = map_data.get("terrain_tiles", [])
+	var tm: Array = map_data.get("terrain_main", [0, 0, world_size.x, terrain_split])
+	terrain_main = Rect2(tm[0], tm[1], tm[2], tm[3])
 	for pd in map_data.provinces:
 		var list := []
 		var bb := Rect2()
@@ -222,6 +229,18 @@ func _update_fog() -> void:
 		_fog_sprite.texture = ImageTexture.create_from_image(img)
 
 
+## Fog of war: the player sees this province right now (own land, allies, armies, fleets, one province around).
+func sees(pid: int) -> bool:
+	return _sight.is_empty() or pid < 0 or pid >= _sight.size() or _sight[pid] != Vision.HIDDEN
+
+
+func _update_sight() -> void:
+	if game == null or game.player == "" or not game.fog_of_war:
+		_sight = PackedByteArray()
+	else:
+		_sight = Vision.player_sight(game)
+
+
 ## The player has seen this province (always true in the Old World and without a player).
 func known(pid: int) -> bool:
 	return game == null or Colonial.knows(game, game.player, pid)
@@ -256,6 +275,7 @@ func _refresh_world(force: bool) -> void:
 	if _world == null or game == null:
 		return
 	_build_mode_data()
+	_update_sight()
 	world_redraws = 0
 	for l in _layers:
 		var sig = _layer_sig(l)
@@ -275,7 +295,7 @@ func _layer_sig(l) -> Variant:
 			var p = game.provinces[l.pid]
 			var c := province_color(p)
 			var hatch = _hatch_color(p)
-			return [map_mode, c, hatch, zoom if hatch != null else 0.0]
+			return [map_mode, c, hatch, zoom if hatch != null else 0.0, sees(l.pid)]
 		"terrain":  # rivers + landscape sprites: only the zoom band (level of detail) and war mode change them
 			return [map_mode == MODE_WAR, _terrain_lod()]
 		"borders":
@@ -354,7 +374,7 @@ func _setup_terrain() -> void:
 		_terrain_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_terrain_rect.stretch_mode = TextureRect.STRETCH_SCALE
 		add_child(_terrain_rect)
-	if _terrain_tiles.is_empty() and terrain_split < world_size.y:
+	if _terrain_tiles.is_empty() and not terrain_tile_defs.is_empty():
 		for td in terrain_tile_defs:
 			var path: String = TERRAIN_DIR + str(td[0])
 			if not ResourceLoader.exists(path):
@@ -385,10 +405,10 @@ func _sync_terrain() -> void:
 	var tex := terrain_half if half else terrain
 	if _terrain_rect.texture != tex:
 		_terrain_rect.texture = tex
-	_terrain_rect.position = offset
-	# the half-size texture is the whole map; the full-size one stops where the southern tiles begin
+	# the half-size texture is the whole map; the full-size one covers terrain_main (the tiles do the rest)
 	var split := not _terrain_tiles.is_empty() and not half
-	_terrain_rect.size = Vector2(world_size.x, terrain_split) if split else world_size
+	_terrain_rect.position = offset + (terrain_main.position * zoom if split else Vector2.ZERO)
+	_terrain_rect.size = terrain_main.size if split else world_size
 	_terrain_rect.scale = Vector2(zoom, zoom)
 	for r in _terrain_tiles:
 		var rc: Rect2 = r.get_meta("rect")
@@ -509,6 +529,7 @@ func _draw() -> void:
 	if game == null:
 		return
 	_build_mode_data()
+	_update_sight()
 	draw_set_transform(offset, 0.0, Vector2(zoom, zoom))
 	# hover / selection tint on top of the world layer's fill
 	for pid in [hover_pid, selected_pid]:
@@ -572,6 +593,9 @@ func _draw_layer(ci) -> void:
 			if hatch != null:
 				for poly in polys[p.id]:
 					_draw_hatch(ci, poly, bboxes[p.id], hatch)
+			if not sees(p.id) and known(p.id):
+				for poly in polys[p.id]:
+					ci.draw_colored_polygon(poly, FOG_OF_WAR)
 		"terrain":
 			_draw_rivers(ci)
 			_draw_terrain_glyphs(ci)
@@ -1257,7 +1281,9 @@ func _draw_hover_tip() -> void:
 	if p.controller != p.owner:
 		txt += " (besetzt: %s)" % game.nations[p.controller].name
 	var line2 := "Entwicklung %d · %s" % [p.dev, Warfare.terrain_name(game, p.id)]
-	var fight = Warfare.battle_at(game, p.id)
+	var fight = Warfare.battle_at(game, p.id) if sees(p.id) else null
+	if not sees(p.id):
+		line2 += " · 🌫 Nebel: Truppen unbekannt"
 	if fight != null:
 		line2 += " · ⚔️ Schlacht (%s)" % Warfare.phase(fight)
 	if Naval.is_blockaded(game, p.id):
@@ -1526,6 +1552,8 @@ func army_positions() -> Dictionary:
 	var per := {}
 	_army_rel = {}
 	for a in game.armies:
+		if not sees(a.pid) and a.owner != game.player:
+			continue  # fog of war: foreign armies out of sight are not drawn (and cannot be tapped)
 		var rel := _army_relevant(a)
 		_army_rel[a.id] = rel
 		if not rel and zoom < ARMY_BG_ZOOM:
@@ -1622,6 +1650,8 @@ func _draw_voyages() -> void:
 		var mine: bool = a.owner == game.player
 		if not mine and not (known(int(v.to)) and known(int(v.from))):
 			continue
+		if not mine and not sees(int(v.to)) and not sees(int(v.from)):
+			continue
 		var pts: Array = Naval.voyage_points(game, v)
 		var sp := PackedVector2Array()
 		for w in pts:
@@ -1689,6 +1719,8 @@ func _draw_colonies() -> void:
 ## Running battles: crossed swords over the province, both sides' battle morale as bars.
 func _draw_battles() -> void:
 	for b in game.battles:
+		if not sees(b.pid):
+			continue
 		# right of the army counters, so the province name stays readable
 		var s := to_screen(game.provinces[b.pid].center) + _battle_anchor()
 		if not Rect2(Vector2(-60, -60), size + Vector2(120, 120)).has_point(s):
@@ -1757,7 +1789,7 @@ func _check_battle_rounds() -> void:
 		keep[b] = b.log.size()
 		if seen >= b.log.size() or b.att.is_empty() or b.def.is_empty():
 			continue
-		if not (known(b.pid) or _involves_player(b)):
+		if not ((known(b.pid) and sees(b.pid)) or _involves_player(b)):
 			continue
 		var e: Array = b.log[-1]
 		for i in 2:

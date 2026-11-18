@@ -36,6 +36,8 @@ func _init() -> void:
 		"test_manpower_overflow",
 		"test_units_and_templates",
 		"test_colonial",
+		"test_fog_of_war",
+		"test_na_west_and_netherlands",
 		"test_alert_bar",
 		"test_west_africa",
 		"test_south_africa",
@@ -820,6 +822,8 @@ func test_army_power() -> void:
 	a.power = 0.0
 	check(g.power_factor(a) < full_f and g.power_factor(a) > 0.0, "low power weakens the army in battle")
 	# battle: winner loses a little, loser a lot
+	for o in g.armies_of("ENG"):
+		g.armies.erase(o)  # (the loser retreats: it must not merge into a fresh English army)
 	var w = g.spawn_army("FRA", cap, 20.0)
 	var l = g.spawn_army("ENG", cap, 2.0)
 	w.power = 1.0
@@ -830,7 +834,9 @@ func test_army_power() -> void:
 	var war = g.war_between("FRA", "ENG")
 	g._battle(war, [w], [l], cap)
 	check(w.power > 0.75 and w.power < 1.0, "a won battle costs some power")
-	check(l.power < 0.6, "a lost battle costs a lot of power")
+	# (-50 % in the battle; the beaten army retreats into its own land and may recover a little there,
+	# which depends on the map around the battlefield)
+	check(l.power <= 0.6 + 0.0001, "a lost battle costs a lot of power (%.2f)" % l.power)
 	var g2 = new_game("FRA", 9)
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
 	check(absf(g2.army_by_id(w.id).power - w.power) < 0.0001, "army power is saved")
@@ -1891,6 +1897,52 @@ func test_save_roundtrip() -> void:
 	check(g.month == g2.month and absf(g.nations.ENG.gold - g2.nations.ENG.gold) < 1.0, "game continues identically after load")
 
 
+func _overseas_count() -> int:
+	var n := 0
+	for pd in data.map.provinces:
+		if pd.get("nw", false):
+			n += 1
+	return n
+
+
+## The North American west (v1.0.3): an overseas block after South America, the Pacific seas only reached
+## round Cape Horn or overland from Mexico; then the Low Countries, Old World again, for the Netherlands.
+func test_na_west_and_netherlands() -> void:
+	const Col = preload("res://scripts/core/colonial.gd")
+	var g = new_game("NED", 5)
+	check(g.pac_first > g.sa_first and g.pac_first < g.provinces.size(), "the North American west follows South America (%d)" % g.pac_first)
+	var west := 0
+	for pid in range(g.pac_first, g.provinces.size()):
+		var p = g.provinces[pid]
+		if data.map.provinces[pid].get("pac", false):
+			west += 1
+			check(Col.is_new_world(g, pid) and Col.region(g, pid) == "america" and p.owner == Col.NATIVE, "%s is native land in America" % p.key)
+		else:
+			check(not Col.is_new_world(g, pid) and Col.region(g, pid) == "old", "%s is Old World" % p.key)
+	check(west >= 40, "the west coast has %d provinces" % west)
+	check(int(data.map.size[0]) > 4096, "the map is wider than one Android texture")
+	var main_t: Array = data.map.get("terrain_main", [])
+	check(main_t.size() == 4 and int(main_t[2]) <= 4096, "terrain.png stays within 4096 px")
+	for td in data.map.terrain_tiles:
+		check(int(td[3]) <= 4096 and int(td[4]) <= 4096, "tile %s within 4096 px" % td[0])
+	# the Pacific coast: unknown seas, never joined to the Atlantic except round Cape Horn
+	for sid in ["cortez", "california", "cascadia"]:
+		check(g.sea_by_id.has(sid) and Col.NEW_SEAS.has(sid), "%s is a New World sea" % sid)
+		for a in g.sea_by_id[sid].get("adj", []):
+			check(not ["caribbean", "gulf", "ocean", "east_coast", "sargasso"].has(a), "%s does not touch the Atlantic (%s)" % [sid, a])
+	check(not Col.knows_sea(g, "SPA", "california"), "California is unknown in Europe")
+	# the Netherlands: a playable merchant republic in the Empire, rival of the Hanse
+	var n = g.nations.NED
+	check(n.alive and n.playable and g.provinces_of("NED").size() == 4, "the Netherlands start with Holland, Zeeland, Utrecht and Friesland")
+	check(g.provinces[n.capital].key == "holland", "Holland is the capital")
+	check(g.govt.form_name("NED") == "Kaufmannsrepublik", "the Netherlands are a merchant republic")
+	check(g.hre.has("NED") and g.get_rel("NED", "HSA") < 0.0, "member of the Empire, bad blood with the Hanse")
+	check(g.mission_defs.get("NED", []).size() >= 8, "national missions")
+	for i in 12:
+		g.tick()
+	check(n.alive, "the game runs with the new provinces")
+
+
 ## Africa south of the Sahara: an overseas block after the Middle East, native kingdoms, the Swahili
 ## coast known to the monsoon traders, seas that Europe has to explore around the Cape first.
 func test_south_africa() -> void:
@@ -1899,7 +1951,7 @@ func test_south_africa() -> void:
 	check(g.af_first > g.nw_end and g.af_first < g.provinces.size(), "Africa south of the Sahara follows the east block (%d)" % g.af_first)
 	for pid in range(g.af_first, g.sa_first):
 		check(Col.is_new_world(g, pid) and Col.region(g, pid) == "africa" and g.overseas.has(pid) and g.africa.has(pid), "%s is overseas Africa" % g.provinces[pid].key)
-	check(g.overseas.size() == (g.nw_end - g.nw_first) + (g.provinces.size() - g.af_first), "overseas list covers both blocks")
+	check(g.overseas.size() == _overseas_count(), "overseas list covers every overseas block")
 	for tag in ["KAN", "BOR", "DAR", "AJU", "MLD", "MBA", "KIL", "KIT", "KON", "NDO", "MUT"]:
 		check(g.nations[tag].alive and Col.is_native_realm(g, tag), "%s is a living African realm" % tag)
 		check(Col.region(g, g.nations[tag].capital) == "africa", "%s sits in Africa" % tag)
@@ -1933,10 +1985,10 @@ func test_south_america() -> void:
 	const Col = preload("res://scripts/core/colonial.gd")
 	var g = new_game("POR", 5)
 	check(g.sa_first > g.af_first and g.sa_first < g.provinces.size(), "South America follows Africa (%d)" % g.sa_first)
-	for pid in range(g.sa_first, g.provinces.size()):
+	for pid in range(g.sa_first, g.pac_first):
 		check(Col.is_new_world(g, pid) and Col.region(g, pid) == "america" and g.overseas.has(pid) and not g.africa.has(pid),
 				"%s is overseas America" % g.provinces[pid].key)
-	check(g.overseas.size() == (g.nw_end - g.nw_first) + (g.provinces.size() - g.af_first), "overseas list covers all blocks")
+	check(g.overseas.size() == _overseas_count(), "overseas list covers all blocks")
 	for tag in ["INC", "CHM", "MUI", "QTO", "CLL"]:
 		check(g.nations[tag].alive and Col.is_native_realm(g, tag), "%s is a living Andean realm" % tag)
 		check(Col.region(g, g.nations[tag].capital) == "america", "%s sits in America" % tag)
@@ -2048,6 +2100,46 @@ func test_troop_transport() -> void:
 	var b = g.spawn_army("POR", lisbon, 4.0)
 	g.sea_blocked["POR"] = {"atlantic": true}
 	check(Nav.sea_route(g, "POR", lisbon, cayor).is_empty() and Nav.transport_block_reason(g, b, cayor).contains("Flotte"), "an enemy fleet closes the sea")
+
+
+func test_fog_of_war() -> void:
+	const Vision = preload("res://scripts/core/vision.gd")
+	var g = new_game("FRA", 3)
+	var paris: int = g.key_to_pid["paris"]
+	var wien: int = g.key_to_pid["wien"]
+	var calais: int = g.key_to_pid["calais"]
+	for a in g.armies.duplicate():
+		if a.owner == "FRA" and Vision.compute(g, "FRA")[wien] == Vision.SEEN:
+			g.armies.erase(a)  # (no French army near Vienna)
+	g.nations.FRA.allies = []
+	g.nations.FRA.ships = 0.0
+	var s: PackedByteArray = Vision.compute(g, "FRA")
+	check(s[paris] == Vision.SEEN, "own land is in sight")
+	check(s[calais] != Vision.HIDDEN, "the neighbour next door is in sight")
+	check(s[wien] == Vision.HIDDEN, "Vienna lies in the fog for France")
+	g.nations.FRA.allies = ["HAB"]
+	check(Vision.compute(g, "FRA")[wien] == Vision.SEEN, "an ally shares its sight")
+	g.nations.FRA.allies = []
+	var a = g.spawn_army("FRA", wien, 1.0)
+	var s2: PackedByteArray = Vision.compute(g, "FRA")
+	check(s2[wien] == Vision.SEEN, "an army sees the province it stands in")
+	var nb: int = g.provinces[wien].adj[0]
+	check(s2[nb] != Vision.HIDDEN, "... and the next one")
+	g.armies.erase(a)
+	check(Vision.compute(g, "")[wien] == Vision.SEEN, "an observer sees everything")
+	# the player view: cached, follows the fog setting
+	g.player = "FRA"
+	g.fog_of_war = true
+	var other = g.spawn_army("HAB", wien, 3.0)
+	check(not Vision.sees(g, wien) and not Vision.sees_army(g, other), "foreign armies in the fog are hidden from the player")
+	g.fog_of_war = false
+	check(Vision.sees(g, wien) and Vision.sees_army(g, other), "without fog of war everything is visible")
+	g.fog_of_war = true
+	var t0 := Time.get_ticks_usec()
+	for i in 10:
+		Vision.compute(g, "FRA")
+	var ms := float(Time.get_ticks_usec() - t0) / 10000.0
+	check(ms < 15.0, "sight is cheap to compute (%.2f ms)" % ms)
 
 
 func test_colonial() -> void:

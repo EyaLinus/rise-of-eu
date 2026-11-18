@@ -460,6 +460,8 @@
   "colony_cost_per_colony": 0.08,
   "native_raid_destroy": 0.25,
   "city_growth_chance": 0.03,
+  "fog_sight": 1,
+  "fog_fleet_ships": 5,
   "stab_start": 20.0,
   "stab_base_target": 10.0,
   "stab_drift": 0.5,

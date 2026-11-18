@@ -290,6 +290,9 @@ var wa_first: int = 0  # first West African province id (Colonial.region)
 var nw_end: int = 0  # end of the overseas block: the Middle East and the Horn of Africa follow, Old World again
 var af_first: int = 0  # first province of Africa south of the Sahara (overseas again, up to the end of the map)
 var sa_first: int = 0  # first province of South America and the finer North American east coast (after Africa, region "america")
+var pac_first: int = 0  # first province of the North American west (after South America; the Low Countries follow)
+var nw_mask := PackedByteArray()  # pid -> 1 overseas (map.json "nw"), Colonial.is_new_world
+var wa_mask := PackedByteArray()  # pid -> 1 African overseas (map.json "wa"), Colonial.region
 var overseas: Array = []  # every overseas province id (the Americas, West Africa, Africa south of the Sahara)
 var africa: Array = []  # the overseas African province ids (Colonial.region "africa")
 var sea_reach_cache := {}  # tag -> [key, {sea: true}] (Colonial.sea_reach)
@@ -301,6 +304,10 @@ var urban_start: Array = []  # [rural, urban] province counts at the start (dema
 var market_cache := {}
 var east := {}  # far trade state (Trade): Cape route, Indiamen, factories, market dominance
 var levant: Array = []  # market pids that lose value once the Cape route is open
+## Fog of war for the player's view (Vision; a display setting of the UI, the AI always sees everything).
+var fog_of_war := true
+var vision_key := ""  # Vision.player_sight cache
+var vision := PackedByteArray()
 var prof = null  # optional {phase: usec} tick profiler (tools/perf.gd); null in the game, so _pmark is a no-op
 var _pt: int = 0
 
@@ -3807,6 +3814,15 @@ func from_dict(d: Dictionary) -> void:
 		wars.append(w)
 	Warfare.load_save(self, d.get("battles", []))
 	_rebuild_owned()
+	# realms added after the save was made (the Netherlands in v1.0.3) start from their 1444 lands; if their
+	# capital belongs to someone else in the save, they move it (or are gone if nothing is left)
+	for tag in order:
+		var nn: Nation = nations[tag]
+		if not d.nations.has(tag) and nn.alive and provinces[nn.capital].owner != tag:
+			if provinces_of(tag).is_empty():
+				nn.alive = false
+			else:
+				_move_capital(nn)
 	for tag in order:
 		if nations[tag].ships < 0.0:  # saves from before fleets: start fleets
 			nations[tag].ships = roundf(Naval.limit(self, tag) * float(bal.navy_start_share))

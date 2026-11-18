@@ -169,9 +169,8 @@
  ],
  "ai_promote_chance": 0.3,
  "company_slots": 2,
- "company_base_gold": 175,
- "company_year_scale": 0.01,
- "company_income_share": 0.03,
+ "company_months": 18,
+ "company_min_gold": 60,
  "invest_max_level": 5,
  "invest_step": 0.5,
  "invest_cost_mult": 0.5,
@@ -181,7 +180,7 @@
  "estate_crisis": 25,
  "estate_crisis_chance": 0.35,
  "estate_crisis_years": 4,
- "concession_months": 3,
+ "concession_months": 6,
  "concession_min_gold": 30,
  "concession_amount": 20,
  "concession_cooldown_years": 5,
@@ -936,7 +935,8 @@
   "HOR": "Sultanat",
   "YEM": "Sultanat",
   "ADA": "Sultanat",
-  "MAZ": "Sultanat"
+  "MAZ": "Sultanat",
+  "NED": "Kaufmannsrepublik"
  },
  "form_effects": {
   "Feudalmonarchie": {
@@ -1560,6 +1560,45 @@
    "text": "Feldherr der Grenzmarken gegen Adal."
   },
   {
+   "id": "ned_oldenbarnevelt",
+   "tag": "NED",
+   "name": "Johan van Oldenbarnevelt",
+   "type": "adm",
+   "from": 1576,
+   "to": 1619,
+   "effects": {
+    "adm": 1,
+    "income": 0.03
+   },
+   "text": "Landesadvokat von Holland, der die Republik der Generalstaaten zusammenhält."
+  },
+  {
+   "id": "ned_grotius",
+   "tag": "NED",
+   "name": "Hugo Grotius",
+   "type": "dip",
+   "from": 1600,
+   "to": 1645,
+   "effects": {
+    "dip": 1,
+    "ae_decay": 0.05
+   },
+   "text": "Gelehrter des Völkerrechts: das Meer gehört allen, und wer mit Holland handelt, soll Frieden haben."
+  },
+  {
+   "id": "ned_piet_hein",
+   "tag": "NED",
+   "name": "Piet Hein",
+   "type": "mil",
+   "from": 1610,
+   "to": 1629,
+   "effects": {
+    "naval": 0.15,
+    "prestige": 0.5
+   },
+   "text": "Der Admiral, der die spanische Silberflotte kaperte."
+  },
+  {
    "id": "fra_coeur",
    "tag": "FRA",
    "name": "Jacques Cœur",
@@ -2148,6 +2187,17 @@
     "production": 0.03
    },
    "text": "Seide aus dem Norden für die Märkte von Aleppo und Bursa."
+  },
+  {
+   "id": "ned_voc",
+   "tag": "NED",
+   "name": "Vereenigde Oostindische Compagnie",
+   "year": 1500,
+   "effects": {
+    "trade": 0.2,
+    "naval": 0.05
+   },
+   "text": "Die erste Aktiengesellschaft der Welt: Pfeffer, Muskat und Zimt aus Ostindien."
   },
   {
    "id": "eth_aksum_trade",
