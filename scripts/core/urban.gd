@@ -46,8 +46,47 @@ static func is_city_good(g, good: String) -> bool:
 	return g.bal.urban_goods.has(good)
 
 
+## Settlement tier: 0 Land, 1 Stadt, 2 Großstadt (dev >= urban_big_dev), 3 Metropole (dev >= urban_metro_dev).
+## Derived from development, so it needs no save field.
+static func tier(g, p) -> int:
+	if not p.urban:
+		return 0
+	if p.dev >= int(g.bal.urban_metro_dev):
+		return 3
+	if p.dev >= int(g.bal.urban_big_dev):
+		return 2
+	return 1
+
+
+static func tier_name(t: int) -> String:
+	return ["Land", "Stadt", "Großstadt", "Metropole"][clampi(t, 0, 3)]
+
+
 static func name(p) -> String:
 	return "Stadt" if p.urban else "Land"
+
+
+## Progress of countryside towards becoming a city by itself, 0..1 (development / urban_auto_dev).
+## Cities show their progress towards the next tier instead.
+static func progress(g, p) -> float:
+	if not p.urban:
+		return clampf(float(p.dev) / float(maxi(1, int(g.bal.urban_auto_dev))), 0.0, 1.0)
+	var t := tier(g, p)
+	if t >= 3:
+		return 1.0
+	var lo: int = int(g.bal.urban_min_dev) if t == 1 else int(g.bal.urban_big_dev)
+	var hi: int = int(g.bal.urban_big_dev) if t == 1 else int(g.bal.urban_metro_dev)
+	return clampf(float(p.dev - lo) / float(maxi(1, hi - lo)), 0.0, 1.0)
+
+
+## Development points still missing for the next step (0 at the top tier).
+static func next_dev(g, p) -> int:
+	if not p.urban:
+		return maxi(0, int(g.bal.urban_auto_dev) - p.dev)
+	var t := tier(g, p)
+	if t >= 3:
+		return 0
+	return maxi(0, (int(g.bal.urban_big_dev) if t == 1 else int(g.bal.urban_metro_dev)) - p.dev)
 
 
 ## Local effects (same keys as building effects, merged into p.loc by Economy.refresh_local).
@@ -55,12 +94,20 @@ static func local_effects(g, p) -> Dictionary:
 	var out: Dictionary = (g.bal.urban_local if p.urban else g.bal.rural_local).duplicate()
 	if is_city_good(g, p.good) == p.urban:
 		out["production"] = float(out.get("production", 0.0)) + float(g.bal.goods_fit_production)
+	var t := tier(g, p)
+	p.tier_seen = t
+	if t >= 2:  # Großstadt / Metropole: on top of the plain city
+		var extra: Dictionary = g.bal.urban_tier_local[str(t)]
+		for k in extra:
+			out[k] = float(out.get(k, 0.0)) + float(extra[k])
 	return out
 
 
 ## Extra building slots of a city.
 static func slot_bonus(g, p) -> int:
-	return int(g.bal.urban_slots) if p.urban else 0
+	if not p.urban:
+		return 0
+	return int(g.bal.urban_slots) + (int(g.bal.urban_tier_slots[tier(g, p) - 2]) if tier(g, p) > 1 else 0)
 
 
 ## Demand multiplier of a good from the world's share of cities (1.0 at the start).
@@ -193,10 +240,22 @@ static func auto_grow(g) -> void:
 			g.log_msg("🏙️ %s ist von selbst zur Stadt gewachsen (Entwicklung %d)." % [p.name, p.dev], [n.tag])
 
 
+## Yearly: cities whose development crossed a tier border get their new local effects.
+static func refresh_tiers(g) -> void:
+	for p in g.provinces:
+		var t := tier(g, p)
+		if t != p.tier_seen:
+			var up: bool = t > p.tier_seen
+			g.Economy.refresh_local(g, p)  # sets p.tier_seen
+			if up and t >= 2 and p.owner == g.player:
+				g.log_msg("🏙️ %s ist jetzt %s%s." % [p.name, "eine Metropole" if t == 3 else "eine Großstadt", ""], [p.owner])
+
+
 ## Yearly: cities grow by themselves now and then (markets and harbors draw people), up to the soft cap,
 ## as long as the owner holds them in peace. Countryside only grows when the owner develops it.
 static func yearly(g) -> void:
 	auto_grow(g)
+	refresh_tiers(g)
 	var cap: int = int(g.bal.dev_soft_cap)
 	for p in g.provinces:
 		if not p.urban or p.dev >= cap or p.controller != p.owner or p.siege > 0.0:

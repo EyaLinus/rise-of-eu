@@ -398,7 +398,14 @@
   "urban_months": 24,
   "urban_months_per_dev": 1,
   "urban_months_min": 9,
-  "urban_auto_dev": 20,
+  "urban_auto_dev": 28,
+  "urban_big_dev": 35,
+  "urban_metro_dev": 50,
+  "urban_tier_slots": [1, 2],
+  "urban_tier_local": {
+    "2": {"tax": 0.15, "trade_power": 0.25, "unrest": 0.2},
+    "3": {"tax": 0.35, "trade_power": 0.6, "unrest": 0.4}
+  },
   "autobuild_urban_share": 0.5,
   "rural_months": 12,
   "urban_slots": 1,
@@ -478,5 +485,7 @@
   "stab_war_won": 5.0,
   "stab_war_lost": 15.0,
   "stab_rank_up": 10.0,
-  "rank_ai_gold_mult": 1.5
+  "rank_ai_gold_mult": 1.5,
+  "manpower_overflow_decay": 0.04,
+  "manpower_overflow_max": 1.5
 }

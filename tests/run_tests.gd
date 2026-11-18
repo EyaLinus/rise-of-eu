@@ -32,6 +32,8 @@ func _init() -> void:
 		"test_guarantee",
 		"test_rivals",
 		"test_urban",
+		"test_city_tiers",
+		"test_manpower_overflow",
 		"test_units_and_templates",
 		"test_colonial",
 		"test_alert_bar",
@@ -4210,6 +4212,48 @@ func test_colonial_events() -> void:
 
 ## Balance pass: manpower is counted in regiments (no more "+1500" that refills the pool), no option is
 ## better than another one on every single effect.
+func test_city_tiers() -> void:
+	var g = new_game("FRA", 9)
+	var Urb = g.Urban
+	var pid: int = g.key_to_pid["paris"]
+	var p = g.provinces[pid]
+	p.urban = true
+	p.dev = 20
+	g.Economy.refresh_local(g, p)
+	check(Urb.tier(g, p) == 1, "dev 20 city is a plain city")
+	var tax1: float = g.Economy.tax(g, p)
+	var slots1: int = g.Economy.slots(g, p)
+	p.dev = int(g.bal.urban_big_dev)
+	Urb.refresh_tiers(g)
+	check(Urb.tier(g, p) == 2 and Urb.tier_name(2) == "Großstadt", "dev 35 is a Großstadt")
+	check(g.Economy.local(g, p, "trade_power") >= float(g.bal.urban_local.trade_power) + float(g.bal.urban_tier_local["2"].trade_power) - 0.001, "Großstadt trade power bonus applied")
+	check(g.Economy.slots(g, p) >= slots1 and Urb.slot_bonus(g, p) == int(g.bal.urban_slots) + int(g.bal.urban_tier_slots[0]), "Großstadt gets extra slots")
+	p.dev = int(g.bal.urban_metro_dev)
+	Urb.refresh_tiers(g)
+	check(Urb.tier(g, p) == 3 and Urb.progress(g, p) == 1.0 and Urb.next_dev(g, p) == 0, "dev 50 is a Metropole at the top")
+	check(g.Economy.tax(g, p) > tax1, "a Metropole pays more than a plain city")
+	p.urban = false
+	check(Urb.tier(g, p) == 0 and Urb.progress(g, p) > 0.0 and Urb.progress(g, p) <= 1.0, "countryside has a progress share")
+
+
+func test_manpower_overflow() -> void:
+	var g = new_game("FRA", 9)
+	var n = g.nations.FRA
+	g._update_cached(n)
+	var mx: float = n.max_manpower
+	n.manpower = mx
+	g.apply_effects("FRA", {"manpower": 10})
+	check(n.manpower > mx, "event manpower may exceed the maximum")
+	g._economy(n)
+	check(n.max_manpower > 0.0 and n.manpower > n.max_manpower, "the overflow survives the month")
+	var over0: float = n.manpower - n.max_manpower
+	g._economy(n)
+	check(n.manpower - n.max_manpower < over0 and n.manpower >= n.max_manpower, "the overflow melts away slowly")
+	n.manpower = mx
+	g.apply_effects("FRA", {"manpower": 99999})
+	check(n.manpower <= n.max_manpower * float(g.bal.manpower_overflow_max) + 0.01, "overflow is capped")
+
+
 func test_event_balance() -> void:
 	var g = new_game("FRA", 6)
 	for e in g.event_defs:
