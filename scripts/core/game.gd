@@ -295,6 +295,10 @@ var urban_start: Array = []  # [rural, urban] province counts at the start (dema
 var market_cache := {}
 var east := {}  # far trade state (Trade): Cape route, Indiamen, factories, market dominance
 var levant: Array = []  # market pids that lose value once the Cape route is open
+## Fog of war for the player's view (Vision; a display setting of the UI, the AI always sees everything).
+var fog_of_war := true
+var vision_key := ""  # Vision.player_sight cache
+var vision := PackedByteArray()
 var prof = null  # optional {phase: usec} tick profiler (tools/perf.gd); null in the game, so _pmark is a no-op
 var _pt: int = 0
 

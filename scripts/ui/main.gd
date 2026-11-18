@@ -934,6 +934,7 @@ func _show_slots(saving: bool) -> void:
 
 
 func _after_game_loaded() -> void:
+	game.fog_of_war = settings.get("fog", true)
 	map.setup(game, data.map)
 	map.reset_dev_seen()
 	map.check_dev_changes()
@@ -1833,6 +1834,13 @@ func _show_settings() -> void:
 		settings.debug = not settings.get("debug", false)
 		_save_settings()
 		_show_settings(), "Leistungsanzeige über der Karte, Debug-Fenster (F12 oder im Menü) mit Speicher, Spielzustand, Absturzinfo und Test-Cheats."))
+	opts.append(_btn("🌫 Nebel des Krieges: %s" % ("an" if settings.get("fog", true) else "aus"), func():
+		settings.fog = not settings.get("fog", true)
+		_save_settings()
+		if game != null:
+			game.fog_of_war = settings.fog
+			map.refresh()
+		_show_settings(), "Fremde Armeen, Schlachten und Truppentransporte siehst du nur in der Nähe deines Landes, deiner Verbündeten, deiner Armeen und Flotten. Alles andere liegt im Nebel (dunkler Schleier). Grenzen und Besitzer bleiben bekannt."))
 	opts.append(_btn("⚔️ Schlachten langsam: %s" % ("an" if settings.get("slow_battles", true) else "aus"), func():
 		settings.slow_battles = not settings.get("slow_battles", true)
 		_save_settings()
@@ -2595,6 +2603,9 @@ func _province_armies(pid: int) -> void:
 	sl.tooltip_text = _supply_tip()
 	sl.mouse_filter = Control.MOUSE_FILTER_STOP
 	side_box.add_child(sl)
+	if not map.sees(pid):
+		here = here.filter(func(a): return a.owner == me)
+		side_box.add_child(_lbl("🌫 Nebel des Krieges: fremde Truppen hier sind nicht zu sehen.", 14, Color(0.7, 0.72, 0.78)))
 	if not here.is_empty():
 		side_box.add_child(_lbl("Armeen hier:", 18, Color(0.7, 0.8, 0.9)))
 		for a in here:

@@ -177,6 +177,10 @@ add("🚫", "no_entry", layer(["....RRRR....", "..RRrrrrRR..", ".RrrRR..rrR.", "
 add("🎵", "music", layer(["....YYYYYYYY", "....YGGGGGGD", "....YD....YD", "....YD....YD", "....YD....YD", "....YD....YD",
                          "....YD....YD", "..YYYD..YYYD", ".YGGGD.YGGGD", ".YGGGD.YGGGD", "..DDD...DDD."], 2, 3))
 
+# three drifting grey bands: fog of war (map tooltip, province panel, settings)
+add("🌫", "fog", layer(["..wwww......", ".waaaagw....", "wagggggaww..", "..........w.", "....wwwwww..", "..waaaaaagw.",
+                       ".wagggggggaw", "............", "wwww..wwww..", "aaagwwaaagw.", "gggggggggga."], 2, 3))
+
 # ---- tech tree states
 add("🔒", "lock", layer(["...aaaa...", "..ag..ga..", "..a....g..", "..a....g..", "YYYYYYYYYD", "YGGGGGGGGD", "YGGGkkGGGD", "YGGGkkGGGD", "YGGGGkGGGD", "DDDDDDDDDD"], 3, 3))
 add("✓", "tick", layer([".........ll", "........lLF", ".......lLF.", "ll....lLF..", "lLl..lLF...", ".lLllLF....", "..lLLF.....", "...LF......"], 2, 4))

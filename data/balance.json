@@ -452,5 +452,7 @@
   "ai_colony_reserve": 80.0,
   "colony_cost_per_colony": 0.08,
   "native_raid_destroy": 0.25,
-  "city_growth_chance": 0.03
+  "city_growth_chance": 0.03,
+  "fog_sight": 1,
+  "fog_fleet_ships": 5
 }

@@ -34,6 +34,7 @@ func _init() -> void:
 		"test_urban",
 		"test_units_and_templates",
 		"test_colonial",
+		"test_fog_of_war",
 		"test_alert_bar",
 		"test_west_africa",
 		"test_south_africa",
@@ -1950,6 +1951,46 @@ func test_troop_transport() -> void:
 	var b = g.spawn_army("POR", lisbon, 4.0)
 	g.sea_blocked["POR"] = {"atlantic": true}
 	check(Nav.sea_route(g, "POR", lisbon, cayor).is_empty() and Nav.transport_block_reason(g, b, cayor).contains("Flotte"), "an enemy fleet closes the sea")
+
+
+func test_fog_of_war() -> void:
+	const Vision = preload("res://scripts/core/vision.gd")
+	var g = new_game("FRA", 3)
+	var paris: int = g.key_to_pid["paris"]
+	var wien: int = g.key_to_pid["wien"]
+	var calais: int = g.key_to_pid["calais"]
+	for a in g.armies.duplicate():
+		if a.owner == "FRA" and Vision.compute(g, "FRA")[wien] == Vision.SEEN:
+			g.armies.erase(a)  # (no French army near Vienna)
+	g.nations.FRA.allies = []
+	g.nations.FRA.ships = 0.0
+	var s: PackedByteArray = Vision.compute(g, "FRA")
+	check(s[paris] == Vision.SEEN, "own land is in sight")
+	check(s[calais] != Vision.HIDDEN, "the neighbour next door is in sight")
+	check(s[wien] == Vision.HIDDEN, "Vienna lies in the fog for France")
+	g.nations.FRA.allies = ["HAB"]
+	check(Vision.compute(g, "FRA")[wien] == Vision.SEEN, "an ally shares its sight")
+	g.nations.FRA.allies = []
+	var a = g.spawn_army("FRA", wien, 1.0)
+	var s2: PackedByteArray = Vision.compute(g, "FRA")
+	check(s2[wien] == Vision.SEEN, "an army sees the province it stands in")
+	var nb: int = g.provinces[wien].adj[0]
+	check(s2[nb] != Vision.HIDDEN, "... and the next one")
+	g.armies.erase(a)
+	check(Vision.compute(g, "")[wien] == Vision.SEEN, "an observer sees everything")
+	# the player view: cached, follows the fog setting
+	g.player = "FRA"
+	g.fog_of_war = true
+	var other = g.spawn_army("HAB", wien, 3.0)
+	check(not Vision.sees(g, wien) and not Vision.sees_army(g, other), "foreign armies in the fog are hidden from the player")
+	g.fog_of_war = false
+	check(Vision.sees(g, wien) and Vision.sees_army(g, other), "without fog of war everything is visible")
+	g.fog_of_war = true
+	var t0 := Time.get_ticks_usec()
+	for i in 10:
+		Vision.compute(g, "FRA")
+	var ms := float(Time.get_ticks_usec() - t0) / 10000.0
+	check(ms < 15.0, "sight is cheap to compute (%.2f ms)" % ms)
 
 
 func test_colonial() -> void:
