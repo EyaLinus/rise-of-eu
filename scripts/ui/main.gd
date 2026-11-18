@@ -3643,6 +3643,11 @@ func _nation_rank(me: String) -> void:
 		l.tooltip_text = "%s\nBedingungen: %s\nKosten: %s\nBoni: %s" % [rk.name, Prog.need_text(rk.need), Prog.cost_text(rk.cost), Prog.bonus_text(rk.bonus, rk.new)]
 		l.mouse_filter = Control.MOUSE_FILTER_STOP
 		side_box.add_child(l)
+		if i == r and r > 0:
+			var fl: Array = Prog.demote_floor(game, n)
+			var low: int = int(n.flags.get("rank_low", 0))
+			side_box.add_child(_lbl("   Hält, solange das Reich mindestens %d Provinzen und %d Entwicklung hat.%s" % [ceili(fl[0]), ceili(fl[1]),
+					("\n   ⚠️ Darunter seit %d Jahr(en): Abstieg nach %d Jahren." % [low, int(game.bal.rank_demote_years)]) if low > 0 else ""], 14, Color.TOMATO if low > 0 else Color(0.75, 0.75, 0.7)))
 		if i == nxt:
 			side_box.add_child(_lbl("   Bedingungen: %s\n   Kosten: %s\n   Boni: %s" % [Prog.need_text(rk.need), Prog.cost_text(rk.cost), Prog.bonus_text(rk.bonus, rk.new)], 14, Color(0.85, 0.85, 0.8)))
 			var why: String = Prog.upgrade_block_reason(game, me)
@@ -4702,6 +4707,9 @@ func _advice() -> Array:
 	if n.stability < 0.0:
 		add.call("stability", "⚖️ Stabilität %+d %%" % roundi(n.stability), "Negative Stabilität senkt Steuern und Mannschaften, verteuert Technik und schürt Unruhe. Zielwert: %+d." % roundi(game.Stability.target(game, n)),
 				"Im Nationsfenster „⚖️ Stabilität stärken“ (📜), Kriege beenden, Schulden abbauen, Provinzen eingliedern.", "bad", "nation")
+	if int(n.flags.get("rank_low", 0)) > 0:
+		add.call("rank_low", "📉 Rang %s in Gefahr" % game.Progression.rank_name(game, me), "Dein Reich ist weit unter die Größe seines Rangs geschrumpft. Bleibt das so, steigt es ab (−%d Stabilität)." % int(game.bal.stab_rank_down),
+				"Provinzen zurückgewinnen oder entwickeln (Grenzen im Nationsfenster unter „Rang des Reiches“).", "bad", "nation")
 	# rewards waiting
 	if game.Progression.can_upgrade(game, me):
 		var nr: Dictionary = game.Progression.RANKS[n.rank + 1]
