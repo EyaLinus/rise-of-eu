@@ -69,6 +69,11 @@ SEAS = [
     ("horn", "Kap Hoorn", (-66.0, -55.8), [(-66.0, -56.0), (-70.0, -56.3), (-74.6, -55.2), (-62.0, -55.6), (-77.0, -53.0)]),
     ("humboldt", "Humboldtsee", (-80.0, -18.0), [(-81.8, -5.6), (-79.0, -12.0), (-76.0, -17.6), (-72.6, -23.6), (-73.6, -30.0), (-75.6, -36.0),
                                                (-77.0, -42.0), (-78.0, -48.0), (-81.6, -1.0), (-86.0, -12.0), (-86.0, -30.0), (-86.0, -46.0)]),
+    # the North American Pacific coast (shifted west as part of the New World window)
+    ("cortez", "Golf von Kalifornien", (-111.0, 27.6), [(-111.0, 27.6), (-112.8, 29.6), (-109.4, 25.0), (-110.2, 26.2), (-114.0, 31.0)]),
+    ("california", "Kalifornische See", (-121.5, 33.0), [(-118.6, 32.4), (-121.5, 33.5), (-124.0, 36.6), (-116.6, 29.0), (-114.6, 26.0),
+                                                      (-112.0, 22.6), (-126.6, 39.4), (-124.6, 31.0), (-120.0, 28.0), (-108.0, 21.0)]),
+    ("cascadia", "Nordpazifik", (-126.6, 45.0), [(-125.6, 42.0), (-126.6, 45.0), (-127.2, 48.0), (-123.4, 48.6), (-124.2, 49.6), (-127.6, 50.6)]),
     ("lakes", "Große Seen", (-85.0, 45.0), [(-87.5, 47.6), (-87.0, 43.5), (-82.4, 44.6), (-81.2, 42.2), (-77.8, 43.6), (-97.5, 52.5)]),
 ]
 
@@ -143,7 +148,7 @@ def main():
                 continue
             if "af_lakes" in (SEAS[x][0], SEAS[y][0]):
                 continue  # the African lakes are inland water
-            if {SEAS[x][0], SEAS[y][0]} & {"humboldt", "pacific"} and {SEAS[x][0], SEAS[y][0]} & {"caribbean", "gulf", "guiana", "amazon", "ocean"}:
+            if {SEAS[x][0], SEAS[y][0]} & {"humboldt", "pacific", "cortez", "california", "cascadia"} and {SEAS[x][0], SEAS[y][0]} & {"caribbean", "gulf", "guiana", "amazon", "ocean"}:
                 continue  # the Pacific reaches the Atlantic only round Cape Horn (no Panama canal)
             if {SEAS[x][0], SEAS[y][0]} & {"south_atlantic", "cape"} and {SEAS[x][0], SEAS[y][0]} & {"pacific", "caribbean", "gulf", "sargasso", "humboldt"}:
                 continue  # the map's empty south-west corner: no shortcut from the Americas to the Cape
@@ -170,7 +175,7 @@ def main():
 
 NEW_SEAS = {"guinea", "ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes",
             "south_atlantic", "cape", "mozambique", "swahili", "indian", "af_lakes",
-            "guiana", "amazon", "brazil", "plata", "patagonian", "horn", "humboldt"}
+            "guiana", "amazon", "brazil", "plata", "patagonian", "horn", "humboldt", "cortez", "california", "cascadia"}
 FOG_CELL = 8
 
 

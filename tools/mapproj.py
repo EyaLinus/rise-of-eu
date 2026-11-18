@@ -3,7 +3,7 @@
 Plate carrée at 48 px per degree latitude, longitude scaled by cos(50°). Two land windows: the Old
 World (Europe, all of Africa, the Near and Middle East) and the New World (North, Central and South America). The New
 World is shifted east by ATL_SHIFT degrees, which squeezes the empty mid-Atlantic out of the map so
-the whole world stays under 4096 px wide (one texture on Android).
+the world stays narrow (about 4800 px; Android caps textures at 4096 px, so the painted map is cut into tiles).
 """
 import math
 
@@ -12,7 +12,7 @@ COSLAT = math.cos(math.radians(50))
 ATL_CUT = -34.5  # longitudes west of this belong to the New World window (Cabo Branco, Brazil, is at -34.8)
 ATL_SHIFT = 27.0  # ... and are moved this many degrees east
 OLD_WORLD = (-18.0, 55.5)  # lon range of the Old World window (west edge: Cape Verde, east edge: Hormuz; width stays < 4096 px)
-NEW_WORLD = (-104.0, -50.0)  # lon range of the New World window (before the shift)
+NEW_WORLD = (-128.0, -50.0)  # lon range of the New World window (before the shift; west edge: Vancouver Island)
 LON0 = NEW_WORLD[0] + ATL_SHIFT  # x = 0
 LAT0 = 64.0  # y = 0
 MIN_LAT = -56.5  # bottom edge (Cape Horn)

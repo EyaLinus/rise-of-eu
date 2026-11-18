@@ -446,10 +446,6 @@
      "require": {"building": {"university": 1}, "min_dev": 120}, "reward": {"prestige": 20, "mods": {"tech_cost": -0.03}}},
     {"id": "hun_np_bohemia", "after": "hun_np_croatia", "title": "Die Krone Böhmens", "desc": "Matthias greift nach Mähren und Schlesien.",
      "require": {"owns_any": ["moravia", "silesia", "lusatia"]}, "reward": {"mil": 50, "mods": {"combat": 0.02}}},
-    {"id": "hun_riv_declare", "title": "Ein würdiger Rivale", "desc": "Jede Macht braucht einen Gegner, an dem sie sich misst. Für Ungarn sind das die Osmanen und die Habsburger. Erkläre einen Rivalen (Diplomatie).",
-     "require": {"rivals_min": 1}, "reward": {"mil": 25, "dip": 25, "prestige": 5}},
-    {"id": "hun_riv_power", "after": "hun_riv_declare", "title": "Die Macht gezeigt", "desc": "Schlachten gegen den Rivalen und eroberte Provinzen bauen Machtprojektion auf. Zeige ganz Europa, dass Ungarn gegen die Osmanen und die Habsburger besteht.",
-     "require": {"power_proj_min": 50}, "reward": {"prestige": 15, "mil": 50, "mods": {"combat": 0.02}}},
     {"id": "hun_hu_holy_crown", "title": "Die Heilige Krone heimholen", "desc": "Kaiser Friedrich hält die Stephanskrone fest. Ohne sie ist jeder König Ungarns nur halb gekrönt.",
      "require": {"year_min": 1455, "min_dev": 70}, "reward": {"prestige": 25, "dip": 50, "estate": {"adel": 5}}},
     {"id": "hun_hu_black_army_full", "after": "hun_hu_holy_crown", "title": "Das stehende Heer", "desc": "Ein Heer, das auch im Frieden bezahlt wird: der Schrecken der Nachbarn.",
@@ -463,7 +459,11 @@
     {"id": "hun_hu_bulwark", "title": "Das Bollwerk der Christenheit", "desc": "Belgrad, Bosnien und Serbien in ungarischer Hand: die Donau ist sicher.",
      "require": {"owns": ["serbia", "bosnia"], "year_min": 1480}, "reward": {"mods": {"combat": 0.03}, "prestige": 20, "relations": {"PAP": 40}}},
     {"id": "hun_hu_great_kingdom", "after": "hun_hu_three_crowns", "title": "Das Königreich Ungarn", "desc": "Ein Reich, das mit Frankreich und dem Sultan auf Augenhöhe spricht.",
-     "require": {"min_dev": 220}, "reward": {"mods": {"income": 0.05, "develop_cost": -0.1}, "prestige": 25}}
+     "require": {"min_dev": 220}, "reward": {"mods": {"income": 0.05, "develop_cost": -0.1}, "prestige": 25}},
+    {"id": "hun_riv_declare", "title": "Ein würdiger Rivale", "desc": "Jede Macht braucht einen Gegner, an dem sie sich misst. Für Ungarn sind das die Osmanen und die Habsburger. Erkläre einen Rivalen (Diplomatie).",
+     "require": {"rivals_min": 1}, "reward": {"mil": 25, "dip": 25, "prestige": 5}},
+    {"id": "hun_riv_power", "after": "hun_riv_declare", "title": "Die Macht gezeigt", "desc": "Schlachten gegen den Rivalen und eroberte Provinzen bauen Machtprojektion auf. Zeige ganz Europa, dass Ungarn gegen die Osmanen und die Habsburger besteht.",
+     "require": {"power_proj_min": 50}, "reward": {"prestige": 15, "mil": 50, "mods": {"combat": 0.02}}}
   ],
   "LIT": [
     {"id": "lit_rus", "title": "Die Länder der Rus", "desc": "Kiew, Smolensk und Tschernigow bleiben litauisch.",
@@ -586,5 +586,27 @@
      "require": {"rivals_min": 1}, "reward": {"mil": 25, "dip": 25, "prestige": 5}},
     {"id": "eth_riv_power", "after": "eth_riv_declare", "title": "Die Macht gezeigt", "desc": "Schlachten gegen den Rivalen und eroberte Provinzen bauen Machtprojektion auf. Zeige ganz Europa, dass der Kaiser von Äthiopien gegen Adal, die Osmanen und die Herren des Roten Meeres besteht.",
      "require": {"power_proj_min": 50}, "reward": {"prestige": 15, "mil": 50, "mods": {"combat": 0.02}}}
+  ],
+  "NED": [
+    {"id": "ned_np_herring", "title": "Die Heringsflotte", "desc": "Hunderte Buisen fahren auf die Doggerbank. Der Fisch ernährt Holland und baut seine Seeleute aus.",
+     "require": {"ships_min": 8}, "reward": {"dip": 40, "mods": {"naval": 0.03}}},
+    {"id": "ned_np_polder", "title": "Land aus dem Meer", "desc": "Deiche, Windmühlen und Polder: jeder Acker in Holland ist dem Wasser abgerungen.",
+     "require": {"min_dev": 45}, "reward": {"adm": 40, "dev_capital": 1}},
+    {"id": "ned_np_bourse", "after": "ned_np_herring", "title": "Die Börse von Amsterdam", "desc": "Wechsel, Aktien und Termingeschäfte: die erste Börse der Welt.",
+     "require": {"building": {"marketplace": 2}, "trade_pacts_min": 1}, "reward": {"gold": 120, "mods": {"trade": 0.03}}},
+    {"id": "ned_np_baltic", "after": "ned_np_bourse", "title": "Der Ostseehandel", "desc": "Korn aus Danzig und Holz aus Riga: die Mutter aller Handelszweige. Die Hanse muss weichen.",
+     "require": {"trade_pacts_min": 2, "ships_min": 15}, "reward": {"prestige": 15, "mods": {"trade": 0.04}}},
+    {"id": "ned_np_flanders", "after": "ned_np_polder", "title": "Die Siebzehn Provinzen", "desc": "Flandern und Brabant gehören zu den Niederlanden, nicht zu einem fernen Herzog.",
+     "require": {"owns": ["flanders", "brabant"]}, "reward": {"mil": 50, "prestige": 15, "mods": {"production": 0.03}}},
+    {"id": "ned_np_new_world", "after": "ned_np_herring", "title": "Nieuw Amsterdam", "desc": "Ein Kontor in der Neuen Welt: Pelze vom Hudson, Zucker von der wilden Küste.",
+     "require": {"owns_any": ["munsee", "suriname", "guayana", "lenape", "mahican"]}, "reward": {"dip": 50, "mods": {"income": 0.03}}},
+    {"id": "ned_np_cape", "after": "ned_np_new_world", "title": "Die Kapkolonie", "desc": "Eine Station am Kap der Guten Hoffnung versorgt die Schiffe nach Indien.",
+     "require": {"owns_any": ["cape", "xhosa"]}, "reward": {"gold": 150, "mods": {"naval": 0.03}}},
+    {"id": "ned_np_golden_age", "after": "ned_np_baltic", "title": "Das Goldene Zeitalter", "desc": "Rembrandt malt, Spinoza denkt, Grotius schreibt das Recht der Meere.",
+     "require": {"min_dev": 90, "monuments_min": 1}, "reward": {"prestige": 25, "mods": {"tech_cost": -0.03}}},
+    {"id": "ned_riv_declare", "title": "Ein würdiger Rivale", "desc": "Jede Macht braucht einen Gegner, an dem sie sich misst. Für die Generalstaaten sind das die Hanse, Burgund und England. Erkläre einen Rivalen (Diplomatie).",
+     "require": {"rivals_min": 1}, "reward": {"mil": 25, "dip": 25, "prestige": 5}},
+    {"id": "ned_riv_power", "after": "ned_riv_declare", "title": "Die Macht gezeigt", "desc": "Schlachten gegen den Rivalen und eroberte Provinzen bauen Machtprojektion auf. Zeige ganz Europa, dass die Generalstaaten gegen die Hanse, Burgund und England besteht.",
+     "require": {"power_proj_min": 50}, "reward": {"prestige": 15, "mil": 50, "mods": {"trade": 0.03}}}
   ]
 }

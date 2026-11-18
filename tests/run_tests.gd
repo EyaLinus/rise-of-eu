@@ -35,6 +35,7 @@ func _init() -> void:
 		"test_units_and_templates",
 		"test_colonial",
 		"test_fog_of_war",
+		"test_na_west_and_netherlands",
 		"test_alert_bar",
 		"test_west_africa",
 		"test_south_africa",
@@ -1794,6 +1795,52 @@ func test_save_roundtrip() -> void:
 	check(g.month == g2.month and absf(g.nations.ENG.gold - g2.nations.ENG.gold) < 1.0, "game continues identically after load")
 
 
+func _overseas_count() -> int:
+	var n := 0
+	for pd in data.map.provinces:
+		if pd.get("nw", false):
+			n += 1
+	return n
+
+
+## The North American west (v1.0.3): an overseas block after South America, the Pacific seas only reached
+## round Cape Horn or overland from Mexico; then the Low Countries, Old World again, for the Netherlands.
+func test_na_west_and_netherlands() -> void:
+	const Col = preload("res://scripts/core/colonial.gd")
+	var g = new_game("NED", 5)
+	check(g.pac_first > g.sa_first and g.pac_first < g.provinces.size(), "the North American west follows South America (%d)" % g.pac_first)
+	var west := 0
+	for pid in range(g.pac_first, g.provinces.size()):
+		var p = g.provinces[pid]
+		if data.map.provinces[pid].get("pac", false):
+			west += 1
+			check(Col.is_new_world(g, pid) and Col.region(g, pid) == "america" and p.owner == Col.NATIVE, "%s is native land in America" % p.key)
+		else:
+			check(not Col.is_new_world(g, pid) and Col.region(g, pid) == "old", "%s is Old World" % p.key)
+	check(west >= 40, "the west coast has %d provinces" % west)
+	check(int(data.map.size[0]) > 4096, "the map is wider than one Android texture")
+	var main_t: Array = data.map.get("terrain_main", [])
+	check(main_t.size() == 4 and int(main_t[2]) <= 4096, "terrain.png stays within 4096 px")
+	for td in data.map.terrain_tiles:
+		check(int(td[3]) <= 4096 and int(td[4]) <= 4096, "tile %s within 4096 px" % td[0])
+	# the Pacific coast: unknown seas, never joined to the Atlantic except round Cape Horn
+	for sid in ["cortez", "california", "cascadia"]:
+		check(g.sea_by_id.has(sid) and Col.NEW_SEAS.has(sid), "%s is a New World sea" % sid)
+		for a in g.sea_by_id[sid].get("adj", []):
+			check(not ["caribbean", "gulf", "ocean", "east_coast", "sargasso"].has(a), "%s does not touch the Atlantic (%s)" % [sid, a])
+	check(not Col.knows_sea(g, "SPA", "california"), "California is unknown in Europe")
+	# the Netherlands: a playable merchant republic in the Empire, rival of the Hanse
+	var n = g.nations.NED
+	check(n.alive and n.playable and g.provinces_of("NED").size() == 4, "the Netherlands start with Holland, Zeeland, Utrecht and Friesland")
+	check(g.provinces[n.capital].key == "holland", "Holland is the capital")
+	check(g.govt.form_name("NED") == "Kaufmannsrepublik", "the Netherlands are a merchant republic")
+	check(g.hre.has("NED") and g.get_rel("NED", "HSA") < 0.0, "member of the Empire, bad blood with the Hanse")
+	check(g.mission_defs.get("NED", []).size() >= 8, "national missions")
+	for i in 12:
+		g.tick()
+	check(n.alive, "the game runs with the new provinces")
+
+
 ## Africa south of the Sahara: an overseas block after the Middle East, native kingdoms, the Swahili
 ## coast known to the monsoon traders, seas that Europe has to explore around the Cape first.
 func test_south_africa() -> void:
@@ -1802,7 +1849,7 @@ func test_south_africa() -> void:
 	check(g.af_first > g.nw_end and g.af_first < g.provinces.size(), "Africa south of the Sahara follows the east block (%d)" % g.af_first)
 	for pid in range(g.af_first, g.sa_first):
 		check(Col.is_new_world(g, pid) and Col.region(g, pid) == "africa" and g.overseas.has(pid) and g.africa.has(pid), "%s is overseas Africa" % g.provinces[pid].key)
-	check(g.overseas.size() == (g.nw_end - g.nw_first) + (g.provinces.size() - g.af_first), "overseas list covers both blocks")
+	check(g.overseas.size() == _overseas_count(), "overseas list covers every overseas block")
 	for tag in ["KAN", "BOR", "DAR", "AJU", "MLD", "MBA", "KIL", "KIT", "KON", "NDO", "MUT"]:
 		check(g.nations[tag].alive and Col.is_native_realm(g, tag), "%s is a living African realm" % tag)
 		check(Col.region(g, g.nations[tag].capital) == "africa", "%s sits in Africa" % tag)
@@ -1836,10 +1883,10 @@ func test_south_america() -> void:
 	const Col = preload("res://scripts/core/colonial.gd")
 	var g = new_game("POR", 5)
 	check(g.sa_first > g.af_first and g.sa_first < g.provinces.size(), "South America follows Africa (%d)" % g.sa_first)
-	for pid in range(g.sa_first, g.provinces.size()):
+	for pid in range(g.sa_first, g.pac_first):
 		check(Col.is_new_world(g, pid) and Col.region(g, pid) == "america" and g.overseas.has(pid) and not g.africa.has(pid),
 				"%s is overseas America" % g.provinces[pid].key)
-	check(g.overseas.size() == (g.nw_end - g.nw_first) + (g.provinces.size() - g.af_first), "overseas list covers all blocks")
+	check(g.overseas.size() == _overseas_count(), "overseas list covers all blocks")
 	for tag in ["INC", "CHM", "MUI", "QTO", "CLL"]:
 		check(g.nations[tag].alive and Col.is_native_realm(g, tag), "%s is a living Andean realm" % tag)
 		check(Col.region(g, g.nations[tag].capital) == "america", "%s sits in America" % tag)

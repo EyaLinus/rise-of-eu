@@ -29,7 +29,9 @@ MARSH_KEYS = {"holland"}
 # river plains next to big ridges: the ridge glow overstates them
 HILL_KEYS = {"milan", "barcelona", "florence", "khuzestan", "tihama"}
 # the New World: woodland unless listed (no latitude rule: the Caribbean is not the Sahara)
-NW_DESERT = {"coahuila", "apacheria", "llano", "zacatecas", "nuevo_leon"}
+NW_DESERT = {"coahuila", "apacheria", "llano", "zacatecas", "nuevo_leon",
+             "sonora", "yuma", "mojave", "tohono", "great_basin", "paiute", "baja_norte", "baja_sur", "conchos", "chihuahua",
+             "n_paiute", "hopi", "zuni", "dine", "timpanogos", "gila"}
 WA_MARSH = {"niger_delta"}
 WA_FOREST = {"oyo", "benin"}
 # the Middle East and the Horn of Africa ("east" in map.json): desert unless listed; ridges make the highlands
@@ -51,7 +53,9 @@ SA_LOW = {"tumbes", "guayaquil", "lambayeque", "chan_chan", "pachacamac", "chinc
 SA_HILLS = {"mapocho", "maule", "coquimbo", "copiapo", "araucania"}
 NW_MARSH = {"delta", "florida", "mosquitia", "tabasco"}
 NW_PLAINS = {"pawnee", "wichita", "lakota", "dakota", "ioway", "hasinai", "karankawa", "illinois", "assiniboine",
-             "yucatan", "campeche", "bajio", "tamaulipas", "tenochtitlan", "tlaxcala", "cahokia", "natchez"}
+             "yucatan", "campeche", "bajio", "tamaulipas", "tenochtitlan", "tlaxcala", "cahokia", "natchez",
+             "arapaho", "crow", "blackfoot", "cree_plains", "wind_river", "snake", "yakama", "kalapuya", "yokuts", "chumash",
+             "tongva", "kumeyaay", "ohlone", "pueblo", "sinaloa"}
 
 
 def lonlat(x, y):

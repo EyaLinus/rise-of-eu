@@ -48,6 +48,7 @@ var _terrain_rect: TextureRect
 var _terrain_tiles: Array = []  # TextureRects of the southern tiles (map.json "terrain_tiles")
 var terrain_tile_defs: Array = []  # [file, x, y, w, h] in map pixels
 var terrain_split := 0.0  # terrain.png covers the full width down to this y (map.json "terrain_split")
+var terrain_main := Rect2()  # the part terrain.png covers (map.json "terrain_main"; default: full width down to terrain_split)
 var _world: Node2D  # container of the world layer pieces (map_world_layer.gd)
 var _world_zoom := -1.0
 const WorldLayer = preload("res://scripts/ui/map_world_layer.gd")
@@ -118,6 +119,8 @@ func setup(g, map_data: Dictionary) -> void:
 	world_size = Vector2(map_data.size[0], map_data.size[1])
 	terrain_split = float(map_data.get("terrain_split", map_data.size[1]))
 	terrain_tile_defs = map_data.get("terrain_tiles", [])
+	var tm: Array = map_data.get("terrain_main", [0, 0, world_size.x, terrain_split])
+	terrain_main = Rect2(tm[0], tm[1], tm[2], tm[3])
 	for pd in map_data.provinces:
 		var list := []
 		var bb := Rect2()
@@ -371,7 +374,7 @@ func _setup_terrain() -> void:
 		_terrain_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_terrain_rect.stretch_mode = TextureRect.STRETCH_SCALE
 		add_child(_terrain_rect)
-	if _terrain_tiles.is_empty() and terrain_split < world_size.y:
+	if _terrain_tiles.is_empty() and not terrain_tile_defs.is_empty():
 		for td in terrain_tile_defs:
 			var path: String = TERRAIN_DIR + str(td[0])
 			if not ResourceLoader.exists(path):
@@ -402,10 +405,10 @@ func _sync_terrain() -> void:
 	var tex := terrain_half if half else terrain
 	if _terrain_rect.texture != tex:
 		_terrain_rect.texture = tex
-	_terrain_rect.position = offset
-	# the half-size texture is the whole map; the full-size one stops where the southern tiles begin
+	# the half-size texture is the whole map; the full-size one covers terrain_main (the tiles do the rest)
 	var split := not _terrain_tiles.is_empty() and not half
-	_terrain_rect.size = Vector2(world_size.x, terrain_split) if split else world_size
+	_terrain_rect.position = offset + (terrain_main.position * zoom if split else Vector2.ZERO)
+	_terrain_rect.size = terrain_main.size if split else world_size
 	_terrain_rect.scale = Vector2(zoom, zoom)
 	for r in _terrain_tiles:
 		var rc: Rect2 = r.get_meta("rect")

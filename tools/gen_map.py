@@ -54,7 +54,7 @@ PROVINCES = [
     ("dijon", "Dijon", 4.9, 47.3, "BUR", 9),
     ("flanders", "Flandern", 3.2, 51.0, "BUR", 14),
     ("brabant", "Brabant", 4.6, 50.8, "BUR", 11),
-    ("holland", "Holland", 4.9, 52.3, "BUR", 10),
+    ("holland", "Holland", 4.8, 52.4, "NED", 10),
     ("franchecomte", "Franche-Comté", 6.0, 47.0, "BUR", 6),
     ("luxembourg", "Luxemburg", 6.0, 49.7, "BUR", 5),
     ("provence", "Provence", 5.9, 43.6, "PRV", 7),
@@ -642,6 +642,60 @@ PROVINCES = [
     ("solimoes", "Solimões", -68.4, -4.4, "NAT", 1, 6.0),
     ("maynas", "Maynas", -74.6, -3.8, "NAT", 1, 6.0),
     ("ucayali", "Ucayali", -73.8, -8.6, "NAT", 1, 6.0),
+    # North America's west: north-west Mexico, Baja California, the south-west, the Great Basin, California,
+    # the Pacific north-west and the plains below the Rockies up to the subarctic ("pac", also "nw")
+    ("nayarit", "Nayarit", -104.9, 21.6, "NAT", 2),
+    ("sinaloa", "Sinaloa", -107.4, 24.9, "NAT", 2),
+    ("durango", "Tepehuanes", -104.9, 25.2, "NAT", 1, 4.0),
+    ("conchos", "Conchos", -105.2, 27.8, "NAT", 1, 4.0),
+    ("yaqui", "Yaqui", -109.6, 27.6, "NAT", 2),
+    ("sonora", "Sonora", -110.6, 30.0, "NAT", 1, 4.0),
+    ("chihuahua", "Paquimé", -107.4, 29.8, "NAT", 2, 4.0),
+    ("baja_sur", "Pericú", -111.0, 25.4, "NAT", 1),
+    ("baja_norte", "Cochimí", -114.6, 29.8, "NAT", 1),
+    ("kumeyaay", "Kumeyaay", -116.6, 32.8, "NAT", 2),
+    ("yuma", "Quechan", -114.4, 33.0, "NAT", 1, 4.0),
+    ("tohono", "Tohono O'odham", -111.6, 32.2, "NAT", 2, 4.0),
+    ("gila", "Gila", -108.8, 33.0, "NAT", 1, 4.0),
+    ("pueblo", "Pueblo", -106.3, 35.4, "NAT", 3, 4.0),
+    ("zuni", "Zuni", -108.7, 35.3, "NAT", 2, 4.0),
+    ("hopi", "Hopi", -110.6, 35.8, "NAT", 2, 4.0),
+    ("dine", "Diné", -108.6, 37.3, "NAT", 1, 4.0),
+    ("mojave", "Mojave", -115.6, 35.2, "NAT", 1, 4.0),
+    ("paiute", "Südliche Paiute", -112.8, 37.6, "NAT", 1, 4.0),
+    ("ute", "Ute", -107.4, 39.6, "NAT", 1, 4.5),
+    ("arapaho", "Arapaho", -104.6, 40.0, "NAT", 1, 4.5),
+    ("timpanogos", "Timpanogos", -111.8, 40.6, "NAT", 1, 4.0),
+    ("great_basin", "Westliche Shoshone", -116.6, 39.4, "NAT", 1, 4.5),
+    ("wind_river", "Shoshone", -108.4, 43.2, "NAT", 1, 4.5),
+    ("crow", "Absaroka", -107.6, 46.0, "NAT", 1, 4.5),
+    ("blackfoot", "Blackfoot", -112.4, 48.2, "NAT", 1, 4.5),
+    ("snake", "Snake River", -114.6, 43.4, "NAT", 1, 4.5),
+    ("nez_perce", "Nez Percé", -116.4, 46.2, "NAT", 1, 4.0),
+    ("chumash", "Chumash", -119.8, 34.6, "NAT", 3),
+    ("tongva", "Tongva", -117.9, 34.0, "NAT", 2),
+    ("yokuts", "Yokuts", -119.6, 36.6, "NAT", 2),
+    ("ohlone", "Ohlone", -122.0, 37.4, "NAT", 2),
+    ("pomo", "Pomo", -122.9, 39.0, "NAT", 2),
+    ("maidu", "Maidu", -121.0, 39.8, "NAT", 2),
+    ("yurok", "Yurok", -123.8, 41.2, "NAT", 2),
+    ("klamath", "Klamath", -121.6, 42.6, "NAT", 1),
+    ("n_paiute", "Nördliche Paiute", -119.0, 43.6, "NAT", 1, 4.5),
+    ("kalapuya", "Kalapuya", -123.0, 44.6, "NAT", 1),
+    ("chinook", "Chinook", -123.6, 46.4, "NAT", 2),
+    ("yakama", "Yakama", -120.4, 46.8, "NAT", 1),
+    ("salish", "Küsten-Salish", -122.4, 47.8, "NAT", 2),
+    ("nuu_chah_nulth", "Nuu-chah-nulth", -125.6, 49.6, "NAT", 1),
+    ("secwepemc", "Secwepemc", -120.2, 50.8, "NAT", 1, 4.5),
+    ("ktunaxa", "Ktunaxa", -116.2, 49.8, "NAT", 1, 4.5),
+    ("dakelh", "Dakelh", -123.6, 54.0, "NAT", 1, 5.0),
+    ("cree_plains", "Plains Cree", -112.6, 53.4, "NAT", 1, 5.0),
+    ("athabasca", "Athabasca", -114.0, 58.6, "NAT", 1, 6.0),
+    ("sekani", "Sekani", -124.0, 58.4, "NAT", 1, 6.0),
+    # the Low Countries: Holland's neighbours for the Netherlands (Old World again, after every overseas block)
+    ("zeeland", "Zeeland", 3.8, 51.5, "NED", 6),
+    ("utrecht", "Utrecht", 5.4, 52.0, "NED", 7),
+    ("friesland", "Friesland", 5.9, 53.1, "NED", 5),
 ]
 
 # Extra sea/strait connections (province keys)
@@ -665,6 +719,8 @@ STRAITS = [
     ("zanzibar", "kilwa"), ("zanzibar", "mombasa"), ("mozambique", "boina"),
     # South America: Trinidad, Tierra del Fuego, the Falklands; the Panama isthmus is a land link below
     ("trinidad", "cumana"), ("magallanes", "santa_cruz"), ("malvinas", "santa_cruz"),
+    # Vancouver Island (Strait of Georgia, Juan de Fuca)
+    ("nuu_chah_nulth", "salish"), ("nuu_chah_nulth", "secwepemc"),
 ]
 
 # land borders the coarse polygons miss (isthmus, small gaps): adjacency only, not sea crossings
@@ -687,6 +743,8 @@ FIRST_AFRICA = "arguin"  # ... and from here on they are West Africa ("wa" in ma
 FIRST_EAST = "baghdad"  # ... up to here: the Middle East and the Horn are Old World again ("east" in map.json)
 FIRST_SOUTH = "fezzan"  # ... and from here on Africa south of the Sahara: overseas again ("af", also "nw" and "wa")
 FIRST_SA = "calusa"  # ... and from here on South America and the finer east coast of North America ("sa", also "nw")
+FIRST_PAC = "nayarit"  # ... then the North American west ("pac", also "nw"; region "america")
+FIRST_LOW = "zeeland"  # ... and the Low Countries: Old World again (no flag)
 # big African lakes cut out of the land south of the Sahara
 AF_LAKES = {"Lake Victoria", "Lake Tanganyika", "Lake Malawi"}
 # the map texture is split below this latitude (each part < 4096 px on Android): the south part is two
@@ -752,6 +810,8 @@ def main(land_path, lakes_path):
     east_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_EAST)
     south_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_SOUTH)
     sa_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_SA)
+    pac_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_PAC)
+    low_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_LOW)
     max_r = 3.2 * SCALE
     raw = []
     for i, p in enumerate(PROVINCES):
@@ -820,9 +880,12 @@ def main(land_path, lakes_path):
             d["nw"] = True
             d["wa"] = True
             d["af"] = True
-        if i >= sa_first:
+        if pac_first > i >= sa_first:
             d["nw"] = True
             d["sa"] = True
+        if low_first > i >= pac_first:
+            d["nw"] = True
+            d["pac"] = True
         provinces.append(d)
 
     key_to_id = {p[0]: i for i, p in enumerate(PROVINCES)}
@@ -856,9 +919,14 @@ def main(land_path, lakes_path):
     _, ay = proj(TERRAIN_SOUTH_LON, TERRAIN_AFRICA_MIN_LAT)
     sx0, _ = proj(TERRAIN_SA_LON[0] - ATL_SHIFT, 0.0)
     sx0 = int(sx0)
-    # [file, x, y, w, h] in map pixels; terrain.png itself covers the full width down to ty
+    # [file, x, y, w, h] in map pixels; terrain.png covers the eastern 4096 px down to ty ("terrain_main"),
+    # terrain_west.png the rest of that band (the North American west)
+    mx = max(0, W - 4096)
     tiles = [["terrain_south.png", tx, ty, W - tx, int(ay) - ty], ["terrain_sa.png", sx0, ty, tx - sx0, H - ty]]
-    out = {"size": [W, H], "terrain_split": ty, "terrain_tiles": tiles, "provinces": provinces, "background": bg}
+    if mx > 0:
+        tiles.append(["terrain_west.png", 0, 0, mx, ty])
+    out = {"size": [W, H], "terrain_split": ty, "terrain_main": [mx, 0, W - mx, ty], "terrain_tiles": tiles,
+           "provinces": provinces, "background": bg}
     with open("data/map.json", "w") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
     # sea crossings: slower marches, need sea control in war (scripts/core/warfare.gd)

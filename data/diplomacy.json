@@ -165,6 +165,10 @@
     [
       "INC",
       "CHM"
+    ],
+    [
+      "NED",
+      "HSA"
     ]
   ],
   "claims": {
@@ -220,7 +224,8 @@
     "SAV",
     "MLO",
     "TUS",
-    "GEN"
+    "GEN",
+    "NED"
   ],
   "electors": [
     "BOH",

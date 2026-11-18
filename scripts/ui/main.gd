@@ -38,7 +38,7 @@ const HUD_TIPS := {
 	"army": "Regimenter / Truppenlimit", "ae": "Aggressive Expansion: ab der Koalitionsgrenze drohen Koalitionen",
 }
 const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP"]
-const EXTRA_PLAYABLE := ["TUR", "POL", "BUR", "POR", "VEN", "HUN", "MAM", "QAR", "ETH"]  # playable too, listed after the majors (same amount of content since v0.9.5)
+const EXTRA_PLAYABLE := ["TUR", "POL", "BUR", "NED", "POR", "VEN", "HUN", "MAM", "QAR", "ETH"]  # playable too, listed after the majors (same amount of content since v0.9.5)
 
 var data: Dictionary
 var game
@@ -162,7 +162,7 @@ func _ready() -> void:
 	preview.setup(data, 1, "")
 	map.setup(preview, data.map)
 	await get_tree().process_frame
-	map.focus(Vector2(2800, 760), maxf(size.y / map.world_size.y, 0.4))
+	map.focus(Vector2(2800 + map.world_size.x - 4089, 760), maxf(size.y / map.world_size.y, 0.4))  # Europe (the map grew west by 740 px in v1.0.3)
 	_show_start_menu()
 	if not debug_screen.last_crash.is_empty():
 		debug_screen.show_crash_dialog(_show_start_menu)  # crash reporter: the last session did not end cleanly
