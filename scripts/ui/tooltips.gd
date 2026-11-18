@@ -44,6 +44,8 @@ const GLOSSARY := [
 	["claim", "Anspruch|Ansprüche|Ansprüchen", "🎯", "Anspruch", "Kriegsgrund auf eine Provinz.\nMacht sie im Frieden billiger.", ""],
 	["cb", "Kriegsgrund|Kriegsgründe", "🎯", "Kriegsgrund", "Ohne Kriegsgrund kostet eine Kriegserklärung Stabilität und Ansehen.\nAnsprüche und Rivalitäten sind Kriegsgründe.", ""],
 	["core", "Kernland|integriert|Integration", "🔨", "Integration", "Erobertes Land bringt weniger Einkommen und mehr Unruhe, bis es integriert ist.", ""],
+	["stability", "Stabilität", "⚖️", "Stabilität", "Von −100 % bis +100 %. Hohe Stabilität bringt Steuern und Mannschaften und senkt Unruhe und Technikkosten, niedrige kehrt das um.\nSie wandert langsam zu ihrem Zielwert; Kriegsmüdigkeit, Schulden und neue Provinzen drücken ihn.", "nation"],
+	["realm_rank", "Rang des Reiches|Reichsrang", "👑", "Rang des Reiches", "Stadtstaat, Grafschaft, Herzogtum, Königreich, Imperium, Hegemonie.\nJeder Aufstieg kostet Gold, Verwaltung und Prestige, braucht Provinzen und Entwicklung und verbessert die Boni.", "nation"],
 	["estates", "Stände|Ständen", "⚖️", "Stände", "Adel, Klerus und Bürger.\nZufriedene Stände geben Boni, zornige drohen mit Unruhe.", "government"],
 	["laws", "Gesetz|Gesetze|Gesetzen", "⚖️", "Gesetze", "Dauerhafte Boni und Mali deiner Regierung.\nÄndern kostet Macht.", "government"],
 	["reforms", "Reform|Reformen", "📜", "Reformen", "Stufen der Regierungsform.\nJede Stufe schaltet neue Boni frei.", "government"],
