@@ -1,0 +1,5 @@
+- **Tooltips beliebig tief:** Erklärungen von Begriffen in Tooltips lassen sich jetzt unbegrenzt weiter verschachteln (vorher war nach der 2. Ebene Schluss). Verschachtelte Tooltips rasten sofort ein, ein Begriff verlinkt nie auf sich selbst, beim Wegbewegen schließen alle gemeinsam.
+- **Einstellungen mit Schiebereglern:** UI-Größe (80–200 %), Musiklautstärke sowie zwei Regler für Tooltips: „erscheint nach“ und „rastet ein nach“ in Millisekunden.
+- **Tasten belegen (PC):** Einstellungen → Tasten belegen. Pause, Tempo, Panels, Zoom, Suche, Schnellspeichern usw. lassen sich frei umbelegen (belegte Tasten werden getauscht, „Alle auf Standard“). Tooltips der Tabs und die Tastenübersicht (F1) zeigen die eigenen Tasten.
+- **Musik-Manager:** Einstellungen → Musik-Manager: aktuelles Stück mit Laufzeit, Pause, Nächstes Stück, einzelne Stücke abspielen oder ausschalten, Stimmung auf Frieden oder Krieg festlegen, Titel-Hinweis beim Start eines Stücks.
+- **Tägliche Zuwächse:** Mannschaften und Aggressive Expansion zeigen in der oberen Leiste ihren monatlichen Zuwachs (Mannschaften +N, AE −x.x) und im Tooltip Wert pro Monat und Jahr.
