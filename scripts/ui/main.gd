@@ -36,6 +36,7 @@ const HUD_TIPS := {
 	"adm": "Verwaltung: Technologie, Entwickeln, Reformen", "dip": "Diplomatie: Bündnisse, Ansprüche, Integration, Entwickeln",
 	"mil": "Militär: Technologie, Generäle, Unruhe unterdrücken, Entwickeln", "manpower": "Mannschaften für neue Regimenter",
 	"army": "Regimenter / Truppenlimit", "ae": "Aggressive Expansion: ab der Koalitionsgrenze drohen Koalitionen",
+	"stability": "Stabilität: −100 % bis +100 %",
 }
 const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP"]
 const EXTRA_PLAYABLE := ["TUR", "POL", "BUR", "POR", "VEN", "HUN", "MAM", "QAR", "ETH"]  # playable too, listed after the majors (same amount of content since v0.9.5)
@@ -99,6 +100,7 @@ var _plaque_pad := 8  # side padding of the top bar plaques, shrinks with the sp
 var speed_label: Label
 var side_panel: PanelContainer
 var top_incs := {}  # small monthly-gain labels next to the adm/dip/mil points
+var top_stab_icon: TextureRect  # stability plaque: the icon changes with the level (Stability.LEVELS)
 var side_title: Label
 var side_back: Button
 var panel_history: Array = []
@@ -337,7 +339,7 @@ func _build_hud() -> void:
 	res.add_theme_constant_override("separation", 14)
 	res.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	strip.add_child(res)
-	for k in ["nation", "gold", "adm", "dip", "mil", "manpower", "army", "settlers", "ae"]:
+	for k in ["nation", "gold", "adm", "dip", "mil", "stability", "manpower", "army", "settlers", "ae"]:
 		# icon, value and monthly gain form one hover / long-press area (not only the number)
 		# each resource sits on its own recessed plaque, gold-rimmed while hovered
 		var plate := PanelContainer.new()
@@ -353,11 +355,13 @@ func _build_hud() -> void:
 		slot.add_theme_constant_override("separation", 4)
 		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		plate.add_child(slot)
-		var tex := Icons.texture(k)
+		var tex := Icons.texture("stab_2" if k == "stability" else k)
 		if tex != null:
 			var ir := _icon_rect(tex, 32)
 			ir.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			slot.add_child(ir)
+			if k == "stability":
+				top_stab_icon = ir
 		var l := Label.new()
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		top_labels[k] = l
@@ -369,7 +373,7 @@ func _build_hud() -> void:
 			inc.add_theme_color_override("font_color", Color(0.6, 0.9, 0.6))
 			slot.add_child(inc)
 			top_incs[k] = inc
-	for k in ["nation", "settlers"]:
+	for k in ["nation", "settlers", "stability"]:
 		top_slots[k].gui_input.connect(func(e): if _is_click(e): _open_panel("nation"))
 	top_slots.gold.gui_input.connect(func(e): if _is_click(e): _open_panel("economy"))
 	top_labels["date"] = Label.new()
@@ -1500,6 +1504,7 @@ func _update_top() -> void:
 	top_labels.manpower.text = Icons.prefix("manpower") + short_num(n.manpower)
 	top_labels.army.text = Icons.prefix("army") + "%d/%d" % [game.regs_counted(game.player), game.force_cap(game.player)]
 	top_labels.ae.text = Icons.prefix("ae") + "%d" % n.ae
+	_update_stability_top(n)
 	# settlers once the realm can colonize (Atlantic realm with the exploration tech)
 	var colon: bool = game.atlantic_tags.has(game.player) and Colonial.can_explore_tech(game, n)
 	top_slots.settlers.visible = colon
@@ -1540,6 +1545,36 @@ func _update_top() -> void:
 	_update_badges()
 
 
+## Stability plaque: value, level icon (4 variants) and a tooltip that explains where it is heading.
+func _update_stability_top(n) -> void:
+	var St = game.Stability
+	var v: float = n.stability
+	var lv: int = St.level(v)
+	top_labels.stability.text = ("" if top_stab_icon != null else "⚖️ ") + "%+d%%" % roundi(v)
+	top_labels.stability.add_theme_color_override("font_color", [Color.TOMATO, Color(1.0, 0.7, 0.45), Color.WHITE, Color(0.6, 0.9, 0.6)][lv])
+	if top_stab_icon != null:
+		var t: Texture2D = Icons.texture(St.LEVELS[lv].icon)
+		if t != null and top_stab_icon.texture != t:
+			top_stab_icon.texture = t
+	top_slots.stability.tooltip_text = _stability_tip(n)
+
+
+func _stability_tip(n) -> String:
+	var St = game.Stability
+	var tp: Dictionary = St.target_parts(game, n)
+	var names := {"base": "Grundwert", "policy": "Gesetze, Rang, Berater", "war": "Kriegsmüdigkeit", "debt": "Schulden und Kredite",
+			"uncored": "Nicht eingegliederte Provinzen", "ae": "Aggressive Expansion", "diplo": "Zu viele Bündnisse"}
+	var rows := ""
+	for k in names:
+		if absf(float(tp.get(k, 0.0))) >= 0.5:
+			rows += "\n%s\t%+d" % [names[k], roundi(tp[k])]
+	var fx := []
+	for r in UiTheme.mod_rows(St.effects(game, n.stability)):
+		fx.append("%s %s" % [r[0], r[1]])
+	return "⚖️ Stabilität %+d %% · %s\nZielwert\t%+d%s\nSie wandert langsam zum Zielwert. Thronwechsel, verlorene Kriege, Kriege ohne Grund und Aufstände kosten Stabilität, ein Rangaufstieg und Siege bringen welche.\nWirkung: %s\nKlick: Stabilität stärken (📜) im Nationsfenster" % [
+			roundi(n.stability), St.level_name(n.stability), roundi(tp.total), rows, ", ".join(fx) if not fx.is_empty() else "keine"]
+
+
 ## Keep every resource of the top bar visible (AE sits last and got pushed out by big gold numbers):
 ## first tighter spacing, then the nation name collapses to the flag, then a smaller font.
 func _fit_top() -> void:
@@ -1551,7 +1586,8 @@ func _fit_top() -> void:
 	var base_sep := 10 if _big() else 14
 	# [separation, full nation name, font, icon size, plaque padding, monthly gains shown]
 	var steps := [[base_sep, true, 20, 32, 8, true], [6, true, 20, 32, 6, true], [6, false, 20, 32, 6, true], [4, false, 18, 28, 4, true],
-			[3, false, 16, 24, 3, true], [2, false, 15, 20, 2, true], [2, false, 15, 20, 1, false], [1, false, 14, 18, 1, false]]
+			[3, false, 16, 24, 3, true], [2, false, 15, 20, 2, true], [2, false, 15, 20, 1, false], [1, false, 14, 18, 1, false],
+			[0, false, 13, 16, 0, false], [0, false, 12, 14, 0, false]]
 	for st in steps:
 		res.add_theme_constant_override("separation", st[0])
 		for c in res.find_children("*", "TextureRect", true, false):
@@ -1587,7 +1623,7 @@ func _update_badges() -> void:
 		if game.unrest(pid) >= float(game.bal.revolt_threshold) and game.provinces[pid].suppress_months == 0:
 			unrest = true
 			break
-	tab_badges.nation.visible = unrest
+	tab_badges.nation.visible = unrest or game.Progression.can_upgrade(game, me)
 	var mission := false
 	for m in game.available_missions(me):
 		if game.mission_ready(me, m):
@@ -2687,14 +2723,34 @@ func _panel_province(pid: int) -> void:
 	var Urb = game.Urban
 	var city_good: bool = Urb.is_city_good(game, p.good)
 	var fit: bool = city_good == p.urban
-	chips.append(_chip(("🏙️ Stadt" if p.urban else "🌾 Land") + (" · Umbau %d Mon." % p.urban_months if p.urban_months > 0 else ""),
-			("Stadt: +%d %% Steuern, +%d %% Handelsmacht, ein Bauplatz mehr, aber %d %% weniger Mannschaften und +%.1f Unruhe. Stadtgüter (Tuch, Wein, Salz, Metalle) werden hier +%d %% besser hergestellt%s." % [
-				int(float(game.bal.urban_local.tax) * 100), int(float(game.bal.urban_local.trade_power) * 100), int(-float(game.bal.urban_local.manpower) * 100), float(game.bal.urban_local.unrest), int(float(game.bal.goods_fit_production) * 100),
-				(" – passt zu %s" % gd.name) if fit else (" – %s ist ein Landgut und passt nicht" % gd.name)]) if p.urban else
-			("Land: +%d %% Mannschaften und %.1f Unruhe. Landgüter (Getreide, Vieh, Wolle, Fisch, Holz, Pelze) werden hier +%d %% besser hergestellt%s. Ab Entwicklung %d kann die Provinz zur Stadt ausgebaut werden." % [
+	var tier: int = Urb.tier(game, p)
+	var nxt: int = Urb.next_dev(game, p)
+	var bar := ""
+	var pr: float = Urb.progress(game, p)
+	for i in 5:
+		bar += "●" if float(i) < pr * 5.0 - 0.001 else "·"
+	var step_txt: String = ("%s %d%% (noch %d Entwicklung)" % [bar, int(pr * 100.0), nxt]) if nxt > 0 else "höchste Stufe"
+	var tier_icon: String = ["🌾", "🏙️", "🏛️", "👑"][tier]
+	var city_info := "Stadt: +%d %% Steuern, +%d %% Handelsmacht, ein Bauplatz mehr, aber %d %% weniger Mannschaften und +%.1f Unruhe. Stadtgüter (Tuch, Wein, Salz, Metalle) werden hier +%d %% besser hergestellt%s." % [
+			int(float(game.bal.urban_local.tax) * 100), int(float(game.bal.urban_local.trade_power) * 100), int(-float(game.bal.urban_local.manpower) * 100), float(game.bal.urban_local.unrest), int(float(game.bal.goods_fit_production) * 100),
+			(" – passt zu %s" % gd.name) if fit else (" – %s ist ein Landgut und passt nicht" % gd.name)]
+	if tier >= 2:
+		var te: Dictionary = game.bal.urban_tier_local[str(tier)]
+		city_info += "\n%s: zusätzlich +%d %% Steuern, +%d %% Handelsmacht, +%d Bauplätze, +%.1f Unruhe." % [Urb.tier_name(tier), int(float(te.tax) * 100), int(float(te.trade_power) * 100), int(game.bal.urban_tier_slots[tier - 2]), float(te.unrest)]
+	var next_info := ""
+	if tier == 0:
+		next_info = "\nFortschritt zur Stadt: Ab Entwicklung %d wächst Land von selbst zur Stadt (oder gründe sie früher selbst, ab Entwicklung %d)." % [int(game.bal.urban_auto_dev), int(game.bal.urban_min_dev)]
+	elif tier == 1:
+		next_info = "\nFortschritt zur Großstadt: ab Entwicklung %d, zur Metropole ab %d." % [int(game.bal.urban_big_dev), int(game.bal.urban_metro_dev)]
+	elif tier == 2:
+		next_info = "\nFortschritt zur Metropole: ab Entwicklung %d." % int(game.bal.urban_metro_dev)
+	chips.append(_chip("%s %s%s" % [tier_icon, Urb.tier_name(tier), (" · Umbau %d Mon." % p.urban_months) if p.urban_months > 0 else ""],
+			(city_info if p.urban else
+			("Land: +%d %% Mannschaften und %.1f Unruhe. Landgüter (Getreide, Vieh, Wolle, Fisch, Holz, Pelze) werden hier +%d %% besser hergestellt%s." % [
 				int(float(game.bal.rural_local.manpower) * 100), float(game.bal.rural_local.unrest), int(float(game.bal.goods_fit_production) * 100),
-				(" – passt zu %s" % gd.name) if fit else (" – %s ist ein Stadtgut und passt nicht" % gd.name), int(game.bal.urban_min_dev)]),
+				(" – passt zu %s" % gd.name) if fit else (" – %s ist ein Stadtgut und passt nicht" % gd.name)])) + next_info,
 			"" if fit else "bad"))
+	chips.append(_chip(step_txt, "Entwicklungsfortschritt zur nächsten Siedlungsstufe: Land → Stadt → Großstadt (Entwicklung %d) → Metropole (%d)." % [int(game.bal.urban_big_dev), int(game.bal.urban_metro_dev)]))
 	chips.append(_chip("%s %s %.2f 💰" % [gd.emoji, gd.name, Eco.production_value(game, p)],
 			"%s: %.1f Einheiten × Marktpreis %.2f = %.2f Gold im Monat. Die Menge wächst mit Entwicklung, Werkstatt, Manufaktur und Hafen; der Preis ändert sich jährlich mit Angebot und Nachfrage. Marktführer bei %s erhält: %s." % [
 			gd.name, Eco.units(game, p), price, Eco.production_value(game, p), gd.name, gd.bonus_text]))
@@ -2735,6 +2791,8 @@ func _panel_province(pid: int) -> void:
 			why.append("Regierung & Technik %+.1f" % u.policy)
 		if absf(u.estates) >= 0.05:
 			why.append("Stände %+.1f" % u.estates)
+		if absf(u.stability) >= 0.05:
+			why.append("Stabilität %+.1f" % u.stability)
 		if u.religion > 0:
 			why.append("fremder Glaube +%.0f" % u.religion)
 		var thr := float(game.bal.revolt_threshold)
@@ -2787,8 +2845,8 @@ func _panel_province(pid: int) -> void:
 			acts.append(_btn("⛪ Missionar %d 💰" % int(Faith.convert_cost(game, p)), func(): _act(Faith.send_missionary(game, me, pid), "⛪ Der Missionar ist unterwegs"),
 					"In %d Monaten nimmt die Provinz deinen Glauben (%s) an: −%.0f Unruhe. Höchstens %d Missionare gleichzeitig.%s" % [
 					int(game.bal.convert_months), Faith.faith_name(game.nations[me].religion), float(game.bal.religion_unrest), int(game.bal.max_missionaries), ("\n❌ " + cv) if cv != "" else ""], cv != ""))
-		if p.urban_months == 0:
-			var to_city: bool = not p.urban
+		if p.urban_months == 0 and not p.urban:
+			var to_city: bool = true
 			var ub: String = Urb.block_reason(game, me, pid, to_city)
 			var uc: int = int(Urb.change_cost(game, p, to_city))
 			acts.append(_btn(("🏙️ Stadt gründen %d 💰" % uc) if to_city else ("🌾 Zum Land %d 💰" % uc),
@@ -3500,7 +3558,8 @@ func _panel_nation() -> void:
 	for t in n.coalition:
 		co.append(game.nations[t].name)
 	var chips := [
-		_chip("👑 " + game.Progression.rank_name(game, me), "Rang deines Reiches: wächst mit der Entwicklung und bringt Boni (Missionsfenster).", "gold"),
+		_chip("%s %s" % [game.Progression.RANKS[n.rank].icon, game.Progression.rank_name(game, me)], "Rang deines Reiches: %s.\nAufsteigen unter „Rang des Reiches“ weiter unten." % game.Progression.bonus_text(game.Progression.RANKS[n.rank].bonus), "gold"),
+		_chip("⚖️ Stabilität %+d %%" % roundi(n.stability), _stability_tip(n), ["bad", "bad", "", "good"][game.Stability.level(n.stability)]),
 		_chip("👑 %s %d/%d/%d" % [n.ruler_name if n.ruler_name != "" else "Herrscher", n.ruler.adm, n.ruler.dip, n.ruler.mil], "Fähigkeiten des Herrschers: 📜 Verwaltung, 🕊️ Diplomatie, ⚔️ Militär."),
 		_chip("📜+%.0f 🕊️+%.0f ⚔️+%.0f" % [game.monthly_power(n, "adm"), game.monthly_power(n, "dip"), game.monthly_power(n, "mil")], "Macht pro Monat."),
 		_chip("💰 %+.1f / Monat" % (n.income - n.expenses), "Einnahmen %.1f, Ausgaben %.1f." % [n.income, n.expenses], "good" if n.income >= n.expenses else "bad"),
@@ -3517,11 +3576,15 @@ func _panel_nation() -> void:
 			_btn("⚖️ Staat", _open_panel.bind("government"), "Regierung: " + game.govt.form_name(me)),
 			_btn("📈 Boni", _open_panel.bind("modifiers"), "Jeder Modifikator mit Gesamtwert und woher er kommt")]
 	side_box.add_child(_grid(nav, 3))
+	_nation_rank(me)
 	_new_world_section()
 	if _section("nat_power", "👑 Macht einsetzen", true,
 			"Außerdem: 🏘️ Entwickeln (mit 📜, 🕊️ oder ⚔️), 🏙️ Stadt gründen (💰), ✊ Unruhe unterdrücken (⚔️) und 🤝 Integrieren (🕊️) im Provinzfenster, 🔥 Drill (⚔️) im Armeefenster, ❤️ Beziehungen, Bündnisse, Ansprüche und Handelsabkommen (🕊️) bei anderen Nationen, Technologie mit allen drei."):
 		var cr: int = game.conscript_ready_in(me)
+		var sr: String = game.Stability.raise_block_reason(game, me)
 		var acts := [
+			_btn("⚖️ +%d · %d📜" % [int(game.bal.stab_raise), int(game.Stability.raise_cost(game, me))], func(): _act(game.Stability.raise(game, me), "⚖️ Die Ordnung im Reich festigt sich"),
+					"Stabilität stärken: +%d sofort (jetzt %+d). Je höher sie schon ist, desto teurer.%s" % [int(game.bal.stab_raise), roundi(n.stability), ("\n❌ " + sr) if sr != "" else ""], sr != ""),
 			_btn("😩 −2 · %d🕊️" % int(game.bal.we_reduce_cost), func(): _act(game.reduce_we(me), "🕊️ Das Volk ist beruhigt"),
 					"Volk beruhigen: senkt die Kriegsmüdigkeit, die Unruhe in allen Provinzen erzeugt."),
 			_btn("😠 −%d · %d🕊️" % [int(game.bal.reputation_ae), int(game.bal.reputation_cost)], func(): _act(game.restore_reputation(me), "😠 Dein Ruf bessert sich"),
@@ -3552,13 +3615,39 @@ func _panel_nation() -> void:
 
 
 const MOD_SOURCES := {"": "Nationalgeist & Ereignisse", "goods": "Handelsgüter", "buildings": "Gebäude", "rank": "Rang",
-		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "landmarks": "Historische Bauwerke", "rivals": "Rivalen", "embargo": "Embargos", "blockade": "Blockaden", "escort": "Handelsschutz", "formed": "Reichsgründung", "ages": "Weichen der Zeitalter"}
+		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "landmarks": "Historische Bauwerke", "rivals": "Rivalen", "embargo": "Embargos", "blockade": "Blockaden", "escort": "Handelsschutz", "formed": "Reichsgründung", "ages": "Weichen der Zeitalter", "stability": "Stabilität"}
 const MOD_GROUPS := [
 	["💰 Wirtschaft", ["income", "tax", "production", "trade", "merchants", "build_cost", "develop_cost"]],
 	["⚔️ Militär", ["combat", "army_power", "army_power_regen", "manpower", "force_limit", "maintenance", "siege", "naval"]],
-	["📜 Staat", ["adm", "dip", "mil", "tech_cost", "coring", "unrest", "ae_gen", "ae_decay", "prestige", "advisor_slots", "company_slots"]],
+	["📜 Staat", ["adm", "dip", "mil", "tech_cost", "coring", "unrest", "stability", "diplo_cap", "ae_gen", "ae_decay", "prestige", "advisor_slots", "company_slots"]],
 	["⚖️ Stände", ["estate_adel", "estate_klerus", "estate_buerger"]],
 ]
+
+
+## Realm rank ladder: current rank, the next one with conditions, cost and bonuses, and the upgrade button.
+func _nation_rank(me: String) -> void:
+	var Prog = game.Progression
+	var n = game.nations[me]
+	var r: int = n.rank
+	var nxt: int = r + 1
+	var ready: bool = Prog.can_upgrade(game, me)
+	var title := "%s Rang des Reiches: %s" % [Prog.RANKS[r].icon, Prog.RANKS[r].name]
+	if ready:
+		title += " · 📈 Aufstieg möglich"
+	if not _section("nat_rank", title, ready):
+		return
+	for i in Prog.RANKS.size():
+		var rk: Dictionary = Prog.RANKS[i]
+		var col := Color(0.6, 0.9, 0.6) if i <= r else (Color(1, 0.85, 0.5) if i == nxt else Color(0.7, 0.7, 0.75))
+		var l := _lbl("%s %s %s" % ["✓" if i <= r else ("▶" if i == nxt else "·"), rk.icon, rk.name], 16, col)
+		l.tooltip_text = "%s\nBedingungen: %s\nKosten: %s\nBoni: %s" % [rk.name, Prog.need_text(rk.need), Prog.cost_text(rk.cost), Prog.bonus_text(rk.bonus, rk.new)]
+		l.mouse_filter = Control.MOUSE_FILTER_STOP
+		side_box.add_child(l)
+		if i == nxt:
+			side_box.add_child(_lbl("   Bedingungen: %s\n   Kosten: %s\n   Boni: %s" % [Prog.need_text(rk.need), Prog.cost_text(rk.cost), Prog.bonus_text(rk.bonus, rk.new)], 14, Color(0.85, 0.85, 0.8)))
+			var why: String = Prog.upgrade_block_reason(game, me)
+			side_box.add_child(_btn("📈 Zum %s aufsteigen" % rk.name, func(): _act(Prog.upgrade(game, me), "%s %s!" % [rk.icon, rk.name]),
+					("Neu: ✨ " + Prog.BONUS_NAMES.get(rk.new, [rk.new])[0] + ". Außerdem +%d Stabilität." % int(game.bal.stab_rank_up)) + (("\n❌ " + why) if why != "" else ""), why != ""))
 
 
 func _rival_tip(n) -> String:
@@ -4359,9 +4448,9 @@ func _panel_missions() -> void:
 	side_title.text = "🎯 Missionen"
 	var Prog = game.Progression
 	var r: int = Prog.rank(game, me)
-	var rk: String = "👑 Rang: %s" % Prog.RANKS[r].name
+	var rk: String = "%s Rang: %s" % [Prog.RANKS[r].icon, Prog.RANKS[r].name]
 	if r + 1 < Prog.RANKS.size():
-		rk += " · nächster Rang %s ab %d Entwicklung (du: %d)" % [Prog.RANKS[r + 1].name, int(Prog.RANKS[r + 1].dev), game.nations[me].dev_total]
+		rk += " · nächster Rang %s: %s" % [Prog.RANKS[r + 1].name, Prog.need_text(Prog.RANKS[r + 1].need)]
 	side_box.add_child(_lbl(rk, 18, Color(1, 0.85, 0.5)))
 	var ms_done := 0
 	for m in Prog.MILESTONES:
@@ -4610,7 +4699,14 @@ func _advice() -> Array:
 	if game.diplo_over(me) > 0:
 		add.call("diplo_cap", "🕊️ Zu viele Bündnisse", "Du hast %d Bündnisse und Vasallen bei %d Plätzen. Jeder Platz zu viel kostet Diplomatie und Prestige." % [game.diplo_used(me), game.diplo_cap(me)],
 				"Ein Bündnis lösen oder mit Diplomatie-Technologie mehr Plätze schaffen.", "bad", "diplomacy")
+	if n.stability < 0.0:
+		add.call("stability", "⚖️ Stabilität %+d %%" % roundi(n.stability), "Negative Stabilität senkt Steuern und Mannschaften, verteuert Technik und schürt Unruhe. Zielwert: %+d." % roundi(game.Stability.target(game, n)),
+				"Im Nationsfenster „⚖️ Stabilität stärken“ (📜), Kriege beenden, Schulden abbauen, Provinzen eingliedern.", "bad", "nation")
 	# rewards waiting
+	if game.Progression.can_upgrade(game, me):
+		var nr: Dictionary = game.Progression.RANKS[n.rank + 1]
+		add.call("rank", "%s Aufstieg zum %s möglich" % [nr.icon, nr.name], "Dein Reich erfüllt alle Bedingungen für den nächsten Rang: bessere Boni und neu %s." % game.Progression.BONUS_NAMES.get(nr.new, [nr.new])[0],
+				"Im Nationsfenster unter „Rang des Reiches“ aufsteigen (%s)." % game.Progression.cost_text(nr.cost), "good", "nation")
 	for m in game.available_missions(me):
 		if game.mission_ready(me, m):
 			add.call("mission", "🎯 Mission erfüllt", "Die Bedingungen einer Mission sind erfüllt.", "Hole dir die Belohnung ab.", "good", "missions")
@@ -4961,6 +5057,8 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append_array(_elect_parts(int(v)))
 		elif k == "power_proj":
 			parts.append(["🎯 Machtprojektion %+d" % int(v), sgn.call(float(v))])
+		elif k == "stability":
+			parts.append(["⚖️ Stabilität %+d" % int(v), sgn.call(float(v))])
 		elif k == "rival_rel":
 			parts.append(["❤️ Beziehungen zu Rivalen %+d" % int(v), sgn.call(float(v))])
 		elif k == "spouse_rel":
@@ -5098,6 +5196,14 @@ func conditions_text(c: Dictionary) -> String:
 				lines.append(mark + ("Jemand sieht dich als Rivalen" if v else "Niemand sieht dich als Rivalen"))
 			"power_proj_min":
 				lines.append(mark + "Machtprojektion ≥ %d (jetzt %d)" % [int(v), int(game.nations[me].power_proj)])
+			"stability_min":
+				lines.append(mark + "Stabilität mindestens %+d (jetzt %+d)" % [int(v), roundi(game.nations[me].stability)])
+			"stability_max":
+				lines.append(mark + "Stabilität höchstens %+d (jetzt %+d)" % [int(v), roundi(game.nations[me].stability)])
+			"rank_min":
+				lines.append(mark + "Rang mindestens %s" % game.Progression.RANKS[clampi(int(v), 0, 5)].name)
+			"rank_max":
+				lines.append(mark + "Rang höchstens %s" % game.Progression.RANKS[clampi(int(v), 0, 5)].name)
 			"rival_at_war":
 				lines.append(mark + ("Im Krieg mit einem Rivalen" if v else "Kein Krieg mit einem Rivalen"))
 			_:

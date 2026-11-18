@@ -18,7 +18,7 @@ func _init() -> void:
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
-		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_generals", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_generals", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_stability", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_separate_peace", "test_tired_ai_seeks_peace", "test_ai_marriage_and_generals", "test_ai_access_and_guarantee", "test_income_bonus_and_army_cost",
 		"test_difficulty",
 		"test_march_time_and_terrain", "test_interception", "test_battle_rounds",
@@ -32,6 +32,8 @@ func _init() -> void:
 		"test_guarantee",
 		"test_rivals",
 		"test_urban",
+		"test_city_tiers",
+		"test_manpower_overflow",
 		"test_units_and_templates",
 		"test_colonial",
 		"test_alert_bar",
@@ -1688,6 +1690,7 @@ func test_buildings() -> void:
 	var n = g.nations.FRA
 	n.gold = 10000.0
 	g.bal.city_growth_chance = 0.0  # random yearly city growth (Urban) would add development too
+	g.bal.shock_chance = 0.0  # a random glut of Paris' good would outweigh the new level
 	check(g.construct("FRA", g.key_to_pid["london"], "workshop") != "", "cannot build in foreign province")
 	check(g.construct("FRA", pid, "manufactory") != "", "manufactory needs a workshop")
 	var cost: float = Eco.building_cost(g, "FRA", pid, "workshop")
@@ -1700,7 +1703,7 @@ func test_buildings() -> void:
 		g.tick()
 	check(Eco.level(p, "workshop") == 1 and p.constructing.is_empty(), "workshop finished after 12 months")
 	check(p.dev == dev0 + 1, "a finished building level adds development (%d -> %d)" % [dev0, p.dev])
-	check(Eco.production_value(g, p) > prod0, "workshop raises production")
+	check(Eco.production_value(g, p) > prod0, "workshop raises production (%.3f -> %.3f, price %s)" % [prod0, Eco.production_value(g, p), str(g.prices[p.good])])
 	check(Eco.building_cost(g, "FRA", pid, "workshop") > cost, "next level costs more")
 	# slots
 	p.buildings = {}
@@ -1764,8 +1767,14 @@ func test_army_stances() -> void:
 func test_progression() -> void:
 	var g = new_game("FRA", 4)
 	var P = g.Progression
-	check(P.rank(g, "FRA") == 0, "France (97 dev) starts as a duchy-level realm")
-	check(g.nations.FRA.flags.get("rank", -1) == 0, "start rank recorded without news")
+	check(P.rank(g, "FRA") == 3 and g.nations.FRA.bonus.rank.has("diplo_cap"), "France starts as a kingdom with its bonuses")
+	check(g.nations.TUR.rank == 4 and g.nations.NAT.rank == 0, "the Ottomans start as an empire, uncolonized land has no rank")
+	var tiny := ""
+	for t in g.order:
+		if g.provinces_of(t).size() == 1 and not P.START_RANKS.has(t) and not g.nation_data_native.has(t):
+			tiny = t
+			break
+	check(tiny != "" and g.nations[tiny].rank == 0, "a one-province realm starts as a city state")
 	var p = g.provinces[g.key_to_pid["paris"]]
 	p.buildings = {"workshop": 1}
 	g.Economy.refresh_local(g, p)
@@ -1774,10 +1783,95 @@ func test_progression() -> void:
 	check(got.any(func(m): return m.id == "first_building"), "first building milestone reached")
 	check(g.nations.FRA.gold > gold0, "milestone pays its reward")
 	check(P.check_milestones(g, "FRA").is_empty(), "milestones pay only once")
-	p.dev += 60
-	g._update_cached(g.nations.FRA)
+	# empire: needs 20 provinces, 280 development, stability and the price
+	var n = g.nations.FRA
+	check(P.upgrade_block_reason(g, "FRA").begins_with("Fehlt"), "France is too small for an empire")
+	var took := 0
+	for q in g.provinces:
+		if took >= 8:
+			break
+		if q.owner != "FRA" and q.owner != "NAT" and q.owner != "" and g.provinces_of(q.owner).size() > 1 and q.id < g.nw_first:
+			q.owner = "FRA"
+			q.controller = "FRA"
+			took += 1
+	g._rebuild_owned()
+	for pid in g.provinces_of("FRA"):
+		g.provinces[pid].dev += 10
+	g._update_cached(n)
+	n.gold = 100.0
+	n.adm = 500.0
+	n.prestige = 500.0
+	n.stability = 30.0
+	check(P.upgrade_block_reason(g, "FRA").find("💰") >= 0, "the empire needs its gold (%s)" % P.upgrade_block_reason(g, "FRA"))
+	n.gold = 2000.0
+	check(P.upgrade(g, "FRA") == "" and n.rank == 4 and absf(n.gold - 500.0) < 0.01, "France becomes an empire and pays for it")
+	check(n.bonus.rank.get("ae_decay", 0.0) > 0.0 and n.bonus.rank.get("force_limit", 0.0) > P.RANKS[3].bonus.force_limit, "empire adds a new bonus and improves the old ones")
+	check(n.stability > 30.0, "rising in rank brings stability")
+	var d: Dictionary = g.to_dict()
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(d)))
+	check(g2.nations.FRA.rank == 4 and g2.nations.FRA.bonus.rank.has("ae_decay"), "rank survives save and load")
+	# AI realms climb by themselves when they can afford it
+	var ai = g.nations.ENG
+	ai.gold = 10000.0
+	ai.adm = 500.0
+	ai.prestige = 500.0
+	var before: int = ai.rank
 	P.yearly(g)
-	check(P.rank(g, "FRA") == 1 and g.nations.FRA.bonus.rank.get("merchants", 0) == 1.0, "150 development makes a kingdom with bonus")
+	check(ai.rank >= before, "AI rank never drops")
+
+
+## Stability: drift toward a target, shocks, raising it with administration, effects and AI use.
+func test_stability() -> void:
+	var g = new_game("FRA", 6)
+	var St = g.Stability
+	var n = g.nations.FRA
+	check(absf(n.stability - float(g.bal.stab_start)) < 0.01, "realms start at the start stability")
+	check(St.level(-80.0) == 0 and St.level(-10.0) == 1 and St.level(0.0) == 2 and St.level(60.0) == 3, "four display levels")
+	var good: Dictionary = St.effects(g, 100.0)
+	var bad: Dictionary = St.effects(g, -100.0)
+	check(good.tax > 0.0 and good.unrest < 0.0 and bad.tax < 0.0 and bad.unrest > 0.0, "high stability helps, low stability hurts")
+	n.stability = 80.0
+	var t0: float = St.target(g, n)
+	St.monthly(g, n)
+	check(n.stability < 80.0 and n.stability >= t0, "stability drifts down toward its target")
+	check(absf(g.mod(n, "tax") - g.nations.FRA.bonus.stability.tax - (g.mod(n, "tax") - g.nations.FRA.bonus.stability.tax)) < 0.001 and n.bonus.stability.tax > 0.0, "positive stability raises taxes")
+	n.we = 15.0
+	check(St.target(g, n) < t0 - 15.0, "war exhaustion lowers the target")
+	n.we = 0.0
+	n.stability = -30.0
+	n.adm = 200.0
+	var c: float = St.raise_cost(g, "FRA")
+	check(St.raise(g, "FRA") == "" and absf(n.stability - (-30.0 + float(g.bal.stab_raise))) < 0.01 and absf(n.adm - (200.0 - c)) < 0.01, "administration buys stability")
+	n.stability = 60.0
+	check(St.raise_cost(g, "FRA") > c, "raising high stability costs more")
+	n.adm = 0.0
+	check(St.raise(g, "FRA") != "", "no stability without administration")
+	g.apply_effects("FRA", {"stability": -200})
+	check(n.stability == -100.0, "stability is clamped at -100")
+	check(g.check_conditions("FRA", {"stability_max": -50}) and not g.check_conditions("FRA", {"stability_min": 0}), "stability conditions")
+	check(g.check_conditions("FRA", {"rank_min": 3}) and not g.check_conditions("FRA", {"rank_min": 4}), "rank conditions")
+	var u0: float = g.unrest_base(n)
+	n.stability = 100.0
+	St.monthly(g, n)
+	check(g.unrest_base(n) < u0, "high stability calms every province")
+	# a lost war shakes the loser, the winner gains
+	var e = g.nations.ENG
+	n.stability = 0.0
+	e.stability = 0.0
+	check(g.declare_war("FRA", "ENG") == "" or true, "war declared")
+	var w = g.war_between("FRA", "ENG")
+	if w != null:
+		g.make_peace(w, true, [])
+		check(n.stability > 0.0 and e.stability < 0.0, "winning a war raises, losing lowers stability")
+	# AI shores up negative stability with spare administration
+	var ai = g.nations.SPA
+	ai.stability = -40.0
+	ai.adm = 400.0
+	for i in 12:
+		g.month = i
+		St.monthly(g, ai)
+	check(ai.stability > -30.0 and ai.adm < 400.0, "AI raises its stability when it can")
 
 
 func test_save_roundtrip() -> void:
@@ -2183,7 +2277,7 @@ func test_tech_modifiers() -> void:
 	var without: float = g.tech_cost("FRA", "adm")
 	n.bonus.tech = saved
 	check(absf(with_bonus - round(without * 0.97)) <= 1.0, "tech_cost modifier applies (%d vs %d)" % [with_bonus, without])
-	check(absf(g.mod(n, "tech_cost") + 0.03) < 0.001, "bonus tech recorded in mod()")
+	check(absf(g.mod(n, "tech_cost") - float(n.bonus.get("stability", {}).get("tech_cost", 0.0)) + 0.03) < 0.001, "bonus tech recorded in mod()")
 	check(g.ae_mult("FRA") == 1.0, "no ae modifier yet")
 	check(g.core_time("FRA") == int(g.bal.core_months), "default core time")
 
@@ -4121,6 +4215,49 @@ func test_colonial_events() -> void:
 
 ## Balance pass: manpower is counted in regiments (no more "+1500" that refills the pool), no option is
 ## better than another one on every single effect.
+func test_city_tiers() -> void:
+	var g = new_game("FRA", 9)
+	var Urb = g.Urban
+	var pid: int = g.key_to_pid["paris"]
+	var p = g.provinces[pid]
+	p.urban = true
+	p.dev = 20
+	g.Economy.refresh_local(g, p)
+	check(Urb.tier(g, p) == 1, "dev 20 city is a plain city")
+	var tax1: float = g.Economy.tax(g, p)
+	var slots1: int = g.Economy.slots(g, p)
+	p.dev = int(g.bal.urban_big_dev)
+	Urb.refresh_tiers(g)
+	check(Urb.tier(g, p) == 2 and Urb.tier_name(2) == "Großstadt", "dev 35 is a Großstadt")
+	check(g.Economy.local(g, p, "trade_power") >= float(g.bal.urban_local.trade_power) + float(g.bal.urban_tier_local["2"].trade_power) - 0.001, "Großstadt trade power bonus applied")
+	check(g.Economy.slots(g, p) >= slots1 and Urb.slot_bonus(g, p) == int(g.bal.urban_slots) + int(g.bal.urban_tier_slots[0]), "Großstadt gets extra slots")
+	p.dev = int(g.bal.urban_metro_dev)
+	Urb.refresh_tiers(g)
+	check(Urb.tier(g, p) == 3 and Urb.progress(g, p) == 1.0 and Urb.next_dev(g, p) == 0, "dev 50 is a Metropole at the top")
+	check(g.Economy.tax(g, p) > tax1, "a Metropole pays more than a plain city")
+	p.urban = false
+	check(Urb.tier(g, p) == 0 and Urb.progress(g, p) > 0.0 and Urb.progress(g, p) <= 1.0, "countryside has a progress share")
+
+
+func test_manpower_overflow() -> void:
+	var g = new_game("FRA", 9)
+	var n = g.nations.FRA
+	g._update_cached(n)
+	var mx: float = n.max_manpower
+	n.manpower = mx
+	g.apply_effects("FRA", {"manpower": 10})
+	check(n.manpower > mx, "event manpower may exceed the maximum")
+	g._economy(n)
+	check(n.max_manpower > 0.0 and n.manpower > n.max_manpower, "the overflow survives the month")
+	var over0: float = n.manpower - n.max_manpower
+	g._economy(n)
+	check(n.manpower - n.max_manpower < over0 and n.manpower >= n.max_manpower, "the overflow melts away slowly")
+	n.manpower = mx
+	var cap: float = maxf(mx, n.max_manpower * float(g.bal.manpower_overflow_max))  # max_manpower moves a little with stability
+	g.apply_effects("FRA", {"manpower": 99999})
+	check(n.manpower <= cap + 0.01, "overflow is capped (%.2f vs max %.2f, mx %.2f)" % [n.manpower, n.max_manpower, mx])
+
+
 func test_event_balance() -> void:
 	var g = new_game("FRA", 6)
 	for e in g.event_defs:

@@ -25,6 +25,7 @@ const LABELS := {
 	"religious_unrest": ["Unruhe durch Andersgläubige", true, false], "conversion": ["Bekehrung", true, true],
 	"command": ["Kommando der Generäle", true, true], "general_start": ["Startstufe neuer Generäle", false, true],
 	"recruit_cost": ["Rekrutierungskosten", true, false], "ship_cost": ["Schiffskosten", true, false],
+	"stability": ["Stabilitätsziel", true, true], "diplo_cap": ["Diplomatische Kapazität", false, true],
 }
 
 ## What each modifier does, for tooltips and detail popups.
@@ -35,6 +36,7 @@ const DESCS := {
 	"manpower": "maximale Mannschaften", "combat": "Stärke in Schlachten", "naval": "Stärke der Flotte in Seeschlachten und um die Seeherrschaft", "force_limit": "Regimenter ohne Strafe",
 	"adm": "Verwaltungspunkte pro Monat", "dip": "Diplomatiepunkte pro Monat", "mil": "Militärpunkte pro Monat",
 	"ae_decay": "wie schnell Aggressive Expansion abklingt", "ae_gen": "AE bei Eroberungen und Kriegserklärungen",
+	"stability": "Wert, zu dem die Stabilität langsam zurückkehrt", "diplo_cap": "Plätze für Bündnisse und Vasallen",
 	"tech_cost": "Punkte für neue Technologien", "siege": "wie schnell Festungen fallen",
 	"unrest": "Unruhe in jeder Provinz (Aufstände ab 5)", "coring": "Monate, bis erobertes Land voll zählt",
 	"prestige": "Prestige pro Jahr (Ansehen, Kaiserwahl)", "company_slots": "weitere Investitionskompanie",
