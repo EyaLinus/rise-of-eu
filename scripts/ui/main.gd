@@ -11,6 +11,7 @@ const Tech = preload("res://scripts/core/tech.gd")
 const Faith = preload("res://scripts/core/religion.gd")
 const Colonial = preload("res://scripts/core/colonial.gd")
 const Monuments = preload("res://scripts/core/monuments.gd")
+const Landmarks = preload("res://scripts/core/landmarks.gd")
 const Ages = preload("res://scripts/core/ages.gd")
 const Formables = preload("res://scripts/core/formables.gd")
 const Warfare = preload("res://scripts/core/warfare.gd")
@@ -2490,6 +2491,7 @@ func _panel_province(pid: int) -> void:
 			l.tooltip_text = r[1]
 			l.mouse_filter = Control.MOUSE_FILTER_STOP
 		side_box.add_child(l)
+	_province_landmarks(p)
 	if own:
 		var acts: Array = []
 		var devs: Array = []  # the three develop buttons share one row
@@ -2610,6 +2612,7 @@ func _province_buildings(p) -> void:
 	var hl := _lbl(head, 16, Color(0.95, 0.8, 0.4) if not p.constructing.is_empty() else Color(0.92, 0.92, 0.95))
 	hl.tooltip_text = "Jede fertige Stufe: +1 Entwicklung (außer Straßen). „≈ +X“ = mehr Steuer und Produktion hier im Monat, ohne Handel."
 	hl.mouse_filter = Control.MOUSE_FILTER_STOP
+	_province_landmarks(p)
 	side_box.add_child(hl)
 	var cards: Array = []
 	var reasons := {}
@@ -3273,7 +3276,7 @@ func _panel_nation() -> void:
 
 
 const MOD_SOURCES := {"": "Nationalgeist & Ereignisse", "goods": "Handelsgüter", "buildings": "Gebäude", "rank": "Rang",
-		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "rivals": "Rivalen", "embargo": "Embargos", "blockade": "Blockaden", "escort": "Handelsschutz", "formed": "Reichsgründung", "ages": "Weichen der Zeitalter"}
+		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "landmarks": "Historische Bauwerke", "rivals": "Rivalen", "embargo": "Embargos", "blockade": "Blockaden", "escort": "Handelsschutz", "formed": "Reichsgründung", "ages": "Weichen der Zeitalter"}
 const MOD_GROUPS := [
 	["💰 Wirtschaft", ["income", "tax", "production", "trade", "merchants", "build_cost", "develop_cost"]],
 	["⚔️ Militär", ["combat", "army_power", "army_power_regen", "manpower", "force_limit", "maintenance", "siege", "naval"]],
@@ -3329,6 +3332,97 @@ func _nation_monuments(me: String) -> void:
 		side_box.add_child(_btn("%s %s bauen (%d 💰, %d Mon.)" % [m.emoji, m.name, int(Monuments.cost(game, me, id)), int(m.months)],
 				func(): _start_monument(id),
 				tip + ("\n❌ " + br if br != "" else ""), br != ""))
+	_nation_landmarks(me)
+
+
+## Historical landmarks in the realm's provinces: level, effects and the next investment.
+func _nation_landmarks(me: String) -> void:
+	var ids: Array = Landmarks.of(game, me)
+	if ids.is_empty():
+		return
+	var built := 0
+	for id in ids:
+		if Landmarks.level(game, id) > 0:
+			built += 1
+	side_box.add_child(_lbl("🏛️ Historische Bauwerke: %d von %d errichtet, %d Stufen" % [built, ids.size(), Landmarks.count_levels(game, me)], 16, UiTheme.GOLD))
+	for id in ids:
+		side_box.add_child(_landmark_card(id, true))
+
+
+## The landmarks of province `p` as cards (own: with the investment, foreign: information only).
+func _province_landmarks(p) -> void:
+	var ids: Array = Landmarks.at(game, p.id)
+	if ids.is_empty():
+		return
+	for id in ids:
+		side_box.add_child(_landmark_card(id, false))
+
+
+const LM_LOCAL := {"tax": ["Steuern hier", true, true], "trade_power": ["Handelsmacht hier", true, true], "trade_flat": ["Handelswert hier", false, true],
+		"production": ["Produktion hier", true, true], "manpower": ["Mannschaften hier", true, true], "unrest": ["Unruhe hier", false, false]}
+
+
+## Explanation of a landmark: story, effects per level (realm and province), what the next level needs.
+func _landmark_tip(id: String) -> String:
+	var d: Dictionary = game.lm_defs[id]
+	var lvl: int = Landmarks.level(game, id)
+	var me: String = game.player
+	var own: String = Landmarks.owner(game, id)
+	var lines := ["%s %s (%s, %s) · Stufe %d/%d" % [d.emoji, d.name, Landmarks.KIND_NAMES.get(d.kind, d.kind), game.provinces[d.pid].name, lvl, Landmarks.MAX_LEVEL], d.text]
+	var parts := []
+	for r in UiTheme.mod_rows(d.get("nation", {})):
+		parts.append("%s %s" % [r[1], r[0]])
+	var loc: Dictionary = d.get("local", {})
+	for k in loc:
+		var lab: Array = LM_LOCAL.get(k, [k, false, true])
+		var v: float = float(loc[k])
+		parts.append(("%+d %%" % roundi(v * 100.0) if lab[1] else "%+.1f" % v).replace("-", "−") + " " + lab[0])
+	lines.append("Je Stufe: " + ", ".join(parts) + ", +%d Entwicklung beim Ausbau." % int(game.bal.landmark_dev))
+	if lvl > 0 and game.nations.has(own):
+		var now: Array = []
+		for r in UiTheme.mod_rows(Landmarks.nation_effects(game, id, own)):
+			now.append("%s %s" % [r[1], r[0]])
+		lines.append("Jetzt für %s: %s" % [game.nations[own].name, ", ".join(now)])
+	if d.has("bound"):
+		var bn: String = game.nations[d.bound].name if game.nations.has(d.bound) else d.bound
+		lines.append("📜 Gehört zur Geschichte von %s: nur %s kann es errichten und ausbauen, andere Besitzer erhalten nur %d %% des Landesbonus." % [bn, bn, int(float(game.bal.landmark_foreign_mult) * 100)])
+	if Landmarks.building(game, id):
+		lines.append("🔨 Stufe %d im Bau: noch %d Monate." % [lvl + 1, int(game.landmarks[id].months)])
+	elif lvl < Landmarks.MAX_LEVEL:
+		var req: Array = Landmarks.tech_req(game, id)
+		lines.append("Nächste Stufe: %d 💰, %d Monate, %s-Technologie %d." % [int(Landmarks.cost(game, own if game.nations.has(own) else me, id)), Landmarks.months(game, id),
+				{"adm": "Verwaltungs", "dip": "Diplomatie", "mil": "Militär"}[req[0]], int(req[1])])
+	return "\n".join(lines)
+
+
+func _landmark_card(id: String, with_province: bool) -> Button:
+	var d: Dictionary = game.lm_defs[id]
+	var me: String = game.player
+	var lvl: int = Landmarks.level(game, id)
+	var stars: String = "%d/%d" % [lvl, Landmarks.MAX_LEVEL]
+	var line2: String
+	var reason := ""
+	var mine: bool = Landmarks.owner(game, id) == me
+	if Landmarks.building(game, id):
+		line2 = "🔨 Stufe %d: %d Mon." % [lvl + 1, int(game.landmarks[id].months)]
+	elif lvl >= Landmarks.MAX_LEVEL:
+		line2 = "Höchste Stufe"
+	elif mine:
+		reason = Landmarks.block_reason(game, me, id)
+		line2 = ("%s %d 💰" % ["Errichten" if lvl == 0 else "Ausbauen", int(Landmarks.cost(game, me, id))])
+	else:
+		line2 = ("im Besitz von " + game.nations[Landmarks.owner(game, id)].name) if game.nations.has(Landmarks.owner(game, id)) else "unerschlossen"
+	if with_province:
+		line2 = game.provinces[d.pid].name + " · " + line2
+	var tip: String = _landmark_tip(id) + (("\n❌ " + reason) if reason != "" else "")
+	var can: bool = mine and reason == "" and not Landmarks.building(game, id) and lvl < Landmarks.MAX_LEVEL
+	var b := _btn("%s %s · %s\n%s" % [d.emoji, d.name, stars, line2],
+			func(): _act(Landmarks.invest(game, me, id), "%s %s: Ausbau begonnen" % [d.emoji, d.name]), tip, not can)
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.add_theme_font_size_override("font_size", 15)
+	if lvl > 0:
+		b.add_theme_color_override("font_disabled_color", Color(0.85, 0.78, 0.55))
+	return b
 
 
 ## Formed realms fly their new flag on the map and in every list.

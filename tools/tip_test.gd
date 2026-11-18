@@ -79,6 +79,7 @@ func _init() -> void:
 	for e in m.quick.entries(paris):
 		labels.append(e[0])
 	check(labels.any(func(t): return t.contains("Entwickeln")) and labels.any(func(t): return t.contains("Regiment")), "own province: develop and recruit are one click away")
+	check(labels.any(func(t): return t.contains("Notre-Dame") and t.contains("2→3")), "own province: the next landmark level is in the quick menu")
 	g.nations.FRA.gold = 5000.0
 	var before: int = g.provinces[paris].constructing.size()
 	m.quick.entries(paris)[0][1].call()

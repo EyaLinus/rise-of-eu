@@ -120,6 +120,19 @@ func entries(p: int) -> Array:
 					"−%d Monate bis zum Kernland." % int(g.bal.integrate_months)])
 		if not g.armies_of(me).is_empty():
 			out.append(["🏁 Alle Armeen hierher", func(): m._all_armies_to(p), "Schickt jede eigene Armee hierher."])
+		# historical landmarks here (scripts/core/landmarks.gd): the next level, or why not yet
+		var L = g.Landmarks
+		for id in L.at(g, p):
+			var lvl: int = L.level(g, id)
+			if lvl >= L.MAX_LEVEL or L.building(g, id):
+				continue
+			var ld: Dictionary = g.lm_defs[id]
+			var lr: String = L.block_reason(g, me, id)
+			if lr.begins_with("Nur "):
+				continue  # bound to another realm: nothing to do here
+			out.append(["%s %s %d→%d %d 💰" % [ld.emoji, ld.name, lvl, lvl + 1, int(L.cost(g, me, id))],
+					func(): m._act(L.invest(g, me, id), "%s %s: Ausbau begonnen" % [ld.emoji, ld.name]),
+					m._landmark_tip(id) + (("\n❌ " + lr) if lr != "" else ""), lr != ""])
 		out.append(["🏗️ Bauen…", _tab.bind(p, "build"), "Alle Gebäude dieser Provinz"])
 		out.append(["⚔️ Militär…", _tab.bind(p, "army"), "Rekrutieren, Söldner, Armeen hier"])
 		out.append(["📍 Infos", _tab.bind(p, "info"), "Provinz im Seitenfenster öffnen"])

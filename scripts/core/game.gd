@@ -17,6 +17,7 @@ const Units = preload("res://scripts/core/units.gd")
 const Urban = preload("res://scripts/core/urban.gd")
 const Colonial = preload("res://scripts/core/colonial.gd")
 const Trade = preload("res://scripts/core/trade.gd")
+const Landmarks = preload("res://scripts/core/landmarks.gd")
 
 const POWERS := ["adm", "dip", "mil"]
 const MONTH_NAMES := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
@@ -231,6 +232,13 @@ var rng := RandomNumberGenerator.new()
 var player: String = ""
 var event_defs: Array = []
 var monument_defs := {}
+var lm_defs := {}  # historical landmarks (Landmarks): id -> definition + "pid"
+var lm_at := {}  # pid -> [landmark ids]
+var landmarks := {}  # id -> {"lvl", "months", "by"}
+var lm_ver := 0  # bumped by every landmark change (map sprites)
+var lm_owners: Array = []  # realms that got a "landmarks" bonus last month
+var lm_seen_ver := -1  # Landmarks.monthly: state of the last bonus refresh (not saved)
+var lm_seen_owners := PackedStringArray()
 var formable_defs := {}
 var age_cfg := {}  # data/ages.json (Ages)
 var age_q := {}  # question id -> question
@@ -387,6 +395,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	Trade.setup(self)
 	Economy.setup(self, data)
 	Urban.setup(self)
+	Landmarks.setup(self, data)
 	for p in provinces:
 		Economy.refresh_local(self, p)
 	tree.set_unlocks(buildings_def)
@@ -817,7 +826,7 @@ func tick_begin() -> bool:
 	_steps = [_t_markets]
 	for tag in order:
 		_steps.append(_t_economy.bind(tag))
-	_steps += [_t_naval, _t_voyages, _t_colonial, _t_trade, _t_armies, _t_wars]
+	_steps += [_t_naval, _t_voyages, _t_colonial, _t_landmarks, _t_trade, _t_armies, _t_wars]
 	for tag in order:
 		_steps.append(_t_ai.bind(tag))
 	_steps.append(_t_player)
@@ -879,6 +888,11 @@ func _t_voyages() -> void:
 func _t_colonial() -> void:
 	Colonial.monthly(self)
 	_pmark("colonial")
+
+
+func _t_landmarks() -> void:
+	Landmarks.monthly(self)
+	_pmark("landmarks")
 
 
 func _t_trade() -> void:
@@ -3042,6 +3056,9 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 					n.monument_build.months = maxi(1, int(n.monument_build.months) - int(v))
 			"feast_ready":
 				n.flags.erase("feast_month")
+			"landmark_level":
+				for i in int(v):
+					Landmarks.free_level(self, tag)
 			"age_pick":
 				Ages.pick(self, tag, str(v[0]), str(v[1]))
 			"ships":
@@ -3298,6 +3315,9 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"monument_building":
 				if n.monument_build.is_empty() == bool(v):
 					return false
+			"landmark_levels_min":
+				if Landmarks.count_levels(self, tag) < int(v):
+					return false
 			"ships_min":
 				if n.ships < float(v):
 					return false
@@ -3484,7 +3504,7 @@ func to_dict() -> Dictionary:
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
 			"pending_peace": pending_peace, "peace_offer_memo": peace_offer_memo, "log": log_lines, "stats": stats, "game_over": game_over, "endless": endless, "emperor": emperor,
 			"hre_authority": hre_authority, "hre_reforms": hre_reforms,
-			"history": history, "score_history": score_history, "chronicle": chronicle, "prices": prices, "prev_prices": prev_prices, "shocks": shocks, "goods_leader": goods_leader, "urban_start": urban_start, "found": found, "east": Trade.to_save(self)}
+			"history": history, "score_history": score_history, "chronicle": chronicle, "prices": prices, "prev_prices": prev_prices, "shocks": shocks, "goods_leader": goods_leader, "urban_start": urban_start, "found": found, "east": Trade.to_save(self), "landmarks": Landmarks.to_save(self)}
 	var ps := []
 	for p in provinces:
 		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort, p.prev_owner, p.suppress_months,
@@ -3602,6 +3622,7 @@ func from_dict(d: Dictionary) -> void:
 	for k in fd:
 		found[str(k)] = int(fd[k])
 	Trade.load_save(self, d.get("east", {}))
+	Landmarks.load_save(self, d.get("landmarks", {}))
 	shocks = {}
 	for k in d.get("shocks", {}):
 		shocks[k] = {"mult": float(d.shocks[k].mult), "years": int(d.shocks[k].years)}
@@ -3751,3 +3772,4 @@ func from_dict(d: Dictionary) -> void:
 	Progression.refresh(self)
 	for t in order:
 		Economy.refresh_pact_bonus(self, nations[t])
+	Landmarks.refresh_bonus(self)
