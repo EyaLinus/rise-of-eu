@@ -233,12 +233,28 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 		m._open_panel("economy")
 	m._show_menu()
 	m._show_settings()
+	m._show_key_bindings()
+	m._show_music_manager()
 	m._show_shortcuts()
 	m._close_modal()
 	m._close_panel()
 	# keyboard shortcuts: a panel key opens its panel, a second press closes it
 	if m.mode_strip.get_child_count() != m.map.MODE_NAMES.size():
 		_fail("map mode strip has %d buttons for %d modes" % [m.mode_strip.get_child_count(), m.map.MODE_NAMES.size()])
+	# rebinding: N -> J opens the nation panel, N itself does nothing; swapping with a used key works
+	m.set_key("panel_nation", KEY_J)
+	var jev := InputEventKey.new()
+	jev.keycode = KEY_J
+	jev.pressed = true
+	m._unhandled_input(jev)
+	if not m.side_panel.visible or m.panel_mode != "nation":
+		_fail("rebound key J did not open the nation panel")
+	m._close_panel()
+	m.set_key("panel_economy", KEY_J)  # J is taken: nation gets E
+	if m.key_of("panel_nation") != KEY_E or m.key_of("panel_economy") != KEY_J:
+		_fail("rebinding to a used key must swap")
+	m.settings.erase("keys")
+	m._rebuild_keymap()
 	for key in m.PANEL_KEYS:
 		var ev := InputEventKey.new()
 		ev.keycode = key

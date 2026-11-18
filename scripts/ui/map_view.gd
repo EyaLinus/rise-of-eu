@@ -26,7 +26,7 @@ const TERRAIN_PATH := "res://assets/art/map/terrain.png"
 ## Android caps textures at 4096 px.
 const TERRAIN_DIR := "res://assets/art/map/"
 const TERRAIN_HALF_PATH := "res://assets/art/map/terrain_half.png"
-const FILL_ALPHA := 0.74
+const FILL_ALPHA := 0.7
 const PROV_BORDER := Color(0.12, 0.09, 0.06, 0.28)
 const NATION_BORDER := Color(0.07, 0.05, 0.09, 0.9)
 const COAST := Color(0.03, 0.09, 0.16, 0.8)
@@ -609,17 +609,23 @@ func _draw_layer(ci) -> void:
 			_draw_sea_routes(ci)
 
 
-## Roads look like an old paper map: they bend through the shared border ("gate") between two
-## provinces instead of cutting straight across, and their style grows with the road level:
-## a dashed track (1), an ink road with a parchment casing (2), a double-lined royal road (3).
-## Only land neighbours get a road, so none runs across a strait.
-const ROAD_INK := Color(0.29, 0.16, 0.08, 0.9)
-const ROAD_PAPER := Color(0.94, 0.89, 0.76, 0.85)
+## Roads are drawn faintly, like pencil lines on an old map: they should hint at the network without
+## competing with borders, names and counters. Each one is a procedural path from one province centre
+## through the shared border ("gate") to the next, bent by a little value noise seeded per road, and
+## clipped to the land of the two provinces, so a road never runs across a bay or the sea. Only land
+## neighbours get a road. Level 1 is a dotted track, 2 a thin line, 3 a slightly stronger royal road.
+## The geometry is cached per province pair, so zooming only restyles the lines.
+const ROAD_INK := Color(0.22, 0.14, 0.08)
+const ROAD_ALPHA := [0.0, 0.32, 0.45, 0.58]
+const ROAD_WIDTH := [0.0, 1.0, 1.25, 1.7]
+const ROAD_ZOOM := 0.7  # below this the network is noise: no roads at all
 var _road_gates := {}  # Vector2i(lo, hi) -> point on their shared land border
+var _road_paths := {}  # Vector2i(lo, hi) -> Array of PackedVector2Array (pieces on land)
 
 
 func _build_road_gates() -> void:
 	_road_gates = {}
+	_road_paths = {}
 	var acc := {}  # key -> [weighted sum, total length, edge midpoints]
 	for e in edge_l.size():
 		var r := edge_r[e]
@@ -645,19 +651,69 @@ func _build_road_gates() -> void:
 		_road_gates[k] = best
 
 
-## Points of a gentle curve from a over the gate g to b, with a small hand-drawn wobble.
+## Smooth 1D value noise in [-1, 1] (hash per integer step, smoothstep between).
+static func _vnoise(x: float, salt: int) -> float:
+	var i := floori(x)
+	var f := x - i
+	var a := float(hash(Vector2i(i, salt)) % 2001) / 1000.0 - 1.0
+	var b := float(hash(Vector2i(i + 1, salt)) % 2001) / 1000.0 - 1.0
+	return lerpf(a, b, f * f * (3.0 - 2.0 * f))
+
+
+## Points of a curve from a over the gate g to b, bent by two octaves of noise (never at the ends or
+## the gate, so neighbouring roads still meet).
 func _road_curve(a: Vector2, g: Vector2, b: Vector2, salt: int) -> PackedVector2Array:
 	var c := 2.0 * g - (a + b) * 0.5  # quadratic Bezier through g at t = 0.5
-	var steps := clampi(int(a.distance_to(b) / 9.0), 6, 24)
+	var ln := a.distance_to(b)
+	var steps := clampi(int(ln / 7.0), 8, 32)
 	var nrm := (b - a).orthogonal().normalized()
-	var ph := float(salt % 97) * 0.37
+	var amp := clampf(ln * 0.035, 1.0, 4.0)
 	var pts := PackedVector2Array()
 	for i in steps + 1:
 		var t := float(i) / steps
 		var pt := (1.0 - t) * (1.0 - t) * a + 2.0 * (1.0 - t) * t * c + t * t * b
-		pt += nrm * sin(t * TAU * 1.5 + ph) * 1.3 * sin(t * PI)
-		pts.append(pt)
+		var env := absf(sin(t * TAU))  # zero at both ends and at the gate
+		var n := _vnoise(t * 4.0, salt) * 0.7 + _vnoise(t * 11.0, salt + 7) * 0.3
+		pts.append(pt + nrm * n * amp * env)
 	return pts
+
+
+## The road between p and q as pieces that stay on their land. A curve that would leave it (bays,
+## crescent-shaped coasts) first falls back to straight legs over the gate; whatever still lies on water
+## is cut out, so at worst a road ends at the shore.
+func _road_path(p, q, k: Vector2i) -> Array:
+	if _road_paths.has(k):
+		return _road_paths[k]
+	var g: Vector2 = _road_gates[k]
+	var on_land := func(pt: Vector2) -> bool: return _in_province(p.id, pt) or _in_province(q.id, pt)
+	var pts := _road_curve(p.center, g, q.center, p.id * 31 + q.id)
+	var ok := true
+	for pt in pts:
+		if not on_land.call(pt):
+			ok = false
+			break
+	var out := []
+	if ok:
+		out.append(pts)
+	else:
+		var legs := PackedVector2Array()
+		var ends := [p.center, g, q.center]
+		for li in 2:
+			var n := maxi(2, int(ends[li].distance_to(ends[li + 1]) / 4.0))
+			for i in range(1 if li == 1 else 0, n + 1):
+				legs.append(ends[li].lerp(ends[li + 1], float(i) / n))
+		var run := PackedVector2Array()
+		for pt in legs:
+			if on_land.call(pt):
+				run.append(pt)
+			else:
+				if run.size() >= 2:
+					out.append(run)
+				run = PackedVector2Array()
+		if run.size() >= 2:
+			out.append(run)
+	_road_paths[k] = out
+	return out
 
 
 func _dashed_polyline(ci: CanvasItem, pts: PackedVector2Array, col: Color, w: float, dash: float, gap: float) -> void:
@@ -686,14 +742,12 @@ func _dashed_polyline(ci: CanvasItem, pts: PackedVector2Array, col: Color, w: fl
 
 
 func _draw_roads(ci: CanvasItem) -> void:
-	if zoom < 0.55 or map_mode == MODE_WAR:
+	if zoom < ROAD_ZOOM or map_mode == MODE_WAR:
 		return
 	if _road_gates.is_empty() and not edge_l.is_empty():
 		_build_road_gates()
 	var px := 1.0 / zoom * clampf(zoom, 0.8, 1.5)  # one screen pixel, growing a little when zoomed in
-	var tracks := []
-	var roads := []
-	var royal := []
+	var by_lv := [[], [], [], []]
 	for p in game.provinces:
 		var lv: int = int(p.buildings.get("road", 0))
 		if lv <= 0:
@@ -706,28 +760,24 @@ func _draw_roads(ci: CanvasItem) -> void:
 			var k := Vector2i(p.id, q)
 			if lo <= 0 or not _road_gates.has(k):
 				continue
-			var pts := _road_curve(p.center, _road_gates[k], o.center, p.id * 31 + q)
-			match mini(lv, lo):
-				1: tracks.append(pts)
-				2: roads.append(pts)
-				_: royal.append(pts)
-	for pts in tracks:
-		_dashed_polyline(ci, pts, Color(ROAD_PAPER, 0.5), 3.0 * px, 6.0 * px, 3.0 * px)
-		_dashed_polyline(ci, pts, ROAD_INK, 1.3 * px, 5.0 * px, 4.0 * px)
-	for pts in roads:  # casings first so crossings merge
-		ci.draw_polyline(pts, ROAD_PAPER, 3.6 * px, true)
-	for pts in roads:
-		ci.draw_polyline(pts, ROAD_INK, 1.6 * px, true)
-	for pts in royal:
-		ci.draw_polyline(pts, ROAD_INK, 5.0 * px, true)
-	for pts in royal:
-		ci.draw_polyline(pts, ROAD_PAPER, 2.4 * px, true)
+			by_lv[clampi(mini(lv, lo), 1, 3)].append_array(_road_path(p, o, k))
+	for lv in [1, 2, 3]:
+		var col := Color(ROAD_INK, ROAD_ALPHA[lv])
+		var w: float = ROAD_WIDTH[lv] * px
+		for pts in by_lv[lv]:
+			if lv == 1:
+				_dashed_polyline(ci, pts, col, w, 3.0 * px, 3.0 * px)
+			else:
+				ci.draw_polyline(pts, col, w, true)
 
 
 ## Settlements: a walled city, a town or a village sprite in every province that has grown enough
 ## (urban provinces always, countryside from `city_village_dev`), so development shows on the map.
 const CITY_VILLAGE_DEV := 8
 const CITY_BIG_DEV := 16
+const CITY_VILLAGE_ZOOM := 0.9  # villages only once single provinces matter; towns and cities from 0.55
+const CITY_HARBOR_ZOOM := 1.2
+const CITY_TINT := Color(0.95, 0.92, 0.86, 0.94)  # a touch of the parchment tone, so sprites sit in the map
 ## Major rivers (tools/art/rivers.py), drawn over the province colours so the land reads like an old atlas.
 ## Close up they are pixel art on the same grid as the terrain glyphs: the generator rasterises them
 ## once into the 32 px tiles that hold river pixels, packed in one atlas texture (data/river_tiles.json),
@@ -823,6 +873,9 @@ func _glyphs_for(p) -> Array:
 	return out
 
 
+const GLYPH_TINT := Color(0.96, 0.94, 0.88, 0.72)  # landscape sprites sit in the terrain, not on top of it
+
+
 func _draw_terrain_glyphs(ci: CanvasItem) -> void:
 	if zoom < 0.55 or map_mode == MODE_WAR:
 		return
@@ -832,7 +885,7 @@ func _draw_terrain_glyphs(ci: CanvasItem) -> void:
 			if tex == null:
 				continue
 			var sz: Vector2 = tex.get_size() * 0.5
-			ci.draw_texture_rect(tex, Rect2(g[1] - sz / 2.0, sz), false, Color(1, 1, 1, 0.9))
+			ci.draw_texture_rect(tex, Rect2(g[1] - sz / 2.0, sz), false, GLYPH_TINT)
 
 
 func _draw_cities(ci: CanvasItem) -> void:
@@ -844,21 +897,23 @@ func _draw_cities(ci: CanvasItem) -> void:
 	var harbor := Icons.texture("city_harbor")
 	if village == null or town == null or city == null:
 		return
+	var show_villages := zoom >= CITY_VILLAGE_ZOOM
+	var show_harbors := zoom >= CITY_HARBOR_ZOOM
 	for p in game.provinces:
-		if harbor != null and p.buildings.get("harbor", 0) > 0:
+		if show_harbors and harbor != null and p.buildings.get("harbor", 0) > 0:
 			var hs: Vector2 = harbor.get_size() * 0.5
-			ci.draw_texture_rect(harbor, Rect2(p.center + Vector2(-hs.x - 14.0, 8.0), hs), false)
+			ci.draw_texture_rect(harbor, Rect2(p.center + Vector2(-hs.x - 14.0, 8.0), hs), false, CITY_TINT)
 		var tex: Texture2D = null
 		if p.urban:
 			tex = city if p.dev >= CITY_BIG_DEV or p.buildings.get("fortress", 0) > 0 else town
-		elif p.dev >= CITY_VILLAGE_DEV:
+		elif p.dev >= CITY_VILLAGE_DEV and show_villages:
 			tex = village
 		if tex == null:
 			continue
 		var sz: Vector2 = tex.get_size() * 0.5
 		var pos: Vector2 = p.center + Vector2(-sz.x / 2.0, 6.0)
-		ci.draw_rect(Rect2(pos + Vector2(1, sz.y - 1), Vector2(sz.x, 2)), Color(0, 0, 0, 0.35))
-		ci.draw_texture_rect(tex, Rect2(pos, sz), false)
+		ci.draw_rect(Rect2(pos + Vector2(1, sz.y - 1), Vector2(sz.x, 2)), Color(0, 0, 0, 0.18))
+		ci.draw_texture_rect(tex, Rect2(pos, sz), false, CITY_TINT)
 	_draw_landmarks(ci)
 
 
@@ -894,8 +949,9 @@ func _draw_landmarks(ci: CanvasItem) -> void:
 ## times the label scale), so they stay crisp pixel art and small at any zoom, and only for provinces on
 ## screen. Shown together with the province names (BADGE_ZOOM), in the goods map mode earlier; hidden in
 ## the war mode. Grouped by texture (plaques, terrain icons, goods), so it is a few dozen batches.
-const BADGE_ZOOM := 1.1
-const BADGE_ZOOM_GOODS := 0.7
+const BADGE_ZOOM := 1.5  # plain trade-good icon, no plaque (the terrain shows on the map itself)
+const BADGE_ZOOM_GOODS := 0.7  # goods map mode: the full plaque with terrain + good
+const BADGE_PLAIN := Color(1, 1, 1, 0.8)
 const BADGE_MAP := Vector2(34, 17)  # the plaque's footprint in map px (for the fit test and the glyphs)
 const BADGE_SPOTS := [Vector2(40, 3), Vector2(-40, 3), Vector2(0, -40), Vector2(0, 42)]
 const BADGE_BACK := Color(0.106, 0.086, 0.133, 0.62)
@@ -977,6 +1033,7 @@ func _used_rect(tex: Texture2D) -> Rect2:
 func _draw_badges() -> void:
 	if not _badges_shown():
 		return
+	var plaque := map_mode == MODE_GOODS
 	var u := maxf(1.5, roundf(label_scale * 3.0) / 2.0)  # screen px per art pixel (half steps)
 	var view := Rect2(Vector2.ZERO, size).grow(60.0)
 	var by_tex := {}  # texture -> Array of [source rect, screen rect]
@@ -987,7 +1044,7 @@ func _draw_badges() -> void:
 		var parts := []
 		var w := u
 		var h := 0.0
-		for tex in [Icons.texture("tico_" + p.terrain), _good_texture(p.good)]:
+		for tex in ([Icons.texture("tico_" + p.terrain), _good_texture(p.good)] if plaque else [_good_texture(p.good)]):
 			if tex == null:
 				continue
 			var src := _used_rect(tex)
@@ -998,8 +1055,9 @@ func _draw_badges() -> void:
 		if parts.is_empty():
 			continue
 		var r := Rect2((c - Vector2(w, h + 2.0 * u) / 2.0).round(), Vector2(w, h + 2.0 * u).round())
-		draw_rect(r, BADGE_BACK)
-		draw_rect(r, BADGE_EDGE, false, 1.0)
+		if plaque:
+			draw_rect(r, BADGE_BACK)
+			draw_rect(r, BADGE_EDGE, false, 1.0)
 		var x := r.position.x + u
 		for part in parts:
 			var at: Vector2 = Vector2(x, r.position.y + u + (h - part[2].y) / 2.0).round()
@@ -1009,7 +1067,7 @@ func _draw_badges() -> void:
 			x += part[2].x + u
 	for tex in by_tex:
 		for q in by_tex[tex]:
-			draw_texture_rect_region(tex, q[1], q[0])
+			draw_texture_rect_region(tex, q[1], q[0], Color.WHITE if plaque else BADGE_PLAIN)
 
 
 ## Sea crossings: a dotted ferry line; red while an enemy fleet rules that sea for the player.
@@ -1022,9 +1080,11 @@ func _draw_sea_routes(ci: CanvasItem) -> void:
 		var pa: Vector2 = game.provinces[a].center
 		var pb: Vector2 = game.provinces[b].center
 		var blocked: bool = game.player != "" and not Naval.can_cross(game, game.player, a, b)
-		var col := Color(0.95, 0.3, 0.25, 0.95) if blocked else Color(0.85, 0.93, 1.0, 0.75)
-		ci.draw_dashed_line(pa, pb, Color(0, 0, 0, 0.5), 4.0 / zoom, 6.0 / zoom)
-		ci.draw_dashed_line(pa, pb, col, 2.0 / zoom, 6.0 / zoom)
+		if blocked:
+			ci.draw_dashed_line(pa, pb, Color(0, 0, 0, 0.45), 3.5 / zoom, 6.0 / zoom)
+			ci.draw_dashed_line(pa, pb, Color(0.95, 0.3, 0.25, 0.95), 2.0 / zoom, 6.0 / zoom)
+		else:  # a light dotted ferry line: it must not read as a road over the water
+			ci.draw_dashed_line(pa, pb, Color(0.85, 0.93, 1.0, 0.42), 1.4 / zoom, 2.5 / zoom)
 
 
 ## Sea names; while the player is at war also who rules each sea (our ships : enemy ships). Fleets show
@@ -1411,8 +1471,6 @@ func _draw_labels() -> void:
 			if zoom >= 1.6:  # only close up, harbors are everywhere on the coasts later on
 				if p.buildings.get("fortress", 0) > 0:
 					marks += "🏰"
-				if p.buildings.get("harbor", 0) > 0:
-					marks += "⚓"
 			if p.colonist != "":
 				marks += "🏕"
 			if marks != "":
@@ -1463,15 +1521,43 @@ func _realm_center(tag: String, owned: Array) -> Vector2:
 
 const STACK_SHOWN := 3  # army counters drawn per province; the rest fold into a "+N" badge
 var _stack_rest := {}  # pid -> [hidden armies, their regiments, badge position]
+var _army_rel := {}  # army id -> true when it matters to the player (see _army_relevant)
+const ARMY_BG_ZOOM := 0.8  # below this, armies that do not concern the player are not drawn at all
+const ARMY_BG_TINT := Color(1, 1, 1, 0.68)
+
+
+## Armies that concern the player: their own, the selected one, enemies and allies in the player's
+## wars, and any army inside or next to the player's land. All others are background: drawn as a small
+## translucent plate without general, march arrow or morale bar, and hidden when zoomed out.
+func _army_relevant(a) -> bool:
+	var me: String = game.player
+	if me == "" or a.owner == me or a.id == selected_army:
+		return true
+	if game.at_war(me, a.owner):
+		return true
+	if game.is_allied(me, a.owner) and game.is_at_war(me):
+		return true
+	var p = game.provinces[a.pid]
+	if p.owner == me or p.controller == me:
+		return true
+	for q in p.adj:
+		if game.provinces[q].owner == me:
+			return true
+	return false
 
 
 ## Screen position of every army counter that is drawn. Crowded provinces show the selected army, the
 ## player's and then the biggest ones; the others fold into one badge (see _stack_rest).
 func army_positions() -> Dictionary:
 	var per := {}
+	_army_rel = {}
 	for a in game.armies:
 		if not sees(a.pid) and a.owner != game.player:
 			continue  # fog of war: foreign armies out of sight are not drawn (and cannot be tapped)
+		var rel := _army_relevant(a)
+		_army_rel[a.id] = rel
+		if not rel and zoom < ARMY_BG_ZOOM:
+			continue
 		if not per.has(a.pid):
 			per[a.pid] = []
 		per[a.pid].append(a)
@@ -1484,8 +1570,8 @@ func army_positions() -> Dictionary:
 			var me: String = game.player
 			var sel := selected_army
 			arms.sort_custom(func(x, y):
-				var kx: float = (1e6 if x.id == sel else 0.0) + (1e5 if x.owner == me else 0.0) + x.regs
-				var ky: float = (1e6 if y.id == sel else 0.0) + (1e5 if y.owner == me else 0.0) + y.regs
+				var kx: float = (1e6 if x.id == sel else 0.0) + (1e5 if x.owner == me else 0.0) + (1e4 if _army_rel[x.id] else 0.0) + x.regs
+				var ky: float = (1e6 if y.id == sel else 0.0) + (1e5 if y.owner == me else 0.0) + (1e4 if _army_rel[y.id] else 0.0) + y.regs
 				return kx > ky if kx != ky else x.id < y.id)
 		for i in arms.size():
 			var a = arms[i]
@@ -1895,12 +1981,16 @@ func province_at(screen_pos: Vector2) -> int:
 
 ## Army counter: nation-tinted plate, steel pikeman, regiment count, march arrow when moving.
 func _draw_counter(a, s: Vector2, c: Color, counter: Texture2D) -> void:
-	# zoomed out: native 1x plate with just the number, so Europe stays readable
-	var compact := zoom < 0.8
+	# zoomed out: native 1x plate with just the number, so Europe stays readable;
+	# armies that do not concern the player always use the small translucent plate
+	var bg: bool = not _army_rel.get(a.id, true)
+	var compact := zoom < 0.8 or bg
 	var csz := COUNTER_SIZE / 2 if compact else COUNTER_SIZE
 	var r := Rect2(s - csz / 2, csz)
 	if a.id == selected_army:
 		draw_rect(r.grow(3.0), Color(1, 1, 1, 0.9))
+	if bg:
+		c.a = ARMY_BG_TINT.a
 	draw_texture_rect(counter, r, false, c)
 	var unit := Icons.texture("army_unit")
 	if unit != null and not compact:
@@ -1918,9 +2008,11 @@ func _draw_counter(a, s: Vector2, c: Color, counter: Texture2D) -> void:
 	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var cx := r.get_center().x if compact else r.position.x + 33
 	var tp := Vector2(cx - w / 2, s.y + fs * 0.36)
-	draw_string_outline(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 2 if compact else 3, Color.BLACK)
-	draw_string(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
-	_draw_power_bar(a, Rect2(r.position.x, r.end.y + 1, r.size.x, 3.0 if compact else 5.0))
+	var ink := Color(1, 1, 1, ARMY_BG_TINT.a + 0.2) if bg else Color.WHITE
+	draw_string_outline(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 2 if compact else 3, Color(0, 0, 0, ink.a))
+	draw_string(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ink)
+	if not bg:
+		_draw_power_bar(a, Rect2(r.position.x, r.end.y + 1, r.size.x, 3.0 if compact else 5.0))
 
 
 ## Fighting power under each army: green full, yellow worn, red exhausted.

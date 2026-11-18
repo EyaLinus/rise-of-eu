@@ -78,7 +78,7 @@ func _init() -> void:
 		"test_event_balance",
 		"test_more_goods_and_softer_costs",
 		"test_supply_and_ai_stacks",
-		"test_landmarks",
+		"test_landmarks", "test_daily_gain",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		if not only.is_empty() and not only.has(t):
@@ -4311,3 +4311,19 @@ func test_landmarks() -> void:
 	for id in L.of(g, "FRA"):
 		any = any or L.building(g, id)
 	check(any, "a rich AI invests in its landmarks")
+
+
+func test_daily_gain() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	n.manpower = 0.0
+	var gain: float = g.manpower_gain(n)
+	check(gain > 0.0 and absf(gain - n.max_manpower / (float(g.bal.manpower_regen_years) * 12.0)) < 0.001, "manpower gain per month = max / (years x 12)")
+	n.ae = 20.0
+	var dec: float = g.ae_decay_monthly(n)
+	check(dec > 0.0, "AE fades every month (%.3f)" % dec)
+	var m0: float = n.manpower
+	var a0: float = n.ae
+	g.tick()
+	check(absf((n.manpower - m0) - gain) < maxf(1.0, gain * 0.05), "a month adds the shown manpower gain (%.1f vs %.1f)" % [n.manpower - m0, gain])
+	check(n.ae < a0 and absf((a0 - n.ae) - dec) < 0.05, "a month removes about the shown AE decay (%.3f vs %.3f)" % [a0 - n.ae, dec])

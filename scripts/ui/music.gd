@@ -8,12 +8,22 @@ const TRACKS := {
 	"hof_im_fruehling": "peace", "pilgerweg": "peace", "markttag": "peace", "abendlaute": "peace",
 	"heerzug": "war", "belagerung": "war",
 }
+## Display names for the music manager.
+const TITLES := {
+	"hof_im_fruehling": "Hof im Frühling", "pilgerweg": "Pilgerweg", "markttag": "Markttag", "abendlaute": "Abendläuten",
+	"heerzug": "Heerzug", "belagerung": "Belagerung",
+}
 const FADE := 2.5  # seconds
 const PAUSE_MIN := 6.0
 const PAUSE_MAX := 16.0
 
+signal started(id: String)  # a track begins (main shows its name)
+
 var volume := 0.5  # 0..1, from the settings
-var mood := "peace"
+var mood := "peace"  # what the game asks for (war / peace)
+var lock_mood := ""  # music manager: "" automatic, "peace" or "war" forever
+var disabled: Array = []  # track ids the player switched off
+var paused := false
 var current := ""
 var streams := {}
 var _player: AudioStreamPlayer
@@ -34,6 +44,62 @@ func _ready() -> void:
 	_wait = 0.5
 
 
+## The mood that decides which tracks play.
+func effective_mood() -> String:
+	return lock_mood if lock_mood != "" else mood
+
+
+func is_enabled(id: String) -> bool:
+	return streams.has(id) and not disabled.has(id)
+
+
+func set_enabled(id: String, on: bool) -> void:
+	disabled.erase(id)
+	if not on:
+		disabled.append(id)
+		if current == id:
+			skip()
+
+
+func set_lock(m: String) -> void:
+	lock_mood = m if m in ["peace", "war"] else ""
+	if current != "" and TRACKS[current] != effective_mood() and _fade <= 0.0:
+		_fade = FADE
+
+
+func set_paused(p: bool) -> void:
+	paused = p
+	_player.stream_paused = p
+
+
+## Next track now (short fade out of the current one).
+func skip() -> void:
+	paused = false
+	_player.stream_paused = false
+	if current != "":
+		_fade = FADE * 0.4
+	else:
+		_wait = 0.1
+
+
+## Plays this track right away, whatever the mood.
+func play_track(id: String) -> void:
+	if not streams.has(id) or volume <= 0.0:
+		return
+	paused = false
+	_player.stream_paused = false
+	_fade = 0.0
+	_start(id)
+
+
+func track_length() -> float:
+	return _player.stream.get_length() if _player != null and _player.stream != null and current != "" else 0.0
+
+
+func track_position() -> float:
+	return _player.get_playback_position() if _player != null and current != "" else 0.0
+
+
 func set_volume(v: float) -> void:
 	volume = clampf(v, 0.0, 1.0)
 	if volume <= 0.0:
@@ -50,7 +116,7 @@ func set_mood(m: String) -> void:
 	if m == mood:
 		return
 	mood = m
-	if current != "" and TRACKS[current] != mood and _fade <= 0.0:
+	if current != "" and TRACKS[current] != effective_mood() and _fade <= 0.0:
 		_fade = FADE
 
 
@@ -59,7 +125,7 @@ func _db() -> float:
 
 
 func _process(delta: float) -> void:
-	if volume <= 0.0 or streams.is_empty():
+	if volume <= 0.0 or streams.is_empty() or paused:
 		return
 	if _fade > 0.0:
 		_fade -= delta
@@ -78,14 +144,24 @@ func _process(delta: float) -> void:
 func _play_next() -> void:
 	var pool := []
 	for k in streams:
-		if TRACKS[k] == mood:
+		if TRACKS[k] == effective_mood() and not disabled.has(k):
 			pool.append(k)
+	if pool.is_empty() and lock_mood == "":
+		for k in streams:
+			if not disabled.has(k):
+				pool.append(k)
 	if pool.is_empty():
-		pool = streams.keys()
+		_wait = 5.0  # everything switched off: check again later
+		return
 	if pool.size() > 1:
 		pool.erase(_player.get_meta("last", ""))
-	current = pool[_rng.randi() % pool.size()]
+	_start(pool[_rng.randi() % pool.size()])
+
+
+func _start(id: String) -> void:
+	current = id
 	_player.set_meta("last", current)
 	_player.stream = streams[current]
 	_player.volume_db = _db()
 	_player.play()
+	started.emit(current)
