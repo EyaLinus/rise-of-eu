@@ -823,9 +823,12 @@ func _idea_bb(idea: String, bonus: Dictionary) -> String:
 	return "[color=#%s]%s[/color]   %s" % [UiTheme.GOLD.to_html(false), title, mods]
 
 
+var start_seed := -1  # >= 0: fixed game seed (screenshot tools compare identical games)
+
+
 func _start_game(tag: String) -> void:
 	game = Game.new()
-	game.setup(data, int(Time.get_unix_time_from_system()) % 100000, tag)
+	game.setup(data, start_seed if start_seed >= 0 else int(Time.get_unix_time_from_system()) % 100000, tag)
 	game.set_difficulty(String(settings.difficulty))
 	_after_game_loaded()
 	_show_intro()
