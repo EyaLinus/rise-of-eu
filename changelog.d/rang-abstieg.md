@@ -1,1 +1,0 @@
-- **Rangverlust:** Wer weit unter die Größe seines Rangs schrumpft (unter die Hälfte der Provinzen oder Entwicklung des Rangs, bei kleinen historischen Titeln gemessen an der Größe beim Erwerb), steigt nach zwei Jahren darunter um einen Rang ab (−15 Stabilität). Nach dem ersten Jahr warnt der Ratgeber; das Nationsfenster zeigt die Grenze.
