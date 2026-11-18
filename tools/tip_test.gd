@@ -49,9 +49,30 @@ func _init() -> void:
 	m.tips._on_meta_hover(m.tips.tips[0], "kw:tax")
 	await process_frame
 	check(m.tips.tips.size() == 2 and m.tips.tips[1].key == "tax", "hovering a term opens its explanation")
+	check(m.tips.tips[1].locked, "nested tip is locked (its own terms can be hovered)")
+	m.tips._on_meta_hover(m.tips.tips[1], "kw:gold")
+	await process_frame
+	check(m.tips.tips.size() == 3 and m.tips.tips[2].key == "gold", "a term inside a nested tip opens a third tip")
+	m.tips._on_meta_hover(m.tips.tips[2], "kw:market")
+	await process_frame
+	m.tips._on_meta_hover(m.tips.tips[3], "kw:trade")
+	await process_frame
+	check(m.tips.tips.size() >= 5, "nesting has no depth limit (%d open)" % m.tips.tips.size())
+	check(not m.tips.tips[1].rtl.text.contains("kw:tax"), "a term does not link to itself")
 	await _move(Vector2(m.size.x / 2, m.size.y - 200))
 	await create_timer(0.6).timeout
 	check(not m.tips.is_open(), "moving away closes all tips")
+	# settings: the lock delay and the show delay are sliders (ms)
+	m.settings.tip_lock_ms = 200.0
+	m.settings.tip_show_ms = 50.0
+	check(absf(m.tips.lock_s() - 0.2) < 0.001 and absf(m.tips.delay() - 0.05) < 0.001, "tooltip delays come from the ms settings")
+	await _move(at)
+	await create_timer(0.6).timeout
+	check(m.tips.is_open() and m.tips.tips[0].locked, "tip locks after the shortened lock delay")
+	await _move(Vector2(m.size.x / 2, m.size.y - 200))
+	await create_timer(0.6).timeout
+	m.settings.erase("tip_lock_ms")
+	m.settings.erase("tip_show_ms")
 	# a quick pass over a control does not lock
 	await _move(at)
 	await create_timer(0.5).timeout
