@@ -1825,7 +1825,27 @@ func test_progression() -> void:
 	ai.prestige = 500.0
 	var before: int = ai.rank
 	P.yearly(g)
-	check(ai.rank >= before, "AI rank never drops")
+	check(ai.rank >= before, "a rich AI realm does not lose its rank")
+	# demotion: a buffer below the rank's size, two years in a row, then one rank down
+	var por = g.nations.POR
+	check(por.rank == 3 and g.provinces_of("POR").size() < 10, "small Portugal holds its historical crown")
+	P.yearly(g)
+	check(por.rank == 3 and not por.flags.has("rank_low"), "the historical size counts as the base, no demotion")
+	var fl: Array = P.demote_floor(g, n)
+	var keep: Array = g.provinces_of("FRA").slice(0, maxi(1, int(fl[0]) - 1))
+	for pid in g.provinces_of("FRA"):
+		if not keep.has(pid):
+			g.provinces[pid].owner = "ENG"
+			g.provinces[pid].controller = "ENG"
+	g._rebuild_owned()
+	g._update_cached(n)
+	var st0: float = n.stability
+	P.yearly(g)
+	check(n.rank == 4 and int(n.flags.get("rank_low", 0)) == 1, "one bad year only warns")
+	P.yearly(g)
+	check(n.rank == 3 and n.bonus.rank == P.RANKS[3].bonus and n.stability < st0, "two bad years cost a rank and stability")
+	P.yearly(g)
+	check(n.rank == 3, "after a demotion the new size is the base: no fall through every rank at once")
 
 
 ## Stability: drift toward a target, shocks, raising it with administration, effects and AI use.

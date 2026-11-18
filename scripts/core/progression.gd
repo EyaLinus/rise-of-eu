@@ -2,7 +2,8 @@ extends RefCounted
 ## Progression: realm rank (Stadtstaat -> Grafschaft -> Herzogtum -> Königreich -> Imperium -> Hegemonie) and
 ## one-time milestones (economy, trade, conquest) that pay out rewards. Static helpers on the game `g`.
 ## A rank is bought (gold, administration, prestige) once the realm meets its conditions; every rank improves the
-## bonuses of the one before slightly and adds one new bonus. Ranks are titles: they are never lost again.
+## bonuses of the one before slightly and adds one new bonus. A realm that shrinks far below its rank falls back one
+## rank (with a buffer, see demote_floor), so titles do not flicker with every lost province.
 
 ## need: provinces, dev (total development), stability (minimum); cost: gold, adm, prestige;
 ## bonus: the full bonus at this rank (source "rank"); new: the key this rank adds (UI highlight)
@@ -63,7 +64,49 @@ static func start_ranks(g) -> void:
 			n.rank = 0 if tag == "NAT" else mini(size_rank(g, tag), 2)
 		else:
 			n.rank = maxi(int(START_RANKS.get(tag, 0)), mini(size_rank(g, tag), 2))
+		_set_base(g, n)
 	refresh(g)
+
+
+## Size when the current rank was taken (provinces, development): the demotion buffer is measured against it.
+static func _set_base(g, n) -> void:
+	n.flags["rank_base"] = [g.provinces_of(n.tag).size(), int(n.dev_total)]
+	n.flags.erase("rank_low")
+
+
+## Below how many provinces / how much development the realm loses its rank: rank_demote_share of the rank's
+## own need, or of the size it had when taking the rank if that was smaller (historical titles of small realms).
+static func demote_floor(g, n) -> Array:
+	var need: Dictionary = RANKS[n.rank].need
+	if not n.flags.has("rank_base"):
+		_set_base(g, n)
+	var base: Array = n.flags.rank_base
+	var share: float = float(g.bal.rank_demote_share)
+	return [share * minf(float(need.get("provinces", 0)), float(base[0])), share * minf(float(need.get("dev", 0)), float(base[1]))]
+
+
+## Yearly: a realm below the floor for rank_demote_years years in a row loses one rank.
+static func _check_demotion(g, n) -> void:
+	if n.rank <= 0:
+		return
+	var fl := demote_floor(g, n)
+	if float(g.provinces_of(n.tag).size()) >= fl[0] and float(n.dev_total) >= fl[1]:
+		n.flags.erase("rank_low")
+		return
+	n.flags["rank_low"] = int(n.flags.get("rank_low", 0)) + 1
+	if int(n.flags.rank_low) < int(g.bal.rank_demote_years):
+		if n.tag == g.player and int(n.flags.rank_low) == 1:
+			g.log_msg("⚠️ Das Reich ist zu klein für den Rang %s: Ohne Rückgewinne droht im nächsten Jahr der Abstieg." % RANKS[n.rank].name, [n.tag])
+		return
+	var old: Dictionary = RANKS[n.rank]
+	n.rank -= 1
+	n.set_bonus("rank", RANKS[n.rank].bonus)
+	_set_base(g, n)
+	g.Stability.add(g, n.tag, -float(g.bal.stab_rank_down), "Rangverlust")
+	if n.tag == g.player:
+		g.log_msg("📉 %s verliert den Rang %s und ist nur noch %s." % [n.name, old.name, RANKS[n.rank].name], [n.tag])
+	elif n.rank >= 3:
+		g.world_event("📉 %s ist kein %s mehr." % [n.name, old.name], [n.tag])
 
 
 ## Rank bonuses without news (game start, after loading).
@@ -125,6 +168,7 @@ static func upgrade(g, tag: String) -> String:
 	for k in RANKS[r].cost:
 		n.set(k, float(n.get(k)) - float(RANKS[r].cost[k]))
 	n.rank = r
+	_set_base(g, n)
 	n.set_bonus("rank", RANKS[r].bonus)
 	g.Stability.add(g, tag, float(g.bal.stab_rank_up))
 	if tag == g.player:
@@ -196,6 +240,8 @@ static func yearly(g) -> void:
 		var n = g.nations[tag]
 		if not n.alive:
 			continue
+		if tag != "NAT":
+			_check_demotion(g, n)
 		if tag == g.player:
 			check_milestones(g, tag)
 		elif tag != "NAT" and n.rank + 1 < RANKS.size() and can_upgrade(g, tag):

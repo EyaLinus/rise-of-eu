@@ -489,5 +489,8 @@
   "stab_rank_up": 10.0,
   "rank_ai_gold_mult": 1.5,
   "manpower_overflow_decay": 0.04,
-  "manpower_overflow_max": 1.5
+  "manpower_overflow_max": 1.5,
+  "rank_demote_share": 0.5,
+  "rank_demote_years": 2,
+  "stab_rank_down": 15.0
 }
