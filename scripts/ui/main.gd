@@ -4568,6 +4568,33 @@ func _age_pick_parts(qid: String, oid: String) -> Array:
 	return parts
 
 
+## Election option (Regime): the candidate's skills, trait and his faction's programme for the reign.
+func _elect_parts(idx: int) -> Array:
+	var Regime = game.Regime
+	var n = game.nations[game.player]
+	var opts: Array = Regime.options(n)
+	if idx < 0 or idx >= opts.size():
+		return []
+	var c: Dictionary = opts[idx]
+	var parts := []
+	if c.get("incumbent", false):
+		parts.append(["📜%d 🕊️%d ⚔️%d" % [n.ruler.adm, n.ruler.dip, n.ruler.mil], 0])
+		parts.append(["🏛 Tradition %+d" % int(Regime.cfg(game).get("tradition_reelect", -15)), -1])
+		for r in UiTheme.mod_rows(Regime.agenda_effects(game, n)):
+			parts.append(["Programm bleibt: %s %s" % [r[1], r[0]], 1 if r[2] else -1])
+		return parts
+	parts.append(["📜%d 🕊️%d ⚔️%d" % [int(c.adm), int(c.dip), int(c.mil)], 0])
+	var tr: String = str(c.get("trait", ""))
+	if tr != "":
+		var te: Dictionary = game.govt.trait_effects(tr)
+		parts.append(["👑 " + game.govt.trait_name(tr), 1 if Tech.effect_value(te) >= 0.0 else -1])
+	var first := true
+	for r in UiTheme.mod_rows(Regime.faction(game, n, str(c.faction)).get("agenda", {})):
+		parts.append(["%s%s %s" % ["Programm: " if first else "", r[1], r[0]], 1 if r[2] else -1])
+		first = false
+	return parts
+
+
 ## Effects as BBCode: buffs green with an up arrow, nerfs red with a down arrow, neutral grey.
 func effects_bb(e: Dictionary, sep: String = "   ") -> String:
 	var parts := []
@@ -4654,6 +4681,8 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["⚓ Schiffe %+d" % int(v), sgn.call(float(v))])
 		elif k == "age_pick":
 			parts.append_array(_age_pick_parts(str(v[0]), str(v[1])))
+		elif k == "elect":
+			parts.append_array(_elect_parts(int(v)))
 		elif k == "power_proj":
 			parts.append(["🎯 Machtprojektion %+d" % int(v), sgn.call(float(v))])
 		elif k == "rival_rel":
