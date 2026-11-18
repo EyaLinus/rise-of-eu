@@ -81,6 +81,7 @@ var _hover_src: Control = null  # control under the mouse that carries a tooltip
 var _hover_since := 0.0
 var fake_hover: Control = null  # tools/tip_test.gd: headless Godot tracks no hovered control
 var fake_mouse := Vector2(-1, -1)
+var _skip_id := ""  # term whose explanation is being built: it does not link to itself
 
 
 func _init(h: Control) -> void:
@@ -102,7 +103,14 @@ func _now() -> float:
 
 
 func delay() -> float:
+	if host.settings.has("tip_show_ms"):
+		return clampf(float(host.settings.tip_show_ms), 0.0, 3000.0) / 1000.0
 	return DELAYS[clampi(int(host.settings.get("tip_delay", 1)), 0, DELAYS.size() - 1)]
+
+
+## Time on the control until the tip locks (settings slider "tip_lock_ms", ms).
+func lock_s() -> float:
+	return clampf(float(host.settings.get("tip_lock_ms", LOCK_S * 1000.0)), 100.0, 5000.0) / 1000.0
 
 
 func is_open() -> bool:
@@ -200,6 +208,10 @@ func _mark(line: String, seen: Dictionary, links: bool) -> String:
 		if id == "":
 			out += "[color=#%s]%s[/color]" % [NUM_COL, _esc(txt)]
 		else:
+			if id == _skip_id:
+				out += _esc(txt)
+				last = m.get_end()
+				continue
 			var icon: String = _by_id[id][2]
 			var before := line.substr(maxi(0, m.get_start() - 4), mini(4, m.get_start()))
 			var show_icon: bool = not seen.has(id) and not before.contains(icon.left(1))
@@ -396,13 +408,14 @@ func _show_term(parent_level: int, id: String) -> void:
 	if e[5] != "":
 		extra = "\n[url=go:%s][color=#%s]▶ %s öffnen[/color][/url]" % [e[5], KW_COL, PANEL_NAMES.get(e[5], e[5])] if host.touch_mode() \
 				else "\n[color=#%s]Klick auf den Begriff: %s öffnen[/color]" % [UiTheme.MUTED.to_html(false), PANEL_NAMES.get(e[5], e[5])]
-	var t := _make("%s %s\n%s" % [e[2], e[3], e[4]], false, extra)
+	_skip_id = id
+	var t := _make("%s %s\n%s" % [e[2], e[3], e[4]], true, extra)  # terms inside link on: tips nest without a limit
+	_skip_id = ""
 	t.key = id
 	tips.append(t)
 	var parent: Dictionary = tips[parent_level]
 	_place(t, host.get_local_mouse_position() if not host.touch_mode() else parent.panel.position, parent.panel.get_global_rect())
-	if host.touch_mode():
-		_lock(t)
+	_lock(t)  # locked at once (mouse too): its own terms can be hovered for the next level
 
 
 func _on_meta_hover(t: Dictionary, meta: String) -> void:
@@ -481,8 +494,6 @@ func _process(_delta: float) -> void:
 		if alive:
 			t.left_at = -1.0
 			continue
-		if t.locked and i < tips.size() - 1:
-			continue  # a deeper tip is still open on top of it
 		if t.locked:
 			if t.left_at < 0.0:
 				t.left_at = now
@@ -505,7 +516,7 @@ func _process(_delta: float) -> void:
 			t.panel.reset_size()
 			t.panel.position = at
 		if not t.locked:
-			var p := clampf((now - t.born) / LOCK_S, 0.0, 1.0)
+			var p := clampf((now - t.born) / maxf(lock_s(), 0.05), 0.0, 1.0)
 			t.bar.custom_minimum_size.x = p * t.rtl.size.x
 			if p >= 1.0:
 				_lock(t)
