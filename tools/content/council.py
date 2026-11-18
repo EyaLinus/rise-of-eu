@@ -115,8 +115,8 @@ cfg = {
     "pool_size": 3,
     "pool_months": 12,        # candidates are replaced after this many months
     "family_cost": {"monarchie": 1.0, "republik": 0.8, "kirche": 0.9, "stamm": 0.75},
-    "ai_seats_per_100_dev": 1.5,
-    "ai_min_gold": 120,
+    "ai_seats_per_100_dev": 1.0,
+    "ai_min_gold": 200,
     "general_min_regs": 4,
     "drill_below": 0.6,
     # government-type mechanics
