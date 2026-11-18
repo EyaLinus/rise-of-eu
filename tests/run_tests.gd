@@ -4250,8 +4250,9 @@ func test_manpower_overflow() -> void:
 	g._economy(n)
 	check(n.manpower - n.max_manpower < over0 and n.manpower >= n.max_manpower, "the overflow melts away slowly")
 	n.manpower = mx
+	var cap: float = maxf(mx, n.max_manpower * float(g.bal.manpower_overflow_max))  # max_manpower moves a little with stability
 	g.apply_effects("FRA", {"manpower": 99999})
-	check(n.manpower <= n.max_manpower * float(g.bal.manpower_overflow_max) + 0.01, "overflow is capped")
+	check(n.manpower <= cap + 0.01, "overflow is capped (%.2f vs max %.2f, mx %.2f)" % [n.manpower, n.max_manpower, mx])
 
 
 func test_event_balance() -> void:
