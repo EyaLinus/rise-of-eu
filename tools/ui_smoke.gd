@@ -175,6 +175,29 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 		g.tree.queue_add(g, tag, g.tree.techs_for(tag, g.POWERS[month % 3])[(month / 12) % 30].id)
 		m.tech_screen._plan()
 		m._close_modal()
+	# council: appoint, switch automations, cycle limits, candidate popup; an election popup now and then
+	var Council = g.Council
+	var seats: Array = Council.seats(g)
+	if not seats.is_empty():
+		var sid: String = seats[month % seats.size()].id
+		g.nations[tag].gold += 100.0
+		if Council.member(g.nations[tag], sid).is_empty():
+			Council.hire(g, tag, sid, 0)
+		var sd: Dictionary = Council.seat_def(g, sid)
+		for key in sd.get("options", {}):
+			Council.cycle_opt(g, tag, sid, key)
+		Council.set_auto(g, tag, sid, month % 3 != 0)
+		m.gov_screen.tab = "rat"
+		m._open_panel("government")
+		if m.gov_screen.council != null:
+			m.gov_screen.council._pick(seats[(month + 1) % seats.size()].id)
+			m._close_modal()
+		if month % 24 == 0:
+			g.Regime.start_election(g, g.nations[tag])
+			if g.pending_events.has(g.Regime.EVENT_ID):
+				m._show_event(g.Regime.EVENT_ID)
+				m._choose_event(g.Regime.EVENT_ID, month % 3)
+			m._close_modal()
 	m.gov_screen._pick_advisor(["", "adm", "dip", "mil"][month % 4])
 	m._close_modal()
 	m.gov_screen._pick_form()

@@ -8,13 +8,15 @@ extends RefCounted
 const Tech = preload("res://scripts/core/tech.gd")
 const TechScreen = preload("res://scripts/ui/tech_screen.gd")
 const Icons = preload("res://scripts/ui/icons.gd")
+const CouncilScreen = preload("res://scripts/ui/council_screen.gd")
 
 const POWER_NAMES := {"adm": "Verwaltung", "dip": "Diplomatie", "mil": "Militär"}
 ## Sub-tabs, so no section needs a long scroll: [id, button text].
-const TABS := [["haushalt", "💰 Haushalt"], ["hof", "🎓 Hof"], ["recht", "📜 Recht"], ["staende", "👥 Stände"]]
+const TABS := [["haushalt", "💰 Haushalt"], ["rat", "👥 Rat"], ["hof", "🎓 Hof"], ["recht", "📜 Recht"], ["staende", "👥 Stände"]]
 
 var m
 var tab := "haushalt"
+var council = null  # CouncilScreen, created on first use
 
 
 func _init(main) -> void:
@@ -95,6 +97,10 @@ func build() -> void:
 			_build_court(g, gv, me, n)
 		"recht":
 			_build_law(g, gv, n)
+		"rat":
+			if council == null:
+				council = CouncilScreen.new(m)
+			council.build(g, n)
 		_:
 			_build_estates(gv)
 
@@ -108,6 +114,8 @@ func _select(t: String) -> void:
 func _tab_has_action(g, n, t: String) -> bool:
 	var gv = g.govt
 	match t:
+		"rat":
+			return CouncilScreen.can_act(g, n)
 		"hof":
 			if n.gov.advisors.size() < gv.advisor_slots(g, n):
 				for a in gv.advisor_pool(g, n.tag):

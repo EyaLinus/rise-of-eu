@@ -11,6 +11,8 @@ extends RefCounted
 
 const Tech = preload("res://scripts/core/tech.gd")
 const Religion = preload("res://scripts/core/religion.gd")
+const Council = preload("res://scripts/core/council.gd")
+const Regime = preload("res://scripts/core/regime.gd")
 
 var cfg := {}
 var advisors: Array = []
@@ -28,6 +30,7 @@ var reform_by_id := {}
 var budget_by_id := {}
 var empire_by_id := {}
 var trait_by_id := {}
+var council_cfg := {}  # data/council.json (Council, Regime), set by game.setup
 
 
 func _init(d: Dictionary = {}) -> void:
@@ -66,7 +69,7 @@ func init_nation(n) -> void:
 	for b in budget:
 		bu[b.id] = budget_default()
 	form_override.erase(n.tag)
-	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}, "invest": {}, "estates": es, "estate_month": {}, "budget": bu, "reforms": {}, "reform_month": {}, "ages": {}, "adv_skill": {}, "adv_since": {}}
+	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}, "invest": {}, "estates": es, "estate_month": {}, "budget": bu, "reforms": {}, "reform_month": {}, "ages": {}, "adv_skill": {}, "adv_since": {}, "council": {}, "cpool": {}}
 	refresh(n)
 	refresh_estates(n)
 
@@ -198,6 +201,9 @@ func heir_title(tag: String) -> String:
 
 ## The ruler's years are over: the heir takes the throne (fresh reign length), a new heir is named.
 func succession(g, n) -> void:
+	if Regime.kind(g, n) != "hereditary" and not council_cfg.is_empty():
+		Regime.start_election(g, n)  # republics, theocracies, tribes and elective monarchies vote
+		return
 	var h: Dictionary = n.gov.get("heir", {})
 	if h.is_empty():
 		g._new_ruler(n)
@@ -333,8 +339,14 @@ func change_form(g, tag: String, form: String) -> String:
 	n.gov.form = form
 	n.gov.form_month = g.month
 	form_override[tag] = form
-	if cfg.get("elective_forms", []).has(form):
+	if cfg.get("elective_forms", []).has(form) or Regime.kind(g, n) != "hereditary":
 		end_regency(g, n)
+	if Regime.kind(g, n) == "republic":
+		n.ruler.years = mini(int(n.ruler.years), Regime.term_years(g))
+		if not n.gov.has("tradition"):
+			n.gov.tradition = float(council_cfg.get("tradition_start", 50))
+	if Regime.kind(g, n) != "hereditary" and Regime.faction(g, n, str(n.gov.get("agenda", ""))).is_empty() and not Regime.factions(g, n).is_empty():
+		n.gov.agenda = Regime.factions(g, n)[0].id
 	refresh(n)
 	g._update_cached(n)
 	return ""
@@ -663,6 +675,15 @@ func gov_sources(n) -> Array:
 		groups.append(["👑 Herrscher: " + trait_name(tr), [trait_effects(tr)]])
 	if regency_until(n) > 0:
 		groups.append(["🛡 Regentschaftsrat bis %d" % regency_until(n), [cfg.get("regency_effects", {})]])
+	var gs := {"govt": self}  # Council/Regime read their config through g.govt
+	if not council_cfg.is_empty():
+		var ag: Dictionary = Regime.agenda_effects(gs, n)
+		if not ag.is_empty():
+			groups.append(["🏛 Programm: " + str(Regime.faction(gs, n, str(n.gov.agenda)).get("name", "")), [ag]])
+		var td: Dictionary = Regime.tradition_effects(gs, n)
+		if not td.is_empty():
+			groups.append(["🏛 Republikanische Tradition %d" % int(Regime.tradition(n)), [td]])
+		groups.append(["👥 " + Council.council_name(gs, n), Council.effects(gs, n)])
 	groups.append(["🎓 Berater", n.gov.advisors.map(func(id): return advisor_effects(id, advisor_skill(n, id)))])
 	groups.append(["🏦 Kompanien", n.gov.companies.map(func(id): return company_effects(id, invest_level(n, id)))])
 	var laws := []
@@ -801,8 +822,10 @@ func budget_slider_cost(n, id: String, step: int) -> float:
 
 
 ## Monthly gold of all sliders together; part of n.expenses (game._economy).
-func budget_cost(_g, n) -> float:
+func budget_cost(g, n) -> float:
 	var c := 0.0
+	if g != null and not council_cfg.is_empty():
+		c += Council.salary(g, n)
 	for id in n.gov.get("budget", {}):
 		c += budget_slider_cost(n, id, int(n.gov.budget[id]))
 	return c
@@ -956,6 +979,9 @@ func yearly(g, n) -> void:
 	ensure_heir(g, n)
 	_estate_crisis(g, n)
 	ages_yearly(g, n)
+	if not council_cfg.is_empty():
+		Council.yearly(g, n)
+		Regime.yearly(g, n)
 
 
 # ---------------------------------------------------------------- age goals (EU4-like age objectives)
@@ -1228,6 +1254,9 @@ func load_save(n, d) -> void:
 		n.gov.form_month = int(d.form_month)
 	if d.has("ruler_trait"):
 		n.gov.ruler_trait = str(d.ruler_trait)
+	if not council_cfg.is_empty():
+		Council.load_save({"govt": self}, n, d)
+		Regime.load_save(n, d)
 	refresh(n)
 	refresh_estates(n)
 
@@ -1253,6 +1282,8 @@ func ai_think(g, n) -> void:
 		_ai_form(g, n)
 	elif slot == 10:
 		_ai_heir(g, n)
+	elif (slot == 2 or slot == 8) and not council_cfg.is_empty():
+		Council.ai_think(g, n)
 
 
 ## AI educates its heir only with power to spare (ai_heir_share of the cap), in the kind it has most of.

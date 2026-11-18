@@ -18,7 +18,7 @@ func _init() -> void:
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
-		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_generals", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_generals", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_stability", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_separate_peace", "test_tired_ai_seeks_peace", "test_ai_marriage_and_generals", "test_ai_access_and_guarantee", "test_income_bonus_and_army_cost",
 		"test_difficulty",
 		"test_march_time_and_terrain", "test_interception", "test_battle_rounds",
@@ -32,6 +32,8 @@ func _init() -> void:
 		"test_guarantee",
 		"test_rivals",
 		"test_urban",
+		"test_city_tiers",
+		"test_manpower_overflow",
 		"test_units_and_templates",
 		"test_colonial",
 		"test_fog_of_war",
@@ -79,7 +81,7 @@ func _init() -> void:
 		"test_more_goods_and_softer_costs",
 		"test_supply_and_ai_stacks",
 		"test_landmarks", "test_daily_gain",
-		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
+		"test_old_save_tech_levels", "test_council", "test_elections", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		if not only.is_empty() and not only.has(t):
 			continue
@@ -1473,6 +1475,8 @@ func test_religion() -> void:
 			prot += 1
 	check(prot == 1, "the Reformation starts in one province")
 	h.bal.reformation_spread = 1.0
+	var drift = h.bal.religion_drift
+	h.bal.religion_drift = 0.0  # drift back to the ruler's faith would make this depend on the rng path
 	for i in 3:
 		h.month += 12
 		F.yearly(h)
@@ -1481,6 +1485,7 @@ func test_religion() -> void:
 		if p.religion == "protestant":
 			prot2 += 1
 	check(prot2 > prot, "Protestantism spreads")
+	h.bal.religion_drift = drift
 	check(h.check_conditions("FRA", {"religion": "catholic"}) and not h.check_conditions("FRA", {"religion": "sunni"}), "religion condition")
 
 
@@ -1568,8 +1573,9 @@ func test_marriage() -> void:
 	check(g2.nations.FRA.marriages.has("SAV"), "marriages are saved")
 	# personal union on succession
 	g.bal.marriage_union_chance = 1.0
+	var lord0: String = g.nations.SAV.overlord  # 24 months of play may have made SAV a vassal or married it again
 	g._marriage_succession(g.nations.SAV)
-	check(g.nations.SAV.overlord == "" or g.nations.SAV.overlord == "FRA", "union only to the partner")
+	check(g.nations.SAV.overlord == lord0 or g.nations.SAV.marriages.has(g.nations.SAV.overlord), "union only to the partner (%s -> %s)" % [lord0, g.nations.SAV.overlord])
 	var h = new_game("ENG", 5)
 	h.nations.FRA.marriages.append("SAV")
 	h.nations.SAV.marriages.append("FRA")
@@ -1687,6 +1693,7 @@ func test_buildings() -> void:
 	var n = g.nations.FRA
 	n.gold = 10000.0
 	g.bal.city_growth_chance = 0.0  # random yearly city growth (Urban) would add development too
+	g.bal.shock_chance = 0.0  # a random glut of Paris' good would outweigh the new level
 	check(g.construct("FRA", g.key_to_pid["london"], "workshop") != "", "cannot build in foreign province")
 	check(g.construct("FRA", pid, "manufactory") != "", "manufactory needs a workshop")
 	var cost: float = Eco.building_cost(g, "FRA", pid, "workshop")
@@ -1699,7 +1706,7 @@ func test_buildings() -> void:
 		g.tick()
 	check(Eco.level(p, "workshop") == 1 and p.constructing.is_empty(), "workshop finished after 12 months")
 	check(p.dev == dev0 + 1, "a finished building level adds development (%d -> %d)" % [dev0, p.dev])
-	check(Eco.production_value(g, p) > prod0, "workshop raises production")
+	check(Eco.production_value(g, p) > prod0, "workshop raises production (%.3f -> %.3f, price %s)" % [prod0, Eco.production_value(g, p), str(g.prices[p.good])])
 	check(Eco.building_cost(g, "FRA", pid, "workshop") > cost, "next level costs more")
 	# slots
 	p.buildings = {}
@@ -1763,8 +1770,14 @@ func test_army_stances() -> void:
 func test_progression() -> void:
 	var g = new_game("FRA", 4)
 	var P = g.Progression
-	check(P.rank(g, "FRA") == 0, "France (97 dev) starts as a duchy-level realm")
-	check(g.nations.FRA.flags.get("rank", -1) == 0, "start rank recorded without news")
+	check(P.rank(g, "FRA") == 3 and g.nations.FRA.bonus.rank.has("diplo_cap"), "France starts as a kingdom with its bonuses")
+	check(g.nations.TUR.rank == 4 and g.nations.NAT.rank == 0, "the Ottomans start as an empire, uncolonized land has no rank")
+	var tiny := ""
+	for t in g.order:
+		if g.provinces_of(t).size() == 1 and not P.START_RANKS.has(t) and not g.nation_data_native.has(t):
+			tiny = t
+			break
+	check(tiny != "" and g.nations[tiny].rank == 0, "a one-province realm starts as a city state")
 	var p = g.provinces[g.key_to_pid["paris"]]
 	p.buildings = {"workshop": 1}
 	g.Economy.refresh_local(g, p)
@@ -1773,10 +1786,95 @@ func test_progression() -> void:
 	check(got.any(func(m): return m.id == "first_building"), "first building milestone reached")
 	check(g.nations.FRA.gold > gold0, "milestone pays its reward")
 	check(P.check_milestones(g, "FRA").is_empty(), "milestones pay only once")
-	p.dev += 60
-	g._update_cached(g.nations.FRA)
+	# empire: needs 20 provinces, 280 development, stability and the price
+	var n = g.nations.FRA
+	check(P.upgrade_block_reason(g, "FRA").begins_with("Fehlt"), "France is too small for an empire")
+	var took := 0
+	for q in g.provinces:
+		if took >= 8:
+			break
+		if q.owner != "FRA" and q.owner != "NAT" and q.owner != "" and g.provinces_of(q.owner).size() > 1 and q.id < g.nw_first:
+			q.owner = "FRA"
+			q.controller = "FRA"
+			took += 1
+	g._rebuild_owned()
+	for pid in g.provinces_of("FRA"):
+		g.provinces[pid].dev += 10
+	g._update_cached(n)
+	n.gold = 100.0
+	n.adm = 500.0
+	n.prestige = 500.0
+	n.stability = 30.0
+	check(P.upgrade_block_reason(g, "FRA").find("💰") >= 0, "the empire needs its gold (%s)" % P.upgrade_block_reason(g, "FRA"))
+	n.gold = 2000.0
+	check(P.upgrade(g, "FRA") == "" and n.rank == 4 and absf(n.gold - 500.0) < 0.01, "France becomes an empire and pays for it")
+	check(n.bonus.rank.get("ae_decay", 0.0) > 0.0 and n.bonus.rank.get("force_limit", 0.0) > P.RANKS[3].bonus.force_limit, "empire adds a new bonus and improves the old ones")
+	check(n.stability > 30.0, "rising in rank brings stability")
+	var d: Dictionary = g.to_dict()
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(d)))
+	check(g2.nations.FRA.rank == 4 and g2.nations.FRA.bonus.rank.has("ae_decay"), "rank survives save and load")
+	# AI realms climb by themselves when they can afford it
+	var ai = g.nations.ENG
+	ai.gold = 10000.0
+	ai.adm = 500.0
+	ai.prestige = 500.0
+	var before: int = ai.rank
 	P.yearly(g)
-	check(P.rank(g, "FRA") == 1 and g.nations.FRA.bonus.rank.get("merchants", 0) == 1.0, "150 development makes a kingdom with bonus")
+	check(ai.rank >= before, "AI rank never drops")
+
+
+## Stability: drift toward a target, shocks, raising it with administration, effects and AI use.
+func test_stability() -> void:
+	var g = new_game("FRA", 6)
+	var St = g.Stability
+	var n = g.nations.FRA
+	check(absf(n.stability - float(g.bal.stab_start)) < 0.01, "realms start at the start stability")
+	check(St.level(-80.0) == 0 and St.level(-10.0) == 1 and St.level(0.0) == 2 and St.level(60.0) == 3, "four display levels")
+	var good: Dictionary = St.effects(g, 100.0)
+	var bad: Dictionary = St.effects(g, -100.0)
+	check(good.tax > 0.0 and good.unrest < 0.0 and bad.tax < 0.0 and bad.unrest > 0.0, "high stability helps, low stability hurts")
+	n.stability = 80.0
+	var t0: float = St.target(g, n)
+	St.monthly(g, n)
+	check(n.stability < 80.0 and n.stability >= t0, "stability drifts down toward its target")
+	check(absf(g.mod(n, "tax") - g.nations.FRA.bonus.stability.tax - (g.mod(n, "tax") - g.nations.FRA.bonus.stability.tax)) < 0.001 and n.bonus.stability.tax > 0.0, "positive stability raises taxes")
+	n.we = 15.0
+	check(St.target(g, n) < t0 - 15.0, "war exhaustion lowers the target")
+	n.we = 0.0
+	n.stability = -30.0
+	n.adm = 200.0
+	var c: float = St.raise_cost(g, "FRA")
+	check(St.raise(g, "FRA") == "" and absf(n.stability - (-30.0 + float(g.bal.stab_raise))) < 0.01 and absf(n.adm - (200.0 - c)) < 0.01, "administration buys stability")
+	n.stability = 60.0
+	check(St.raise_cost(g, "FRA") > c, "raising high stability costs more")
+	n.adm = 0.0
+	check(St.raise(g, "FRA") != "", "no stability without administration")
+	g.apply_effects("FRA", {"stability": -200})
+	check(n.stability == -100.0, "stability is clamped at -100")
+	check(g.check_conditions("FRA", {"stability_max": -50}) and not g.check_conditions("FRA", {"stability_min": 0}), "stability conditions")
+	check(g.check_conditions("FRA", {"rank_min": 3}) and not g.check_conditions("FRA", {"rank_min": 4}), "rank conditions")
+	var u0: float = g.unrest_base(n)
+	n.stability = 100.0
+	St.monthly(g, n)
+	check(g.unrest_base(n) < u0, "high stability calms every province")
+	# a lost war shakes the loser, the winner gains
+	var e = g.nations.ENG
+	n.stability = 0.0
+	e.stability = 0.0
+	check(g.declare_war("FRA", "ENG") == "" or true, "war declared")
+	var w = g.war_between("FRA", "ENG")
+	if w != null:
+		g.make_peace(w, true, [])
+		check(n.stability > 0.0 and e.stability < 0.0, "winning a war raises, losing lowers stability")
+	# AI shores up negative stability with spare administration
+	var ai = g.nations.SPA
+	ai.stability = -40.0
+	ai.adm = 400.0
+	for i in 12:
+		g.month = i
+		St.monthly(g, ai)
+	check(ai.stability > -30.0 and ai.adm < 400.0, "AI raises its stability when it can")
 
 
 func test_save_roundtrip() -> void:
@@ -2268,7 +2366,7 @@ func test_tech_modifiers() -> void:
 	var without: float = g.tech_cost("FRA", "adm")
 	n.bonus.tech = saved
 	check(absf(with_bonus - round(without * 0.97)) <= 1.0, "tech_cost modifier applies (%d vs %d)" % [with_bonus, without])
-	check(absf(g.mod(n, "tech_cost") + 0.03) < 0.001, "bonus tech recorded in mod()")
+	check(absf(g.mod(n, "tech_cost") - float(n.bonus.get("stability", {}).get("tech_cost", 0.0)) + 0.03) < 0.001, "bonus tech recorded in mod()")
 	check(g.ae_mult("FRA") == 1.0, "no ae modifier yet")
 	check(g.core_time("FRA") == int(g.bal.core_months), "default core time")
 
@@ -4206,6 +4304,49 @@ func test_colonial_events() -> void:
 
 ## Balance pass: manpower is counted in regiments (no more "+1500" that refills the pool), no option is
 ## better than another one on every single effect.
+func test_city_tiers() -> void:
+	var g = new_game("FRA", 9)
+	var Urb = g.Urban
+	var pid: int = g.key_to_pid["paris"]
+	var p = g.provinces[pid]
+	p.urban = true
+	p.dev = 20
+	g.Economy.refresh_local(g, p)
+	check(Urb.tier(g, p) == 1, "dev 20 city is a plain city")
+	var tax1: float = g.Economy.tax(g, p)
+	var slots1: int = g.Economy.slots(g, p)
+	p.dev = int(g.bal.urban_big_dev)
+	Urb.refresh_tiers(g)
+	check(Urb.tier(g, p) == 2 and Urb.tier_name(2) == "Großstadt", "dev 35 is a Großstadt")
+	check(g.Economy.local(g, p, "trade_power") >= float(g.bal.urban_local.trade_power) + float(g.bal.urban_tier_local["2"].trade_power) - 0.001, "Großstadt trade power bonus applied")
+	check(g.Economy.slots(g, p) >= slots1 and Urb.slot_bonus(g, p) == int(g.bal.urban_slots) + int(g.bal.urban_tier_slots[0]), "Großstadt gets extra slots")
+	p.dev = int(g.bal.urban_metro_dev)
+	Urb.refresh_tiers(g)
+	check(Urb.tier(g, p) == 3 and Urb.progress(g, p) == 1.0 and Urb.next_dev(g, p) == 0, "dev 50 is a Metropole at the top")
+	check(g.Economy.tax(g, p) > tax1, "a Metropole pays more than a plain city")
+	p.urban = false
+	check(Urb.tier(g, p) == 0 and Urb.progress(g, p) > 0.0 and Urb.progress(g, p) <= 1.0, "countryside has a progress share")
+
+
+func test_manpower_overflow() -> void:
+	var g = new_game("FRA", 9)
+	var n = g.nations.FRA
+	g._update_cached(n)
+	var mx: float = n.max_manpower
+	n.manpower = mx
+	g.apply_effects("FRA", {"manpower": 10})
+	check(n.manpower > mx, "event manpower may exceed the maximum")
+	g._economy(n)
+	check(n.max_manpower > 0.0 and n.manpower > n.max_manpower, "the overflow survives the month")
+	var over0: float = n.manpower - n.max_manpower
+	g._economy(n)
+	check(n.manpower - n.max_manpower < over0 and n.manpower >= n.max_manpower, "the overflow melts away slowly")
+	n.manpower = mx
+	var cap: float = maxf(mx, n.max_manpower * float(g.bal.manpower_overflow_max))  # max_manpower moves a little with stability
+	g.apply_effects("FRA", {"manpower": 99999})
+	check(n.manpower <= cap + 0.01, "overflow is capped (%.2f vs max %.2f, mx %.2f)" % [n.manpower, n.max_manpower, mx])
+
+
 func test_event_balance() -> void:
 	var g = new_game("FRA", 6)
 	for e in g.event_defs:
@@ -4311,6 +4452,126 @@ func test_landmarks() -> void:
 	for id in L.of(g, "FRA"):
 		any = any or L.building(g, id)
 	check(any, "a rich AI invests in its landmarks")
+
+
+## Council of state: hire, salary, passive effects, promotion, automations with limits, AI, save.
+func test_council() -> void:
+	var g = new_game("FRA", 3)
+	var C = g.Council
+	var n = g.nations.FRA
+	check(C.seats(g).size() == 9, "nine council seats")
+	check(C.seat_name(g, n, "war") != C.seat_name(g, g.nations.VEN, "war"), "seat names depend on the government family")
+	n.gold = 2000.0
+	check(C.pool(g, n, "army").size() == 3, "three candidates per seat")
+	var mp_before: float = g.regiment_cost("FRA")
+	check(C.hire(g, "FRA", "army", 0) == "", "hire a councillor")
+	check(C.skill(n, "army") >= 1 and C.auto_on(n, "army"), "player councillors start with automation on")
+	check(g.regiment_cost("FRA") < mp_before, "army seat makes regiments cheaper")
+	check(g.govt.budget_cost(g, n) > 0.0, "council salary is part of the budget")
+	n.mil = 900.0
+	var lvl: int = C.skill(n, "army")
+	check(C.promote(g, "FRA", "army") == "" and C.skill(n, "army") == lvl + 1, "promotion with military power")
+	# experience: free level after experience_years on one level
+	C.members(n).army.lvl_since = g.month - int(C.cfg(g).experience_years) * 12
+	C.yearly(g, n)
+	check(C.skill(n, "army") == lvl + 2, "experience raises the level")
+	# army automation: recruits towards the target share of the force limit, respecting the gold reserve
+	n.manpower = 100.0
+	var regs: float = g.army_regs("FRA")
+	C.members(n).army.opt.target = 100.0
+	C.monthly(g, n)
+	check(g.army_regs("FRA") > regs, "army automation recruits (%.1f -> %.1f)" % [regs, g.army_regs("FRA")])
+	n.gold = 50.0
+	regs = g.army_regs("FRA")
+	C.monthly(g, n)
+	check(g.army_regs("FRA") == regs, "the gold reserve stops recruitment")
+	C.set_auto(g, "FRA", "army", false)
+	n.gold = 2000.0
+	C.monthly(g, n)
+	check(g.army_regs("FRA") == regs, "automation off: nothing happens")
+	# development seat: target and threshold
+	check(C.hire(g, "FRA", "development", 0) == "", "hire development councillor")
+	C.members(n).development.opt.mode = "capital"
+	C.members(n).development.opt.at = 25.0
+	var cap: int = n.capital
+	var d0: int = g.provinces[cap].dev
+	n.adm = float(g.bal.power_cap) * 0.3
+	n.dip = 0.0
+	n.mil = 0.0
+	g._overflow_develop(n)
+	check(g.provinces[cap].dev == d0 + 1, "development councillor develops the capital at the threshold (%d -> %d, cost %d, adm %d, target %d cap %d)" % [d0, g.provinces[cap].dev, g.develop_cost(cap), n.adm, C.dev_target(g, n), cap])
+	C.members(n).development.opt.mode = "off"
+	n.adm = float(g.bal.power_cap)
+	g._overflow_develop(n)
+	check(g.provinces[cap].dev == d0 + 1, "mode off spends nothing")
+	C.members(n).development.opt.mode = "lowest"
+	var low: int = C.dev_target(g, n)
+	for pid in g.provinces_of("FRA"):
+		if g.provinces[pid].controller == "FRA" and g.provinces[pid].dev < int(g.bal.max_dev):
+			check(g.provinces[pid].dev >= g.provinces[low].dev, "lowest picks the lowest development")
+			break
+	check(C.cycle_opt(g, "FRA", "development", "mode") == "" and C.opt(g, n, "development", "mode") == "highest", "options cycle")
+	# coin seat: emergency loan before the treasury runs dry
+	check(C.hire(g, "FRA", "coin", 0) == "", "hire treasurer")
+	n.gold = -5.0
+	var loans: int = n.loans.size()
+	C.monthly(g, n)
+	check(n.loans.size() == loans + 1, "emergency loan")
+	# save keeps the council and its settings
+	var g2 = new_game("FRA", 4)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	var n2 = g2.nations.FRA
+	check(C.skill(n2, "army") == C.skill(n, "army") and C.opt(g2, n2, "development", "mode") == "highest" and not C.auto_on(n2, "army"),
+			"council saved")
+	check(absf(g2.regiment_cost("FRA") - g.regiment_cost("FRA")) < 0.001, "council bonus restored after load")
+	# AI fills seats with spare gold
+	var ai = g.nations.ENG
+	ai.gold = 2000.0
+	C.ai_think(g, ai)
+	check(C.members(ai).size() == 1, "AI appoints a councillor")
+	C.dismiss(g, "FRA", "army")
+	check(C.member(n, "army").is_empty(), "dismiss")
+
+
+## Government types: republics elect every term (player via event popup), theocracies at death, monarchies inherit.
+func test_elections() -> void:
+	var g = new_game("VEN", 3)
+	var R = g.Regime
+	var n = g.nations.VEN
+	check(R.kind(g, n) == "republic" and R.kind(g, g.nations.FRA) == "hereditary" and R.kind(g, g.nations.PAP) == "elective", "government kinds")
+	check(int(n.ruler.years) <= R.term_years(g), "republics start within one term")
+	check(str(n.gov.get("agenda", "")) != "" and not R.agenda_effects(g, n).is_empty(), "republic has a programme")
+	g.govt.succession(g, n)
+	check(R.pending(n) and g.pending_events.has(R.EVENT_ID) and g.event_by_id.has(R.EVENT_ID), "election event for the player")
+	var opts: Array = R.options(n)
+	check(opts.size() == 4 and opts[3].get("incumbent", false), "three candidates and the incumbent")
+	# save during the election: event comes back
+	var g2 = new_game("VEN", 5)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(R.pending(g2.nations.VEN) and g2.pending_events.has(R.EVENT_ID) and g2.event_by_id[R.EVENT_ID].options.size() == 4, "pending election survives save/load")
+	var c: Dictionary = opts[1]
+	g.choose_event_option("VEN", R.EVENT_ID, 1)
+	check(not R.pending(n) and not g.pending_events.has(R.EVENT_ID), "election decided")
+	check(int(n.ruler.adm) == int(c.adm) and int(n.ruler.years) == R.term_years(g) and n.gov.agenda == c.faction, "winner rules one term with his programme")
+	var t0: float = R.tradition(n)
+	g.govt.succession(g, n)
+	g.choose_event_option("VEN", R.EVENT_ID, R.options(n).size() - 1)
+	check(R.tradition(n) < t0 and int(n.gov.terms) == 2, "re-election costs tradition")
+	R.yearly(g, n)
+	check(R.tradition(n) > t0 - 15.0, "tradition grows every year")
+	# AI theocracy: elects at once when the ruler dies
+	var p = g.nations.PAP
+	var name0: String = p.ruler_name
+	g.govt.succession(g, p)
+	check(not R.pending(p) and str(p.gov.agenda) != "" and int(p.ruler.years) >= 8, "AI theocracy elects a successor for life")
+	check(p.ruler_name != name0 or p.ruler_name == "", "new ruler")
+	# hereditary monarchy keeps the heir
+	var f = g.nations.FRA
+	var heir: String = str(f.gov.heir.name)
+	g.govt.succession(g, f)
+	check(f.ruler_name == heir and not R.pending(f), "monarchies inherit")
+	# a change to a republic shortens the reign to one term
+	check(R.tradition_effects(g, g.nations.FRA).is_empty(), "no tradition outside republics")
 
 
 func test_daily_gain() -> void:

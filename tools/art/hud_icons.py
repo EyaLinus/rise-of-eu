@@ -203,6 +203,47 @@ ICONS["siege"] = (layer([
     "..EERRRRE...",
 ], 2, 2), "siege – siege / burning: flame")
 
+# stability: classical column in four states (stab_0 crisis .. stab_3 golden age), 12 px tall shaft
+def column(state):
+    cap = "YGGGGGGGGD" if state == 3 else "aggggggggd"
+    rows = [
+        cap,
+        ".aggggggd.",
+        "..agagd...",
+        "..agagd...",
+        "..agagd...",
+        "..agagd...",
+        "..agagd...",
+        "..agagd...",
+        "..agagd...",
+        ".aggggggd.",
+        "aggggggggd",
+    ]
+    if state == 3:
+        rows[1] = ".YGGGGGGD."
+        rows[9] = ".YGGGGGGD."
+        rows[10] = "YGGGGGGGGD"
+    rows = [list(r) for r in rows]
+    if state <= 1:  # crack running down the shaft
+        for x, y in [(4, 3), (5, 4), (4, 5), (4, 6), (5, 7)]:
+            rows[y][x] = "k"
+    if state == 0:  # top broken off, rubble at the foot
+        rows[0] = list("..........")
+        rows[1] = list("..........")
+        rows[2] = list("...ag.....")
+        rows[3] = list("..aggd....")
+    return ["".join(r) for r in rows]
+
+for st in range(4):
+    lay = [layer(column(st), 3, 3 if st else 3)]
+    if st == 3:  # green laurel sprigs on both sides
+        lay.append(layer([".l", "lL", ".L", "lL", ".F"], 1, 5))
+        lay.append(layer(["l.", "Ll", "L.", "Ll", "F."], 13, 5))
+    if st == 0:  # broken drum lying at the foot, red glow of unrest
+        lay.append(layer([".r.", "rR.", "rGR", "RYR", "EEE"], 11, 9))
+        lay.append(layer(["ag", "gd"], 1, 12))
+    ICONS["stab_%d" % st] = (stack(*lay), "stab_%d – stability level %d of 4: %s" % (st, st, ["broken column (crisis)", "cracked column (unrest)", "intact column (stable)", "gilded column with laurel (golden age)"][st]))
+
 if __name__ == "__main__":
   os.makedirs(OUT, exist_ok=True)
   for key, (g, comment) in ICONS.items():

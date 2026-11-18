@@ -24,6 +24,8 @@ const LABELS := {
 	"army_power": ["Max. Moral", true, true], "army_power_regen": ["Moral-Erholung", true, true],
 	"religious_unrest": ["Unruhe durch Andersgläubige", true, false], "conversion": ["Bekehrung", true, true],
 	"command": ["Kommando der Generäle", true, true], "general_start": ["Startstufe neuer Generäle", false, true],
+	"recruit_cost": ["Rekrutierungskosten", true, false], "ship_cost": ["Schiffskosten", true, false],
+	"stability": ["Stabilitätsziel", true, true], "diplo_cap": ["Diplomatische Kapazität", false, true],
 }
 
 ## What each modifier does, for tooltips and detail popups.
@@ -34,6 +36,7 @@ const DESCS := {
 	"manpower": "maximale Mannschaften", "combat": "Stärke in Schlachten", "naval": "Stärke der Flotte in Seeschlachten und um die Seeherrschaft", "force_limit": "Regimenter ohne Strafe",
 	"adm": "Verwaltungspunkte pro Monat", "dip": "Diplomatiepunkte pro Monat", "mil": "Militärpunkte pro Monat",
 	"ae_decay": "wie schnell Aggressive Expansion abklingt", "ae_gen": "AE bei Eroberungen und Kriegserklärungen",
+	"stability": "Wert, zu dem die Stabilität langsam zurückkehrt", "diplo_cap": "Plätze für Bündnisse und Vasallen",
 	"tech_cost": "Punkte für neue Technologien", "siege": "wie schnell Festungen fallen",
 	"unrest": "Unruhe in jeder Provinz (Aufstände ab 5)", "coring": "Monate, bis erobertes Land voll zählt",
 	"prestige": "Prestige pro Jahr (Ansehen, Kaiserwahl)", "company_slots": "weitere Investitionskompanie",
@@ -45,6 +48,7 @@ const DESCS := {
 	"religious_unrest": "Unruhe in Provinzen mit anderem Glauben", "conversion": "wie schnell Andersgläubige deinen Glauben annehmen (Missionare und von selbst)",
 	"command": "wie viele Regimenter ein General (und eine Armee ohne General) ohne Abzug führen kann",
 	"general_start": "neue Generäle beginnen so viele Stufen höher (höchstens Stufe 3)",
+	"recruit_cost": "Gold für neue Regimenter", "ship_cost": "Gold für neue Schiffe",
 }
 
 ## AI weight per modifier unit (combat scales with aggression).
@@ -55,6 +59,7 @@ const AI_WEIGHTS := {
 	"unrest": -2.5, "coring": -12.0, "prestige": 2.0, "company_slots": 8.0, "advisor_slots": 8.0,
 	"estate_adel": 0.03, "estate_klerus": 0.03, "estate_buerger": 0.03, "army_power": 60.0, "army_power_regen": 15.0,
 	"religious_unrest": -3.0, "conversion": 3.0, "command": 40.0, "general_start": 25.0,
+	"recruit_cost": -20.0, "ship_cost": -10.0,
 }
 
 const AGES := [[1444, "Renaissance"], [1500, "Entdeckungen"], [1550, "Reformation"], [1600, "Absolutismus"]]
