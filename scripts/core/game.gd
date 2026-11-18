@@ -1037,9 +1037,8 @@ func _economy(n: Nation) -> void:
 	if over > 0:  # too many alliances and vassals: diplomats overworked, prestige suffers
 		n.dip = maxf(0.0, n.dip - over * float(bal.diplo_over_dip))
 		n.prestige -= over * float(bal.diplo_over_prestige)
-	n.manpower = minf(n.max_manpower, n.manpower + n.max_manpower / (float(bal.manpower_regen_years) * 12.0))
-	var decay: float = float(bal.ae_decay_per_year) * (1.0 + mod(n, "ae_decay") + 0.05 * n.tech.dip) / 12.0
-	n.ae = maxf(0.0, n.ae - decay)
+	n.manpower = minf(n.max_manpower, n.manpower + manpower_gain(n))
+	n.ae = maxf(0.0, n.ae - ae_decay_monthly(n))
 	if n.ae < 0.001:
 		n.ae = 0.0
 	for t in n.relations:
@@ -1576,6 +1575,16 @@ func power_max(tag: String) -> float:
 func power_factor(a: Army) -> float:
 	var fl := float(bal.army_power_floor)
 	return fl + (1.0 - fl) * a.power
+
+
+## Manpower refill per month (the top bar and the tooltip show it; the month step adds it, capped at the maximum).
+func manpower_gain(n: Nation) -> float:
+	return n.max_manpower / (float(bal.manpower_regen_years) * 12.0)
+
+
+## Aggressive expansion that fades per month (modifier "ae_decay", diplomatic tech).
+func ae_decay_monthly(n: Nation) -> float:
+	return float(bal.ae_decay_per_year) * (1.0 + mod(n, "ae_decay") + 0.05 * n.tech.dip) / 12.0
 
 
 ## Monthly recovery towards the maximum: full speed with supply (own or allied land, more with roads),

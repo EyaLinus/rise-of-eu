@@ -72,6 +72,23 @@ const MODE_ICONS := ["🏰", "🤝", "📈", "😠", "⚔️", "🌾", "🪙", "
 ## Panel shortcuts (PC): key -> panel. Pressing it again closes the panel.
 const PANEL_KEYS := {KEY_N: "nation", KEY_E: "economy", KEY_T: "tech", KEY_G: "government", KEY_D: "diplomacy",
 	KEY_K: "wars", KEY_F: "navy", KEY_M: "missions", KEY_L: "log", KEY_R: "advice", KEY_V: "mapmodes"}
+## Rebindable keys (PC): [id, label, default key]. Settings > Tasten belegen stores overrides in settings.keys.
+## Fixed: Esc, F11, F12, the number keys (speed), arrows, Strg+F.
+const KEY_ACTIONS := [
+	["pause", "Pause / weiter", KEY_SPACE], ["faster", "Schneller", KEY_EQUAL], ["slower", "Langsamer", KEY_MINUS],
+	["mapmode", "Nächster Kartenmodus", KEY_TAB],
+	["panel_nation", "Nation", KEY_N], ["panel_economy", "Wirtschaft", KEY_E], ["panel_tech", "Technologie", KEY_T],
+	["panel_government", "Regierung", KEY_G], ["panel_diplomacy", "Diplomatie", KEY_D], ["panel_wars", "Kriege", KEY_K],
+	["panel_navy", "Flotte / Marine", KEY_F], ["panel_missions", "Missionen", KEY_M], ["panel_log", "Chronik", KEY_L],
+	["panel_advice", "Ratgeber", KEY_R], ["panel_mapmodes", "Kartenmodi + Legende", KEY_V],
+	["zoom_in", "Karte vergrößern", KEY_PAGEUP], ["zoom_out", "Karte verkleinern", KEY_PAGEDOWN],
+	["quick", "Schnellaktionen (Provinz unter der Maus)", KEY_Q], ["build", "Bauen (offene Provinz)", KEY_B], ["info", "Infos (offene Provinz)", KEY_I],
+	["army", "Nächste Armee", KEY_A], ["search", "Suchen", KEY_S], ["quicksave", "Schnellspeichern", KEY_F5], ["help", "Tastenkürzel", KEY_F1],
+]
+const RESERVED_KEYS := [KEY_ESCAPE, KEY_F11, KEY_F12, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0,
+	KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_SHIFT, KEY_CTRL, KEY_ALT, KEY_META, KEY_ENTER, KEY_KP_ENTER]
+var _keymap := {}  # keycode -> action id (defaults + settings.keys)
+var _rebinding := ""  # action waiting for its new key (settings > Tasten belegen)
 const WINDOW_MODES := ["window", "maximized", "borderless"]
 const WINDOW_NAMES := {"window": "Fenster", "maximized": "Maximiert", "borderless": "Randlos (Vollbild)"}
 
@@ -135,7 +152,12 @@ func _ready() -> void:
 		add_child(p)
 		sfx_players.append(p)
 	add_child(music)
+	music.disabled = Array(settings.get("music_off", []))
+	music.lock_mood = str(settings.get("music_mood", ""))
 	music.set_volume(float(settings.get("music", 0.5)))
+	music.started.connect(func(id: String):
+		if settings.get("music_toast", true) and game != null:
+			_toast("🎵 " + Music.TITLES.get(id, id)))
 	data = Data.load_all()
 	PixelEmoji.add_nations(data.nations.keys() + data.formables.keys())  # formable flags too (Formables)
 	map = MapView.new()
@@ -193,7 +215,36 @@ func _load_settings() -> void:
 		if d is Dictionary:
 			for k in d:
 				settings[k] = d[k]
+	_rebuild_keymap()
 	_apply_settings()
+
+
+## Key of an action: the player's choice, else the default.
+func key_of(id: String) -> int:
+	var custom: Dictionary = settings.get("keys", {})
+	if custom.has(id):
+		return int(custom[id])
+	for a in KEY_ACTIONS:
+		if a[0] == id:
+			return a[2]
+	return KEY_NONE
+
+
+func _rebuild_keymap() -> void:
+	_keymap.clear()
+	for a in KEY_ACTIONS:
+		var k := key_of(a[0])
+		if k != KEY_NONE:
+			_keymap[k] = a[0]
+
+
+## Panel shortcuts as {key: panel} (the defaults are PANEL_KEYS).
+func panel_keys() -> Dictionary:
+	var out := {}
+	for a in KEY_ACTIONS:
+		if String(a[0]).begins_with("panel_"):
+			out[key_of(a[0])] = String(a[0]).substr(6)
+	return out
 
 
 func _apply_settings() -> void:
@@ -315,7 +366,7 @@ func _build_hud() -> void:
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		top_labels[k] = l
 		slot.add_child(l)
-		if k in ["adm", "dip", "mil"]:  # small "+3" monthly gain right after the points
+		if k in ["adm", "dip", "mil", "manpower", "ae"]:  # small "+3" monthly gain right after the points
 			var inc := Label.new()
 			inc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			inc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -353,10 +404,9 @@ func _build_hud() -> void:
 			["missions", "Missionen"], ["log", "Chronik"], ["mapmode", "Kartenmodus"], ["advice", "Ratgeber: was jetzt zu tun ist"]]:
 		var cb: Callable = _open_panel.bind("mapmodes") if e[0] == "mapmode" else _open_panel.bind(e[0])
 		var tip: String = e[1]
-		for key in PANEL_KEYS:
-			if PANEL_KEYS[key] == (("mapmodes") if e[0] == "mapmode" else e[0]) and _has_keyboard():
-				tip += "  [%s]" % OS.get_keycode_string(key)
 		var tb := _tab_button("tab_" + e[0], cb, tip)
+		tb.set_meta("tip_base", tip)
+		tb.set_meta("panel", "mapmodes" if e[0] == "mapmode" else e[0])
 		var badge := Label.new()
 		badge.text = "●"
 		badge.add_theme_color_override("font_color", Color(1.0, 0.75, 0.2))
@@ -369,6 +419,7 @@ func _build_hud() -> void:
 		left.add_child(tb)
 		if e[0] == "advice":
 			badge.position = Vector2(36, -8)  # the advisor's badge counts the open to-dos
+	_refresh_tab_tips()
 	get_viewport().size_changed.connect(_fit_left_tabs)
 	_place_below_top.call_deferred()
 
@@ -595,6 +646,21 @@ func _icon_rect(tex: Texture2D, px: int) -> TextureRect:
 	r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	r.custom_minimum_size = Vector2(px, px)
 	return r
+
+
+## Tab tooltips end with their shortcut "[N]" (PC), also after the player rebinds keys.
+func _refresh_tab_tips() -> void:
+	if left_tabs == null:
+		return
+	var keys := panel_keys()
+	for tb in left_tabs.get_children():
+		if not tb.has_meta("panel"):
+			continue
+		var t: String = tb.get_meta("tip_base")
+		for key in keys:
+			if keys[key] == tb.get_meta("panel") and _has_keyboard():
+				t += "  [%s]" % OS.get_keycode_string(key)
+		tb.tooltip_text = t
 
 
 func _tab_button(key: String, cb: Callable, tip: String) -> Button:
@@ -827,9 +893,12 @@ func _idea_bb(idea: String, bonus: Dictionary) -> String:
 	return "[color=#%s]%s[/color]   %s" % [UiTheme.GOLD.to_html(false), title, mods]
 
 
+var start_seed := -1  # >= 0: fixed game seed (screenshot tools compare identical games)
+
+
 func _start_game(tag: String) -> void:
 	game = Game.new()
-	game.setup(data, int(Time.get_unix_time_from_system()) % 100000, tag)
+	game.setup(data, start_seed if start_seed >= 0 else int(Time.get_unix_time_from_system()) % 100000, tag)
 	game.set_difficulty(String(settings.difficulty))
 	_after_game_loaded()
 	_show_intro()
@@ -1024,6 +1093,10 @@ func touch_mode() -> bool:
 
 
 func _input(event: InputEvent) -> void:
+	if _rebinding != "" and event is InputEventKey and event.pressed and not event.echo:
+		_capture_key(event.keycode)
+		get_viewport().set_input_as_handled()
+		return
 	var down := false
 	var up := false
 	var moved := false
@@ -1458,9 +1531,15 @@ func _update_top() -> void:
 		var inc: Label = top_incs[k]
 		inc.text = "%+.0f" % gain if absf(gain - roundf(gain)) < 0.05 else "%+.1f" % gain
 		inc.add_theme_color_override("font_color", Color(0.6, 0.9, 0.6) if gain >= 0.0 else Color.TOMATO)
-	top_slots.manpower.tooltip_text = "👥 Mannschaften\nJetzt\t%.0f\nMaximum\t%.0f\nFüllen sich jeden Monat auf.\nGutshöfe und Kasernen erhöhen das Maximum." % [n.manpower, n.max_manpower]
+	var mp_gain: float = minf(game.manpower_gain(n), maxf(0.0, n.max_manpower - n.manpower))
+	var ae_gain: float = minf(game.ae_decay_monthly(n), n.ae)
+	top_incs.manpower.text = "%+d" % roundi(mp_gain) if mp_gain >= 0.5 else "±0"
+	top_incs.manpower.add_theme_color_override("font_color", Color(0.6, 0.9, 0.6) if mp_gain >= 0.5 else Color(0.7, 0.7, 0.75))
+	top_incs.ae.text = "−%.1f" % ae_gain if ae_gain >= 0.05 else "±0"  # AE shrinking is good news: green
+	top_incs.ae.add_theme_color_override("font_color", Color(0.6, 0.9, 0.6) if ae_gain >= 0.05 else Color(0.7, 0.7, 0.75))
+	top_slots.manpower.tooltip_text = "👥 Mannschaften\nJetzt\t%.0f\nMaximum\t%.0f\nPro Monat\t%+.0f (%.1f %% des Maximums)\nFüllen sich jeden Monat auf.\nGutshöfe und Kasernen erhöhen das Maximum." % [n.manpower, n.max_manpower, mp_gain, 100.0 * game.manpower_gain(n) / maxf(1.0, n.max_manpower)]
 	top_slots.army.tooltip_text = "🛡️ Regimenter\nAufgestellt\t%d\nTruppenlimit\t%d\nÜber dem Limit kannst du nicht ausheben.\nKasernen, Technik und Ränge erhöhen es." % [game.regs_counted(game.player), game.force_cap(game.player)]
-	top_slots.ae.tooltip_text = "😠 Aggressive Expansion\nJetzt\t%d\nKoalitionsgrenze\t%d\nSinkt langsam.\nHohe Werte machen Nachbarn feindlich." % [n.ae, int(game.coalition_threshold(game.player))]
+	top_slots.ae.tooltip_text = "😠 Aggressive Expansion\nJetzt\t%d\nPro Monat\t−%.2f\nPro Jahr\t−%.1f\nKoalitionsgrenze\t%d\nSinkt langsam, schneller mit Diplomatie-Technik.\nHohe Werte machen Nachbarn feindlich." % [n.ae, game.ae_decay_monthly(n), game.ae_decay_monthly(n) * 12.0, int(game.coalition_threshold(game.player))]
 	speed_label.text = "⏸" if speed == 0 else ("½▶" if speed == 1 else ("⚔️▶" if speed > NORMAL_SPEED and _battle_slowdown() else "▶".repeat(speed - 1)))
 	_fit_top()
 	_update_badges()
@@ -1596,7 +1675,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	if game == null:
 		return
 	var k: int = event.keycode
-	if k == KEY_SPACE and not modal.visible:
+	var act: String = _keymap.get(k, "")
+	if act == "" and (k == KEY_PLUS or k == KEY_KP_ADD):
+		act = "faster"
+	elif act == "" and k == KEY_KP_SUBTRACT:
+		act = "slower"
+	elif act == "" and k == KEY_H:
+		act = "help"
+	if act == "pause" and not modal.visible:
 		if speed == 0:
 			_set_speed(last_speed)
 		else:
@@ -1604,40 +1690,40 @@ func _unhandled_input(event: InputEvent) -> void:
 			_set_speed(0)
 	elif k >= KEY_1 and k <= KEY_0 + SPEEDS.size() - 1 and not modal.visible:
 		_set_speed(k - KEY_0)
-	elif (k == KEY_EQUAL or k == KEY_PLUS or k == KEY_KP_ADD) and not modal.visible:
+	elif act == "faster" and not modal.visible:
 		_set_speed(_faster())
-	elif (k == KEY_MINUS or k == KEY_KP_SUBTRACT) and not modal.visible:
+	elif act == "slower" and not modal.visible:
 		_set_speed(maxi(1, speed - 1))
-	elif k == KEY_TAB and not modal.visible:
+	elif act == "mapmode" and not modal.visible:
 		_cycle_map_mode(-1 if event.shift_pressed else 1)
-	elif PANEL_KEYS.has(k) and not modal.visible and not event.ctrl_pressed and not event.alt_pressed:
-		var pm: String = PANEL_KEYS[k]
+	elif act.begins_with("panel_") and not modal.visible and not event.ctrl_pressed and not event.alt_pressed:
+		var pm: String = act.substr(6)
 		if side_panel.visible and panel_mode == pm:
 			_close_panel()
 		else:
 			_open_panel(pm)
-	elif (k == KEY_PAGEUP or k == KEY_PAGEDOWN) and not modal.visible:
-		map.zoom_by(1.3 if k == KEY_PAGEUP else 1.0 / 1.3)
+	elif (act == "zoom_in" or act == "zoom_out") and not modal.visible:
+		map.zoom_by(1.3 if act == "zoom_in" else 1.0 / 1.3)
 	elif k in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN] and not modal.visible:
 		var d := {KEY_LEFT: Vector2(1, 0), KEY_RIGHT: Vector2(-1, 0), KEY_UP: Vector2(0, 1), KEY_DOWN: Vector2(0, -1)}[k] as Vector2
 		map.pan_by(d * 160.0)
-	elif k == KEY_Q and not modal.visible and map.hover_pid >= 0 and map.known(map.hover_pid):
+	elif act == "quick" and not modal.visible and map.hover_pid >= 0 and map.known(map.hover_pid):
 		quick.open(map.hover_pid, get_local_mouse_position())
-	elif (k == KEY_B or k == KEY_I) and not modal.visible and panel_mode == "province" and side_panel.visible:
-		prov_tab = "build" if k == KEY_B else "info"
+	elif (act == "build" or act == "info") and not modal.visible and panel_mode == "province" and side_panel.visible:
+		prov_tab = "build" if act == "build" else "info"
 		_refresh()
-	elif k == KEY_A and not modal.visible and not event.ctrl_pressed:
+	elif act == "army" and not modal.visible and not event.ctrl_pressed:
 		_next_army()
-	elif (k == KEY_S or (k == KEY_F and event.ctrl_pressed)) and not modal.visible:
+	elif (act == "search" or (k == KEY_F and event.ctrl_pressed)) and not modal.visible:
 		_show_search()
 	elif k == KEY_F12 and debug_screen.enabled():
 		if side_panel.visible and panel_mode == "debug":
 			_close_panel()
 		else:
 			debug_screen.open()
-	elif k == KEY_F5:
+	elif act == "quicksave":
 		_act("" if _save_game() else "Speichern fehlgeschlagen", "💾 Gespeichert")
-	elif (k == KEY_F1 or k == KEY_H) and not modal.visible:
+	elif act == "help" and not modal.visible:
 		_show_shortcuts()
 	elif k == KEY_ESCAPE:
 		if quick.visible:
@@ -1827,28 +1913,43 @@ func _has_keyboard() -> bool:
 func _show_settings() -> void:
 	_open_modal()
 	modal_box.add_child(_lbl("⚙️ Einstellungen", 30))
+	# sliders: UI size applies when released (the whole layout rebuilds), the others at once
+	var sliders := []
+	sliders.append(_slider_row("🔠 UI-Größe", 0.8, 2.0, 0.05, float(settings.ui_scale), func(v): return "%d %%" % roundi(v * 100.0),
+			func(v): pass,
+			func(v):
+				settings.ui_scale = snappedf(v, 0.05)
+				_apply_settings()
+				_fit_left_tabs()
+				_save_settings()
+				_show_settings(),
+			"Größe der gesamten Oberfläche. Wird beim Loslassen übernommen."))
+	sliders.append(_slider_row("🎵 Musik", 0.0, 1.0, 0.05, float(settings.get("music", 0.5)), func(v): return "aus" if v <= 0.0 else "%d %%" % roundi(v * 100.0),
+			func(v):
+				settings.music = v
+				music.set_volume(v),
+			func(v): _save_settings(),
+			"Lautstärke der Hintergrundmusik. Im Krieg spielt kriegerische Musik."))
+	sliders.append(_slider_row("📃 Tooltip erscheint nach", 0.0, 1500.0, 50.0, tips.delay() * 1000.0, func(v): return "%d ms" % roundi(v),
+			func(v): settings.tip_show_ms = v,
+			func(v): _save_settings(),
+			"Wie lange die Maus über einem Element still liegt, bis der Tooltip erscheint."))
+	sliders.append(_slider_row("📃 Tooltip rastet ein nach", 100.0, 3000.0, 100.0, tips.lock_s() * 1000.0, func(v): return "%d ms" % roundi(v),
+			func(v): settings.tip_lock_ms = v,
+			func(v): _save_settings(),
+			"Wie lange der Tooltip offen bleibt, bis er einrastet (goldener Rahmen). Dann kannst du die Maus hineinbewegen und Begriffe überfahren: Erklärungen öffnen sich beliebig tief."))
+	modal_box.add_child(_grid(sliders))
 	var opts := [
-		_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale),
 		_btn("🔊 Ton: %s" % ("an" if settings.get("sound", true) else "aus"), func():
 			settings.sound = not settings.get("sound", true)
 			_save_settings()
 			_show_settings()),
-		_btn("🎵 Musik: %s" % ("aus" if float(settings.get("music", 0.5)) <= 0.0 else "%d%%" % int(round(float(settings.get("music", 0.5)) * 100))), func():
-			var i := MUSIC_STEPS.find(float(settings.get("music", 0.5)))
-			settings.music = MUSIC_STEPS[(i + 1) % MUSIC_STEPS.size()]
-			music.set_volume(float(settings.music))
-			_save_settings()
-			_show_settings(), "Lautstärke der Hintergrundmusik (eigene, prozedural erzeugte Stücke). Im Krieg spielt kriegerische Musik."),
 		_btn("💡 Tipps: %s" % ("an" if settings.tips else "aus"), func():
 			settings.tips = not settings.tips
 			if settings.tips:
 				settings.tips_seen = []
 			_save_settings()
 			_show_settings(), "Einmalige Hinweise, wenn etwas Neues passiert. Einschalten zeigt alle wieder."),
-		_btn("📃 Tooltips: %s" % ["schnell", "normal", "langsam"][clampi(int(settings.get("tip_delay", 1)), 0, 2)], func():
-			settings.tip_delay = (int(settings.get("tip_delay", 1)) + 1) % 3
-			_save_settings()
-			_show_settings(), "Wie schnell Tooltips beim Darüberfahren erscheinen.\nBleibt die Maus kurz still, rastet der Tooltip ein.\nDann: Begriffe überfahren für Erklärungen, anklicken zum Öffnen."),
 		_btn("📋 Hinweisleiste: %s" % ("an" if settings.get("alerts", true) else "aus"), func():
 			settings.alerts = not settings.get("alerts", true)
 			_save_settings()
@@ -1865,6 +1966,9 @@ func _show_settings() -> void:
 			settings.big_ui = not settings.get("big_ui", false)
 			_save_settings()
 			_show_settings(), "Größere Bedienelemente für Touchscreens. Die Leisten ändern sich nach einem Neustart."))
+	opts.append(_btn("🎵 Musik-Manager", _show_music_manager, "Aktuelles Stück, Weiter, Pause, Stücke ein- und ausschalten, Frieden oder Krieg festlegen."))
+	if _has_keyboard():
+		opts.append(_btn("⌨️ Tasten belegen", _show_key_bindings, "Tastenkürzel selbst festlegen."))
 	opts.append(_btn("🐞 Debug-Modus: %s" % ("an" if settings.get("debug", false) else "aus"), func():
 		settings.debug = not settings.get("debug", false)
 		_save_settings()
@@ -1879,14 +1983,183 @@ func _show_settings() -> void:
 	modal_box.add_child(_btn("◀ Zurück", _show_menu if game != null else _show_start_menu))
 
 
+## "Label  value" above a slider. `fmt` turns the value into text, `live` runs while dragging,
+## `done` once when released (or clicked). Mouse wheel never moves it (it scrolls the panel).
+func _slider_row(text: String, lo: float, hi: float, step: float, value: float, fmt: Callable, live: Callable, done: Callable, tip: String = "") -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	var l := _lbl("%s: %s" % [text, fmt.call(value)], 18)
+	box.add_child(l)
+	var sl := HSlider.new()
+	sl.min_value = lo
+	sl.max_value = hi
+	sl.step = step
+	sl.set_value_no_signal(clampf(value, lo, hi))
+	sl.custom_minimum_size = Vector2(0, 52 if _big() else 36)
+	sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sl.focus_mode = Control.FOCUS_NONE
+	sl.scrollable = false
+	sl.value_changed.connect(func(v: float):
+		l.text = "%s: %s" % [text, fmt.call(v)]
+		live.call(v))
+	sl.drag_ended.connect(func(changed: bool):
+		if changed:
+			done.call(sl.value))
+	box.add_child(sl)
+	if tip != "":
+		box.tooltip_text = tip
+		l.mouse_filter = Control.MOUSE_FILTER_PASS
+	return box
+
+
+# ---------------------------------------------------------------- key bindings
+
+func _show_key_bindings() -> void:
+	_open_modal()
+	modal_box.add_child(_lbl("⌨️ Tasten belegen", 30))
+	modal_box.add_child(_lbl("Auf eine Taste klicken, dann die neue Taste drücken. Esc bricht ab. Wird sie schon benutzt, tauschen beide. Fest: Esc, F11, F12, Zahlen 1–3 (Tempo), Pfeiltasten.", 15, Color(0.72, 0.75, 0.82)))
+	var opts := []
+	for a in KEY_ACTIONS:
+		var id: String = a[0]
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		var l := _lbl(a[1], 16)
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(l)
+		var waiting := _rebinding == id
+		var b := _btn("…" if waiting else OS.get_keycode_string(key_of(id)), func():
+			_rebinding = id
+			_show_key_bindings()
+			_toast("⌨️ Taste für „%s“ drücken (Esc: abbrechen)" % _action_label(id)))
+		b.custom_minimum_size.x = 130
+		row.add_child(b)
+		opts.append(row)
+	modal_box.add_child(_grid(opts))
+	modal_box.add_child(_btn("↺ Alle auf Standard", func():
+		settings.erase("keys")
+		_rebuild_keymap()
+		_refresh_tab_tips()
+		_save_settings()
+		_show_key_bindings()))
+	modal_box.add_child(_btn("◀ Zurück", func():
+		_rebinding = ""
+		_show_settings()))
+
+
+func _action_label(id: String) -> String:
+	for a in KEY_ACTIONS:
+		if a[0] == id:
+			return a[1]
+	return id
+
+
+## The next key press while `_rebinding` is set (called from _input).
+func _capture_key(k: int) -> void:
+	var id := _rebinding
+	_rebinding = ""
+	if k == KEY_ESCAPE:
+		_show_key_bindings()
+		return
+	if RESERVED_KEYS.has(k):
+		_toast("⌨️ %s ist fest belegt" % OS.get_keycode_string(k))
+		_show_key_bindings()
+		return
+	set_key(id, k)
+	_show_key_bindings()
+
+
+## Binds `k` to the action; an action that held `k` gets the key this one had (swap).
+func set_key(id: String, k: int) -> void:
+	var old := key_of(id)
+	var keys: Dictionary = settings.get("keys", {})
+	for a in KEY_ACTIONS:
+		if a[0] != id and key_of(a[0]) == k:
+			keys[a[0]] = old
+	keys[id] = k
+	settings.keys = keys
+	_rebuild_keymap()
+	_refresh_tab_tips()
+	_save_settings()
+
+
+# ---------------------------------------------------------------- music manager
+
+func _show_music_manager() -> void:
+	_open_modal()
+	modal_box.add_child(_lbl("🎵 Musik-Manager", 30))
+	var now := _lbl("", 20, Color(0.97, 0.85, 0.45))
+	modal_box.add_child(now)
+	var upd := func() -> void:
+		if music.current == "":
+			now.text = "Stille" if music.volume > 0.0 else "Musik ist aus"
+		else:
+			var total := music.track_length()
+			now.text = "🎵 %s (%s)   %d:%02d / %d:%02d%s" % [Music.TITLES.get(music.current, music.current),
+					"Krieg" if Music.TRACKS[music.current] == "war" else "Frieden", int(music.track_position()) / 60, int(music.track_position()) % 60,
+					int(total) / 60, int(total) % 60, "   ⏸" if music.paused else ""]
+	upd.call()
+	var timer := Timer.new()
+	timer.wait_time = 0.5
+	timer.autostart = true
+	timer.timeout.connect(func(): if is_instance_valid(now): upd.call())
+	now.add_child(timer)
+	modal_box.add_child(_slider_row("🔊 Lautstärke", 0.0, 1.0, 0.05, float(settings.get("music", 0.5)), func(v): return "aus" if v <= 0.0 else "%d %%" % roundi(v * 100.0),
+			func(v):
+				settings.music = v
+				music.set_volume(v),
+			func(v): _save_settings()))
+	var mood_names := {"": "Automatisch (Krieg / Frieden)", "peace": "Immer Frieden", "war": "Immer Krieg"}
+	modal_box.add_child(_grid([
+		_btn("⏸ Pause / Weiter", func():
+			music.set_paused(not music.paused)
+			upd.call(), "Hält das aktuelle Stück an oder setzt es fort."),
+		_btn("▶ Nächstes Stück", func():
+			music.skip()
+			await get_tree().create_timer(0.3).timeout
+			if is_instance_valid(now):
+				upd.call()),
+		_btn("🕊️ Stimmung: %s" % mood_names[music.lock_mood], func():
+			var order := ["", "peace", "war"]
+			music.set_lock(order[(order.find(music.lock_mood) + 1) % 3])
+			settings.music_mood = music.lock_mood
+			_save_settings()
+			_show_music_manager(), "Automatisch: Kriegsmusik, solange du im Krieg bist. Sonst nur Friedens- oder nur Kriegsstücke."),
+		_btn("📋 Titel-Hinweis: %s" % ("an" if settings.get("music_toast", true) else "aus"), func():
+			settings.music_toast = not settings.get("music_toast", true)
+			_save_settings()
+			_show_music_manager(), "Zeigt den Namen eines neuen Stücks kurz im Spiel."),
+	]))
+	modal_box.add_child(_lbl("Stücke", 20))
+	var rows := []
+	for id in Music.TRACKS:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		var cb := CheckBox.new()
+		cb.text = ""
+		cb.button_pressed = not music.disabled.has(id)
+		cb.focus_mode = Control.FOCUS_NONE
+		cb.tooltip_text = "Im Wechsel spielen"
+		cb.toggled.connect(func(on: bool):
+			music.set_enabled(id, on)
+			settings.music_off = music.disabled.duplicate()
+			_save_settings())
+		row.add_child(cb)
+		var b := _btn("▶ %s %s" % ["⚔️" if Music.TRACKS[id] == "war" else "🕊️", Music.TITLES.get(id, id)], func():
+			music.play_track(id)
+			upd.call(), "Jetzt abspielen")
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(b)
+		rows.append(row)
+	modal_box.add_child(_grid(rows))
+	modal_box.add_child(_btn("◀ Zurück", _show_settings))
+
+
+## Fixed shortcuts; the rebindable ones are listed from KEY_ACTIONS.
 const SHORTCUTS := [
-	["Leertaste", "Pause / weiter"], ["1 – 3", "Tempo ½ / normal / schnell"], ["+ / −", "schneller / langsamer"],
-	["Pfeile", "Karte verschieben"], ["Bild ↑ ↓", "Zoom (auch Mausrad)"], ["Tab", "nächster Kartenmodus"],
-	["V", "Kartenmodi + Legende"], ["N", "Nation"], ["E", "Wirtschaft"], ["T", "Technologie"], ["G", "Regierung"],
-	["D", "Diplomatie"], ["K", "Kriege"], ["F", "Flotte / Marine"], ["M", "Missionen"], ["L", "Chronik"], ["R", "Ratgeber"],
-	["S / Strg+F", "Provinz oder Nation suchen"], ["A", "nächste Armee (untätige zuerst)"], ["F5", "Schnellspeichern"], ["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F1", "diese Übersicht"], ["F12", "Debug-Fenster (Debug-Modus)"],
-	["Rechtsklick", "Schnellaktionen auf einer Provinz (mit gewählter Armee: dorthin marschieren)"], ["Q", "Schnellaktionen der Provinz unter der Maus"],
-	["B / I", "Bauen / Infos der offenen Provinz"], ["Tooltip", "kurz stillhalten: rastet ein, Begriffe anklicken öffnet ihr Fenster"],
+	["1 – 3", "Tempo ½ / normal / schnell"], ["Pfeile", "Karte verschieben"], ["Mausrad", "Zoom"], ["Strg+F", "Provinz oder Nation suchen"],
+	["F11", "Randloses Vollbild"], ["Esc", "schließen / Menü"], ["F12", "Debug-Fenster (Debug-Modus)"],
+	["Rechtsklick", "Schnellaktionen auf einer Provinz (mit gewählter Armee: dorthin marschieren)"],
+	["Tooltip", "kurz stillhalten: rastet ein, Begriffe überfahren erklärt sie, anklicken öffnet ihr Fenster"],
 ]
 
 
@@ -1900,7 +2173,10 @@ func _show_shortcuts() -> void:
 	g.columns = 2 if get_viewport_rect().size.x >= 1000 else 1
 	g.add_theme_constant_override("h_separation", 24)
 	g.add_theme_constant_override("v_separation", 0)
-	for e in SHORTCUTS:
+	var rows: Array = SHORTCUTS.duplicate()
+	for a in KEY_ACTIONS:  # the player's own keys
+		rows.append([OS.get_keycode_string(key_of(a[0])), a[1]])
+	for e in rows:
 		var c := _bb("[color=#ffd873]%s[/color]   %s" % e, 16)
 		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		g.add_child(c)
