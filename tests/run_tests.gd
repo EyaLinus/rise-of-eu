@@ -1571,8 +1571,9 @@ func test_marriage() -> void:
 	check(g2.nations.FRA.marriages.has("SAV"), "marriages are saved")
 	# personal union on succession
 	g.bal.marriage_union_chance = 1.0
+	var lord0: String = g.nations.SAV.overlord  # 24 months of play may have made SAV a vassal or married it again
 	g._marriage_succession(g.nations.SAV)
-	check(g.nations.SAV.overlord == "" or g.nations.SAV.overlord == "FRA", "union only to the partner")
+	check(g.nations.SAV.overlord == lord0 or g.nations.SAV.marriages.has(g.nations.SAV.overlord), "union only to the partner (%s -> %s)" % [lord0, g.nations.SAV.overlord])
 	var h = new_game("ENG", 5)
 	h.nations.FRA.marriages.append("SAV")
 	h.nations.SAV.marriages.append("FRA")
