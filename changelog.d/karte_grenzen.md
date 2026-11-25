@@ -1,0 +1,1 @@
+- **Natürliche Grenzen:** Provinzgrenzen im Landesinneren verlaufen nicht mehr schnurgerade wie mit dem Lineal gezogen, sondern geschwungen und unregelmäßig wie auf einer alten Karte.

@@ -803,6 +803,61 @@ def main(land_path, lakes_path):
     pts = [proj(p[2], p[3]) for p in PROVINCES]
     W, H = size()
 
+    def wobbly_cells(cells, pts):
+        """Voronoi cells with natural borders: every cell edge becomes a jagged line (midpoint displacement,
+        the same line for both neighbours, fixed per edge), so inland borders no longer run dead straight.
+        The jag stays well away from the province centres; small faces where two jagged edges cross go to
+        the cell whose straight version holds them."""
+        from shapely.geometry import LineString
+        from shapely.ops import polygonize
+        owners = {}
+        for i, cell in cells.items():
+            cs = list(cell.exterior.coords)
+            for a, b in zip(cs, cs[1:]):
+                ka, kb = (round(a[0], 2), round(a[1], 2)), (round(b[0], 2), round(b[1], 2))
+                if ka == kb:
+                    continue
+                owners.setdefault((ka, kb) if ka < kb else (kb, ka), []).append(i)
+        lines = []
+        for (a, b), who in owners.items():
+            L = math.hypot(b[0] - a[0], b[1] - a[1])
+            mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+            d = min(math.hypot(pts[i][0] - mx, pts[i][1] - my) for i in who)
+            amp = min(0.09 * L, 0.28 * d)
+            line = [a, b]
+            rnd = zlib.crc32(("%.2f,%.2f,%.2f,%.2f" % (a[0], a[1], b[0], b[1])).encode())
+            if L > 12.0:
+                for _lvl in range(5):
+                    nxt = [line[0]]
+                    for p0, p1 in zip(line, line[1:]):
+                        rnd = (rnd * 1103515245 + 12345) & 0x7FFFFFFF
+                        off = (rnd / 0x7FFFFFFF - 0.5) * 2.0 * amp
+                        sx, sy = p1[0] - p0[0], p1[1] - p0[1]
+                        sl = math.hypot(sx, sy) or 1.0
+                        nxt.append(((p0[0] + p1[0]) / 2 - sy / sl * off, (p0[1] + p1[1]) / 2 + sx / sl * off))
+                        nxt.append(p1)
+                    line = nxt
+                    amp *= 0.5
+            lines.append(LineString(line))
+        faces = list(polygonize(unary_union(lines)))
+        parts = {i: [] for i in cells}
+        tree = STRtree([Point(p) for p in pts])
+        for f in faces:
+            hit = [int(j) for j in tree.query(f) if f.contains(Point(pts[int(j)]))]
+            if hit:
+                parts[hit[0]].append(f)
+                continue
+            rp = f.representative_point()
+            for i, cell in cells.items():
+                if cell.contains(rp):
+                    parts[i].append(f)
+                    break
+        out = {}
+        for i, cell in cells.items():
+            g = unary_union(parts[i]).buffer(0) if parts[i] else cell
+            out[i] = g if g.contains(Point(pts[i])) else cell
+        return out
+
     def blob(c, r, key):
         """The radius cap of a province: a wobbly disc (fixed per key) instead of a circle, so sparse desert
         and tundra provinces end in natural-looking edges, not in rings with lens-shaped gaps between them."""
@@ -825,6 +880,7 @@ def main(land_path, lakes_path):
             if cell.contains(Point(pt)):
                 cells_by_idx[i] = cell
                 break
+    cells_by_idx = wobbly_cells(cells_by_idx, pts)
 
     nw_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_NEW_WORLD)
     wa_first = next(i for i, p in enumerate(PROVINCES) if p[0] == FIRST_AFRICA)
