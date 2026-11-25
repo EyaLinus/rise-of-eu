@@ -12,10 +12,14 @@ older blocks never change). Every region module defines:
     NATIONS     {tag: nations.json entry}, FLAG_ART {tag: (grid, comment)} -> tools/world/apply.py
     GOODS       "good: key key ..." lines, MARKETS [key]                 -> tools/world/apply.py
     ALLIANCES, RIVALS  [[tag, tag]]                                        -> tools/world/apply.py
+optional:
+    NATION_UPDATES {tag: fields} changes to realms of the old map          -> tools/world/apply.py
+    NEW_GOODS   {good: goods.json entry} (pixel glyph in tools/art/emoji_icons.py) -> tools/world/apply.py
+    RELIGION    {key: faith} the people's faith where it is not the owner's  -> map.json "religion"
 """
-from . import russia
+from . import central_asia, russia
 
-REGIONS = [russia]
+REGIONS = [russia, central_asia]
 
 
 def provinces():

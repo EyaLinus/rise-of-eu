@@ -2069,6 +2069,26 @@ func test_world_map() -> void:
 	check(not g.sea_by_id["indian"].adj.has("south_atlantic") and g.sea_by_id["indian"].adj.has("cape"), "the way to India is round the Cape")
 	check(g.sea_by_id["caspian"].provinces.has(g.key_to_pid["astrakhan"]) and g.sea_by_id["white_sea"].provinces.has(g.key_to_pid["dvina"]), "new coasts have their seas")
 	check(g.sea_by_id["asian_lakes"].adj.is_empty(), "the Asian lakes are inland water")
+	# Central Asia, Persia's east and the Indus: the Timurids rule from Herat
+	for key in ["samarkand", "herat", "kabul", "kashgar", "thatta", "multan", "turkestan"]:
+		var pid: int = g.key_to_pid[key]
+		check(data.map.provinces[pid].get("ca", false) and not Col.is_new_world(g, pid), "%s is Old World land in the ca block" % key)
+	for tag in ["TIM", "SHY", "MOG", "TKM", "SIS", "BLC", "SND", "MUL"]:
+		check(g.nations[tag].alive and not Col.is_native_realm(g, tag), "%s is a living realm" % tag)
+	check(g.nations.TIM.capital == g.key_to_pid["herat"] and g.provinces[g.key_to_pid["samarkand"]].owner == "TIM", "the Timurids hold Herat and Samarkand")
+	var herat: int = g.key_to_pid["herat"]
+	var hops := {herat: 0}
+	var q2 := [herat]
+	while not q2.is_empty():
+		var cur: int = q2.pop_front()
+		if hops[cur] >= 4:
+			continue
+		for a in g.provinces[cur].adj:
+			if not hops.has(a):
+				hops[a] = hops[cur] + 1
+				q2.append(a)
+	check(hops.has(g.key_to_pid["isfahan"]), "Herat is a few marches from Isfahan")
+	check(g.sea_by_id["arabian"].provinces.has(g.key_to_pid["thatta"]), "the Indus delta lies on the Arabian Sea")
 	for i in 6:
 		g.tick()
 	check(g.nations.SIB.alive, "the game runs with the world map")

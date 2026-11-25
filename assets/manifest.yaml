@@ -1341,3 +1341,66 @@ assets:
     source: assets/src/pixel/flags/flag_ITL.txt
     status: done
     updated: '2026-11-25'
+  flag_SHY:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_SHY (tools/art/flags.py, tools/world/central_asia.py)
+    outputs:
+    - assets/art/icons/flag_SHY.png
+    source: assets/src/pixel/flags/flag_SHY.txt
+    status: done
+    updated: '2026-11-25'
+  flag_MOG:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_MOG (tools/art/flags.py, tools/world/central_asia.py)
+    outputs:
+    - assets/art/icons/flag_MOG.png
+    source: assets/src/pixel/flags/flag_MOG.txt
+    status: done
+    updated: '2026-11-25'
+  flag_TKM:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_TKM (tools/art/flags.py, tools/world/central_asia.py)
+    outputs:
+    - assets/art/icons/flag_TKM.png
+    source: assets/src/pixel/flags/flag_TKM.txt
+    status: done
+    updated: '2026-11-25'
+  flag_SIS:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_SIS (tools/art/flags.py, tools/world/central_asia.py)
+    outputs:
+    - assets/art/icons/flag_SIS.png
+    source: assets/src/pixel/flags/flag_SIS.txt
+    status: done
+    updated: '2026-11-25'
+  flag_BLC:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_BLC (tools/art/flags.py, tools/world/central_asia.py)
+    outputs:
+    - assets/art/icons/flag_BLC.png
+    source: assets/src/pixel/flags/flag_BLC.txt
+    status: done
+    updated: '2026-11-25'
+  flag_SND:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_SND (tools/art/flags.py, tools/world/central_asia.py)
+    outputs:
+    - assets/art/icons/flag_SND.png
+    source: assets/src/pixel/flags/flag_SND.txt
+    status: done
+    updated: '2026-11-25'
+  flag_MUL:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_MUL (tools/art/flags.py, tools/world/central_asia.py)
+    outputs:
+    - assets/art/icons/flag_MUL.png
+    source: assets/src/pixel/flags/flag_MUL.txt
+    status: done
+    updated: '2026-11-25'
