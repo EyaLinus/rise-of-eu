@@ -1935,3 +1935,255 @@ assets:
     source: assets/src/pixel/flags/flag_AIN.txt
     status: done
     updated: '2026-11-25'
+  flag_AVA:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_AVA (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_AVA.png
+    source: assets/src/pixel/flags/flag_AVA.txt
+    status: done
+    updated: '2026-11-25'
+  flag_SHN:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_SHN (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_SHN.png
+    source: assets/src/pixel/flags/flag_SHN.txt
+    status: done
+    updated: '2026-11-25'
+  flag_HAN:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_HAN (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_HAN.png
+    source: assets/src/pixel/flags/flag_HAN.txt
+    status: done
+    updated: '2026-11-25'
+  flag_ARK:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_ARK (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_ARK.png
+    source: assets/src/pixel/flags/flag_ARK.txt
+    status: done
+    updated: '2026-11-25'
+  flag_MNP:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_MNP (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_MNP.png
+    source: assets/src/pixel/flags/flag_MNP.txt
+    status: done
+    updated: '2026-11-25'
+  flag_AYU:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_AYU (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_AYU.png
+    source: assets/src/pixel/flags/flag_AYU.txt
+    status: done
+    updated: '2026-11-25'
+  flag_LNA:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_LNA (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_LNA.png
+    source: assets/src/pixel/flags/flag_LNA.txt
+    status: done
+    updated: '2026-11-25'
+  flag_LXA:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_LXA (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_LXA.png
+    source: assets/src/pixel/flags/flag_LXA.txt
+    status: done
+    updated: '2026-11-25'
+  flag_KHM:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_KHM (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_KHM.png
+    source: assets/src/pixel/flags/flag_KHM.txt
+    status: done
+    updated: '2026-11-25'
+  flag_DAI:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_DAI (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_DAI.png
+    source: assets/src/pixel/flags/flag_DAI.txt
+    status: done
+    updated: '2026-11-25'
+  flag_CHA:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_CHA (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_CHA.png
+    source: assets/src/pixel/flags/flag_CHA.txt
+    status: done
+    updated: '2026-11-25'
+  flag_MLC:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_MLC (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_MLC.png
+    source: assets/src/pixel/flags/flag_MLC.txt
+    status: done
+    updated: '2026-11-25'
+  flag_KED:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_KED (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_KED.png
+    source: assets/src/pixel/flags/flag_KED.txt
+    status: done
+    updated: '2026-11-25'
+  flag_PAS:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_PAS (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_PAS.png
+    source: assets/src/pixel/flags/flag_PAS.txt
+    status: done
+    updated: '2026-11-25'
+  flag_ARU:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_ARU (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_ARU.png
+    source: assets/src/pixel/flags/flag_ARU.txt
+    status: done
+    updated: '2026-11-25'
+  flag_BTK:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_BTK (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_BTK.png
+    source: assets/src/pixel/flags/flag_BTK.txt
+    status: done
+    updated: '2026-11-25'
+  flag_MIN:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_MIN (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_MIN.png
+    source: assets/src/pixel/flags/flag_MIN.txt
+    status: done
+    updated: '2026-11-25'
+  flag_MJP:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_MJP (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_MJP.png
+    source: assets/src/pixel/flags/flag_MJP.txt
+    status: done
+    updated: '2026-11-25'
+  flag_SUN:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_SUN (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_SUN.png
+    source: assets/src/pixel/flags/flag_SUN.txt
+    status: done
+    updated: '2026-11-25'
+  flag_BRU:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_BRU (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_BRU.png
+    source: assets/src/pixel/flags/flag_BRU.txt
+    status: done
+    updated: '2026-11-25'
+  flag_DYK:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_DYK (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_DYK.png
+    source: assets/src/pixel/flags/flag_DYK.txt
+    status: done
+    updated: '2026-11-25'
+  flag_SUL:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_SUL (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_SUL.png
+    source: assets/src/pixel/flags/flag_SUL.txt
+    status: done
+    updated: '2026-11-25'
+  flag_TER:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_TER (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_TER.png
+    source: assets/src/pixel/flags/flag_TER.txt
+    status: done
+    updated: '2026-11-25'
+  flag_TMR:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_TMR (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_TMR.png
+    source: assets/src/pixel/flags/flag_TMR.txt
+    status: done
+    updated: '2026-11-25'
+  flag_TON:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_TON (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_TON.png
+    source: assets/src/pixel/flags/flag_TON.txt
+    status: done
+    updated: '2026-11-25'
+  flag_CEB:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_CEB (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_CEB.png
+    source: assets/src/pixel/flags/flag_CEB.txt
+    status: done
+    updated: '2026-11-25'
+  flag_MAG:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_MAG (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_MAG.png
+    source: assets/src/pixel/flags/flag_MAG.txt
+    status: done
+    updated: '2026-11-25'
+  flag_SLU:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_SLU (tools/art/flags.py, tools/world/se_asia.py)
+    outputs:
+    - assets/art/icons/flag_SLU.png
+    source: assets/src/pixel/flags/flag_SLU.txt
+    status: done
+    updated: '2026-11-25'
