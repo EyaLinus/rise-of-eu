@@ -42,6 +42,7 @@ func _init() -> void:
 		"test_west_africa",
 		"test_south_africa",
 		"test_south_america",
+		"test_world_map",
 		"test_troop_transport",
 		"test_embargo",
 		"test_hall_of_fame",
@@ -1941,8 +1942,6 @@ func test_na_west_and_netherlands() -> void:
 			check(not Col.is_new_world(g, pid) and Col.region(g, pid) == "old", "%s is Old World" % p.key)
 	check(west >= 40, "the west coast has %d provinces" % west)
 	check(int(data.map.size[0]) > 4096, "the map is wider than one Android texture")
-	var main_t: Array = data.map.get("terrain_main", [])
-	check(main_t.size() == 4 and int(main_t[2]) <= 4096, "terrain.png stays within 4096 px")
 	for td in data.map.terrain_tiles:
 		check(int(td[3]) <= 4096 and int(td[4]) <= 4096, "tile %s within 4096 px" % td[0])
 	# the Pacific coast: unknown seas, never joined to the Atlantic except round Cape Horn
@@ -2031,6 +2030,48 @@ func test_south_america() -> void:
 	for i in 6:
 		g.tick()
 	check(g.nations.INC.alive, "the game runs with the new region")
+
+
+## The whole world (tools/world): the map spans the globe in Android-sized tiles, the new blocks follow
+## the Low Countries, the Old World blocks are known land, and the seas meet across the date line.
+func test_world_map() -> void:
+	const Col = preload("res://scripts/core/colonial.gd")
+	var g = new_game("RUS", 5)
+	check(int(data.map.size[0]) > 9000, "the map spans the world (%d px)" % int(data.map.size[0]))
+	var covered := 0.0
+	for td in data.map.terrain_tiles:
+		check(int(td[3]) <= 2048 and int(td[4]) <= 2048 and str(td[0]).begins_with("terrain_"), "tile %s is a grid cell" % td[0])
+		check(ResourceLoader.exists("res://assets/art/map/" + str(td[0])), "tile %s is painted" % td[0])
+		covered += float(td[3]) * float(td[4])
+	check(covered < float(data.map.size[0]) * float(data.map.size[1]), "open-sea cells are not painted")
+	# the regions follow the Low Countries, in order; Siberia and the Volga are Old World land
+	var low: int = g.key_to_pid["zeeland"]
+	for key in ["sarai", "isker", "yakutsk", "kamchatka", "iceland", "trondelag"]:
+		var pid: int = g.key_to_pid[key]
+		check(pid > low and not Col.is_new_world(g, pid) and Col.knows(g, "FRA", pid), "%s is known Old World land" % key)
+		check(data.map.provinces[pid].get("ru", false), "%s is in the ru block" % key)
+	for tag in ["GHO", "NOG", "PRM", "SIB", "YUG", "EVK", "YAK", "CHK"]:
+		check(g.nations[tag].alive, "%s lives" % tag)
+	check(Col.is_native_realm(g, "YAK") and not Col.is_native_realm(g, "SIB"), "the forest peoples are tribal realms, Sibir is a khanate")
+	# overland from Moscow to the Pacific
+	var seen := {g.key_to_pid["moscow"]: true}
+	var queue := [g.key_to_pid["moscow"]]
+	while not queue.is_empty():
+		var cur: int = queue.pop_back()
+		for a in g.provinces[cur].adj:
+			if not seen.has(a) and data.map.provinces[a].get("ru", false) or not seen.has(a) and a < low:
+				seen[a] = true
+				queue.append(a)
+	check(seen.has(g.key_to_pid["kamchatka"]) or seen.has(g.key_to_pid["okhotsk"]), "Siberia is reachable by land from Moscow")
+	# seas: the Pacific meets across the date line, the polar passages are closed
+	check(g.sea_by_id["bering"].adj.has("chukchi") and g.sea_by_id["west_pacific"].adj.has("east_pacific"), "the Pacific is one ocean across the map edge")
+	check(not g.sea_by_id["kara"].adj.has("arctic") and not g.sea_by_id["nw_passage"].adj.has("baffin"), "no sailing through the polar ice")
+	check(not g.sea_by_id["indian"].adj.has("south_atlantic") and g.sea_by_id["indian"].adj.has("cape"), "the way to India is round the Cape")
+	check(g.sea_by_id["caspian"].provinces.has(g.key_to_pid["astrakhan"]) and g.sea_by_id["white_sea"].provinces.has(g.key_to_pid["dvina"]), "new coasts have their seas")
+	check(g.sea_by_id["asian_lakes"].adj.is_empty(), "the Asian lakes are inland water")
+	for i in 6:
+		g.tick()
+	check(g.nations.SIB.alive, "the game runs with the world map")
 
 
 ## The New World: terra incognita, expeditions, colonies, natives, save/load and old saves.

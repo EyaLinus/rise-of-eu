@@ -7,6 +7,7 @@ signal province_long_pressed(pid: int)
 signal province_context(pid: int, at: Vector2)  # right click (PC): quick actions
 
 const SEA := Color("1d3a5c")
+const SEA_DEEP := Color("132a45")  # open sea where no terrain tile is painted (art palette sea_deep)
 const WASTE := Color("55574d")
 const ARMY_R := 15.0
 const Icons = preload("res://scripts/ui/icons.gd")
@@ -21,11 +22,10 @@ const FOG_OF_WAR := Color(0.06, 0.06, 0.09, 0.4)
 const FOG_PATH := "res://data/fog.json"
 const FOG := Color("2f2c26")
 ## Painted base map (tools/art/map_terrain.py). Without it the map falls back to flat SEA/WASTE.
-const TERRAIN_PATH := "res://assets/art/map/terrain.png"
+
 ## The map below the Gulf of Guinea is cut into tiles (Africa, South America; map.json "terrain_tiles"):
 ## Android caps textures at 4096 px.
 const TERRAIN_DIR := "res://assets/art/map/"
-const TERRAIN_HALF_PATH := "res://assets/art/map/terrain_half.png"
 const FILL_ALPHA := 0.7
 const PROV_BORDER := Color(0.12, 0.09, 0.06, 0.28)
 const NATION_BORDER := Color(0.07, 0.05, 0.09, 0.9)
@@ -42,13 +42,9 @@ var game
 var polys: Array = []
 var bboxes: Array = []
 var background: Array = []
-var terrain: Texture2D
-var terrain_half: Texture2D
-var _terrain_rect: TextureRect
-var _terrain_tiles: Array = []  # TextureRects of the southern tiles (map.json "terrain_tiles")
-var terrain_tile_defs: Array = []  # [file, x, y, w, h] in map pixels
-var terrain_split := 0.0  # terrain.png covers the full width down to this y (map.json "terrain_split")
-var terrain_main := Rect2()  # the part terrain.png covers (map.json "terrain_main"; default: full width down to terrain_split)
+var has_terrain := false  # the painted map texture is there (else plain polygons on a flat sea)
+var _terrain_tiles: Array = []  # TextureRects of the painted map (map.json "terrain_tiles", a 2048 px grid)
+var terrain_tile_defs: Array = []  # [file, x, y, w, h] in map pixels; open sea without a tile is plain SEA_DEEP
 var _world: Node2D  # container of the world layer pieces (map_world_layer.gd)
 var _world_zoom := -1.0
 const WorldLayer = preload("res://scripts/ui/map_world_layer.gd")
@@ -117,10 +113,7 @@ func setup(g, map_data: Dictionary) -> void:
 	bboxes.clear()
 	background.clear()
 	world_size = Vector2(map_data.size[0], map_data.size[1])
-	terrain_split = float(map_data.get("terrain_split", map_data.size[1]))
 	terrain_tile_defs = map_data.get("terrain_tiles", [])
-	var tm: Array = map_data.get("terrain_main", [0, 0, world_size.x, terrain_split])
-	terrain_main = Rect2(tm[0], tm[1], tm[2], tm[3])
 	for pd in map_data.provinces:
 		var list := []
 		var bb := Rect2()
@@ -160,6 +153,8 @@ func setup(g, map_data: Dictionary) -> void:
 		if _fog_sprite != null:
 			_world.move_child(_fog_sprite, -1)
 	_setup_fog()
+	if not resized.is_connected(_sync_terrain):
+		resized.connect(_sync_terrain)
 	_sync_terrain()
 	refresh()
 
@@ -353,28 +348,16 @@ func _build_realm_labels() -> void:
 
 
 ## Terrain lives in child nodes drawn behind this one, so it can use linear filtering while the
-## pixel-art icons on top keep nearest filtering. _sync_terrain() follows pan and zoom.
+## pixel-art icons on top keep nearest filtering. _sync_terrain() follows pan and zoom. The painted map is a
+## grid of tiles (Android caps textures at 4096 px); tiles off screen are hidden.
 func _setup_terrain() -> void:
-	terrain = load(TERRAIN_PATH) if ResourceLoader.exists(TERRAIN_PATH) else null
-	terrain_half = load(TERRAIN_HALF_PATH) if ResourceLoader.exists(TERRAIN_HALF_PATH) else null
 	if _sea_rect == null:
 		_sea_rect = ColorRect.new()
-		_sea_rect.color = Color("132a45") if terrain != null else SEA
 		_sea_rect.show_behind_parent = true
 		_sea_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_sea_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 		add_child(_sea_rect)
-	if terrain == null:
-		return
-	if _terrain_rect == null:
-		_terrain_rect = TextureRect.new()
-		_terrain_rect.show_behind_parent = true
-		_terrain_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_terrain_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # VRAM-compressed with mipmaps (no shimmer when zoomed out)
-		_terrain_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		_terrain_rect.stretch_mode = TextureRect.STRETCH_SCALE
-		add_child(_terrain_rect)
-	if _terrain_tiles.is_empty() and not terrain_tile_defs.is_empty():
+	if _terrain_tiles.is_empty():
 		for td in terrain_tile_defs:
 			var path: String = TERRAIN_DIR + str(td[0])
 			if not ResourceLoader.exists(path):
@@ -382,13 +365,15 @@ func _setup_terrain() -> void:
 			var r := TextureRect.new()
 			r.show_behind_parent = true
 			r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			r.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+			r.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # VRAM-compressed with mipmaps (no shimmer when zoomed out)
 			r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			r.stretch_mode = TextureRect.STRETCH_SCALE
 			r.texture = load(path)
 			r.set_meta("rect", Rect2(td[1], td[2], td[3], td[4]))
 			add_child(r)
 			_terrain_tiles.append(r)
+	has_terrain = not _terrain_tiles.is_empty()
+	_sea_rect.color = SEA_DEEP if has_terrain else SEA
 	_sync_terrain()
 
 
@@ -399,20 +384,10 @@ func _sync_terrain() -> void:
 		if zoom != _world_zoom:  # line widths and zoom thresholds depend on it (plain fills do not)
 			_world_zoom = zoom
 			_refresh_world(false)
-	if _terrain_rect == null:
-		return
-	var half := zoom < 0.7 and terrain_half != null
-	var tex := terrain_half if half else terrain
-	if _terrain_rect.texture != tex:
-		_terrain_rect.texture = tex
-	# the half-size texture is the whole map; the full-size one covers terrain_main (the tiles do the rest)
-	var split := not _terrain_tiles.is_empty() and not half
-	_terrain_rect.position = offset + (terrain_main.position * zoom if split else Vector2.ZERO)
-	_terrain_rect.size = terrain_main.size if split else world_size
-	_terrain_rect.scale = Vector2(zoom, zoom)
+	var view := Rect2(-offset / zoom, size / zoom).grow(8.0)
 	for r in _terrain_tiles:
 		var rc: Rect2 = r.get_meta("rect")
-		r.visible = split
+		r.visible = view.intersects(rc)
 		r.position = offset + rc.position * zoom
 		r.size = rc.size
 		r.scale = Vector2(zoom, zoom)
@@ -579,13 +554,13 @@ func _draw_layer(ci) -> void:
 		return
 	match ci.kind:
 		"bg":
-			if _terrain_rect == null:
+			if not has_terrain:
 				for bg in background:
 					ci.draw_colored_polygon(bg, WASTE)
 		"prov":
 			var p = game.provinces[ci.pid]
 			var c := province_color(p)
-			if _terrain_rect != null:
+			if has_terrain:
 				c.a = FILL_ALPHA if map_mode < 2 else 0.86
 			for poly in polys[p.id]:
 				ci.draw_colored_polygon(poly, c)

@@ -2,9 +2,9 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cqygq8vtavvvv"
-path.s3tc="res://.godot/imported/terrain_sa.png-ea6010f7e83327d36bc423d57cf70caa.s3tc.ctex"
-path.etc2="res://.godot/imported/terrain_sa.png-ea6010f7e83327d36bc423d57cf70caa.etc2.ctex"
+uid="uid://dkjbu2t5u0qv4"
+path.s3tc="res://.godot/imported/terrain_2_1.png-cbdeaf37f666a9d71a53db7e1a9b75e4.s3tc.ctex"
+path.etc2="res://.godot/imported/terrain_2_1.png-cbdeaf37f666a9d71a53db7e1a9b75e4.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -12,8 +12,8 @@ metadata={
 
 [deps]
 
-source_file="res://assets/art/map/terrain_sa.png"
-dest_files=["res://.godot/imported/terrain_sa.png-ea6010f7e83327d36bc423d57cf70caa.s3tc.ctex", "res://.godot/imported/terrain_sa.png-ea6010f7e83327d36bc423d57cf70caa.etc2.ctex"]
+source_file="res://assets/art/map/terrain_2_1.png"
+dest_files=["res://.godot/imported/terrain_2_1.png-cbdeaf37f666a9d71a53db7e1a9b75e4.s3tc.ctex", "res://.godot/imported/terrain_2_1.png-cbdeaf37f666a9d71a53db7e1a9b75e4.etc2.ctex"]
 
 [params]
 

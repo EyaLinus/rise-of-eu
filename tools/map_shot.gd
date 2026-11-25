@@ -45,9 +45,9 @@ func _run(m) -> void:
 	await _shot("map_default")
 	m.map.focus(paris, 3.0)
 	await _shot("map_zoomed_in")
-	m.map.focus(Vector2(3740, 750), 0.45)
+	m.map.focus(paris + Vector2(250, 40), 0.45)
 	await _shot("map_europe")
-	m.map.focus(Vector2(3840, 1000), 1.2)
+	m.map.focus(paris + Vector2(350, 290), 1.2)
 	await _shot("map_mediterranean")
 	m.map.focus(g.provinces[g.key_to_pid["baghdad"]].center, 0.9)
 	await _shot("map_middle_east")
@@ -91,7 +91,7 @@ func _run(m) -> void:
 	m.map.map_mode = m.map.MODE_WAR
 	m.map.refresh()
 	await _shot("map_war")
-	m.map.focus(Vector2(3740, 750), 0.45)
+	m.map.focus(paris + Vector2(250, 40), 0.45)
 	await _shot("map_war_europe")
 	# development map mode: cities in brick tones, countryside green-gold
 	m.map.map_mode = 2

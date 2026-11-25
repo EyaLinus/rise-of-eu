@@ -412,6 +412,12 @@ F["PER"] = (centred(solid("L"), recolor(LION_RAMPANT, {"w": "G", "a": "D"}), cy=
 F["MAG"] = (centred(field("L", "w", "L"), recolor(CRESCENT, TO_RED), cy=3), "Maghreb – red crescent on green and white")
 FLAGS.update(F)
 
+# ---------------------------------------------------------------- the world regions (tools/world/*.py)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import world  # noqa: E402
+for _r in world.REGIONS:
+    FLAGS.update(_r.flag_art(globals()))
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     for tag, (f, comment) in FLAGS.items():

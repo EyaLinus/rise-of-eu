@@ -17,10 +17,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "art"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from map_terrain import RANGES, SCALE, LAT0, LON0, COSLAT, proj  # noqa: E402
 from mapproj import unproj  # noqa: E402
+from gen_seas import province_mask  # noqa: E402
+import world  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 OUT = os.path.join(ROOT, "data", "terrain.json")
 
+# classifications kept from before the world map (the ridge glow moved by a fraction of a pixel)
+FORCE = {"wallachia": "plains", "tehuantepec": "hills", "mazandaran": "mountains", "fars": "mountains"}
 # dry lands; everything else south of DESERT_LAT is desert too
 DESERT_KEYS = {"barqa", "marmarica", "sous", "damascus", "aleppo", "gabes", "tripoli"}
 DESERT_LAT = 31.2
@@ -72,15 +76,25 @@ def main():
     mount = ndimage.gaussian_filter(np.asarray(ridge, np.float32) / 255.0, 6) * 2.2
     out = {}
     for p in m["provinces"]:
-        mask = Image.new("L", (W, H), 0)
-        d = ImageDraw.Draw(mask)
-        for poly in p["polys"]:
-            d.polygon([tuple(c) for c in poly], fill=255)
-        sel = np.asarray(mask) > 0
-        relief = float(mount[sel].mean()) if sel.any() else 0.0
-        peak = float(np.percentile(mount[sel], 90)) if sel.any() else 0.0
+        mk, (bx, by) = province_mask(p, W, H, 0)
+        vals = mount[by:by + mk.shape[0], bx:bx + mk.shape[1]][mk]
+        relief = float(vals.mean()) if vals.size else 0.0
+        peak = float(np.percentile(vals, 90)) if vals.size else 0.0
         lon, lat = lonlat(*p["center"])
-        if p["key"] in SA_HILLS:
+        wr = world.region_of(p["key"])
+        if wr is not None:
+            k = p["key"]
+            if k in wr.TERRAIN:
+                t = wr.TERRAIN[k]
+            elif relief > 0.55 or peak > 1.1:
+                t = "mountains"
+            elif relief > 0.2 or peak > 0.6:
+                t = "hills"
+            else:
+                t = wr.DEFAULT_TERRAIN(k, lat)
+        elif p["key"] in FORCE:
+            t = FORCE[p["key"]]
+        elif p["key"] in SA_HILLS:
             t = "hills"
         elif p["key"] in SA_LOW:
             k = p["key"]

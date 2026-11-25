@@ -447,7 +447,7 @@
   "colony_dev": 3,
   "dip_tech_per_colonist": 10,
   "colonies_per_colonist": 4,
-  "wa_known_y": 2592,
+  "wa_known_y": 2976,
   "recruit_colonist_dip": 120,
   "recruit_colonist_max": 3,
   "natives_per_dev": 1.5,

@@ -15,7 +15,9 @@ const NATIVE := "NAT"  # owner of uncolonized native land
 ## West African coast down to Sierra Leone, which Portuguese caravels reached by 1444).
 const NEW_SEAS := ["guinea", "ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes",
 		"south_atlantic", "cape", "mozambique", "swahili", "indian", "af_lakes",
-		"guiana", "amazon", "brazil", "plata", "patagonian", "horn", "humboldt", "cortez", "california", "cascadia"]
+		"guiana", "amazon", "brazil", "plata", "patagonian", "horn", "humboldt", "cortez", "california", "cascadia",
+		"beaufort", "nw_passage", "baffin", "chukchi", "gulf_alaska", "east_pacific", "arafura", "coral", "tasman", "south_aus", "melanesia",
+		"south_pacific", "east_indian"]
 ## Monsoon trade: realms with a coast on one of these known seas also know the Swahili coast from the start.
 const MONSOON := {"swahili": ["aden", "arabian", "persian_gulf"]}
 

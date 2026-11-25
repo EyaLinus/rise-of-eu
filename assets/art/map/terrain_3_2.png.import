@@ -2,9 +2,9 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://14gsthnbtdm7"
-path.s3tc="res://.godot/imported/terrain_half.png-7b1c16315b3402fc5a69463190caccf8.s3tc.ctex"
-path.etc2="res://.godot/imported/terrain_half.png-7b1c16315b3402fc5a69463190caccf8.etc2.ctex"
+uid="uid://drwy6hj87lh34"
+path.s3tc="res://.godot/imported/terrain_3_2.png-f080d8ec4c849351da4aa7ef5cc702cf.s3tc.ctex"
+path.etc2="res://.godot/imported/terrain_3_2.png-f080d8ec4c849351da4aa7ef5cc702cf.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -12,8 +12,8 @@ metadata={
 
 [deps]
 
-source_file="res://assets/art/map/terrain_half.png"
-dest_files=["res://.godot/imported/terrain_half.png-7b1c16315b3402fc5a69463190caccf8.s3tc.ctex", "res://.godot/imported/terrain_half.png-7b1c16315b3402fc5a69463190caccf8.etc2.ctex"]
+source_file="res://assets/art/map/terrain_3_2.png"
+dest_files=["res://.godot/imported/terrain_3_2.png-f080d8ec4c849351da4aa7ef5cc702cf.s3tc.ctex", "res://.godot/imported/terrain_3_2.png-f080d8ec4c849351da4aa7ef5cc702cf.etc2.ctex"]
 
 [params]
 
