@@ -1,0 +1,1 @@
+- **Leistung:** Die KI plant ihre Bauten und verwaltet ihre Armeen in Friedenszeiten schneller, ohne anders zu entscheiden. Ein Monat ist auf der ganzen Weltkarte rund 10 % schneller berechnet.
