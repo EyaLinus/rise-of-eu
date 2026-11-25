@@ -3,7 +3,8 @@
 time after tools/gen_map.py.
 
     nations.json   one entry per tag (added at the end, existing entries replaced)
-    goods.json     the good of every province of the regions, and their market centres
+    goods.json     the good of every province of the regions, their market centres and new goods (NEW_GOODS;
+                   each needs a pixel glyph for its emoji in tools/art/emoji_icons.py)
     diplomacy.json alliances and rivalries
 
 Flags are drawn by tools/art/flags.py (it imports the regions' flag_art), then tools/build_art.sh.
@@ -30,6 +31,8 @@ def main():
     goods = load("goods.json")
     dip = load("diplomacy.json")
     for r in world.REGIONS:
+        for good, gd in getattr(r, "NEW_GOODS", {}).items():
+            goods["goods"][good] = gd
         for tag, nd in r.NATIONS.items():
             assert nd["capital"] in keys and owners[nd["capital"]] == tag, (tag, nd["capital"])
             nat = nations.pop("NAT", None)  # NAT (uncolonized land) stays last

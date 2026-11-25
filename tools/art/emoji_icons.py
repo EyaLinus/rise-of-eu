@@ -167,6 +167,9 @@ add("🦷", "ivory", layer(["w.........", "ww........", ".wwa......", "..wwwa...
 add("🎨", "dyes", layer(["..oooooo..", ".oOOOOOOo.", "oORRORBBOo", "oOROOOBNOH", "oOOOOOOOOH", "oOLLOOUUOH", ".OLFOOUVH.", "..HHH.OH..", ".....HH..."], 3, 3))
 add("☕", "coffee", layer(["...w..w...", "....w..w..", "...w..w...", "wwwwwwwwa.", "wOOOOOOwaa", "wOHHHHOwa.a", "awwwwwwwaa", ".awwwwwa..", "..aaaaa...", "gggggggggd"], 3, 3))
 add("🪔", "lamp", layer(["....Y.....", "...YGY....", "...rGR....", "....E.....", "GGGGGGGGD.", "YGGGGGGGGDD", ".DGGGGGGD.D", "..DDDDDD...", "...GGGD...", "..DDDDDD.."], 3, 3))
+add("💎", "gems", layer(["..bwbbbB..", ".bwbbbbBN.", "bbbbbbBBBN", "NBBBBBBBNN", ".NBBBBBBN.", "..NBBBBN..", "...NBBN...", "....NN...."], 3, 4))
+add("🍵", "tea", layer([".a..a..a..", "..a..a..a.", "aaaaaaaaaa", "wLLLLLLLLa", "wwwwwwwwwa", ".wwwwwwwa.", "..wwwwwa..", "...aaaa..."], 3, 4))
+add("🏺", "porcelain", layer(["...wwww...", "...waaw...", "..wwwwww..", ".wwBBBBww.", "wwBwwwwBwa", "wwBwBBwBwa", "wwBwwwwBwa", ".wwBBBBwa.", "..wwwwwa..", "...aaaa..."], 3, 3))
 
 
 # red ring with a diagonal bar: embargo / forbidden

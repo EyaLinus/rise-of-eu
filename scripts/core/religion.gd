@@ -12,6 +12,11 @@ const FAITHS := {
 	"shia": {"name": "Schiitisch", "color": "2f7f6a"},
 	"coptic": {"name": "Koptisch", "color": "c46a9a"},
 	"native": {"name": "Naturglaube", "color": "b8865a"},
+	# Asia: their people hold on to their faith (drift = share of the yearly religion_drift)
+	"hindu": {"name": "Hinduistisch", "color": "d8662a", "drift": 0.3},
+	"buddhist": {"name": "Buddhistisch", "color": "f0aa30", "drift": 0.5},
+	"confucian": {"name": "Konfuzianisch", "color": "b8322e", "drift": 0.5},
+	"shinto": {"name": "Shinto", "color": "ff8f9a", "drift": 0.5},
 }
 
 
@@ -25,7 +30,8 @@ static func setup(g, data: Dictionary) -> void:
 		if data.nations[tag].get("devout", false):
 			g.nations[tag].flags["devout"] = 1  # the AI never leaves its faith (Habsburg, Spain, the Pope ...)
 	for p in g.provinces:
-		p.religion = g.nations[p.owner].religion
+		# the people's faith (map.json "religion", e.g. Hindus under the sultans of India), else the ruler's
+		p.religion = str(data.map.provinces[p.id].get("religion", g.nations[p.owner].religion))
 
 
 ## Unrest from a province of another faith; laws like Toleranz lower it (modifier religious_unrest).
@@ -150,7 +156,8 @@ static func yearly(g) -> void:
 	for p in g.provinces:
 		var own: String = g.nations[p.owner].religion
 		if p.religion != own and p.convert_months == 0 and p.controller == p.owner \
-				and g.rng.randf() < float(g.bal.religion_drift) * maxf(0.0, 1.0 + g.mod(g.nations[p.owner], "conversion")):
+				and g.rng.randf() < float(g.bal.religion_drift) * float(FAITHS.get(p.religion, {}).get("drift", 1.0)) \
+				* maxf(0.0, 1.0 + g.mod(g.nations[p.owner], "conversion")):
 			p.religion = own
 	if y >= int(g.bal.reformation_year) and y <= int(g.bal.reformation_end):
 		_reformation(g, y)

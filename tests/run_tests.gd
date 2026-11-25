@@ -2089,6 +2089,21 @@ func test_world_map() -> void:
 				q2.append(a)
 	check(hops.has(g.key_to_pid["isfahan"]), "Herat is a few marches from Isfahan")
 	check(g.sea_by_id["arabian"].provinces.has(g.key_to_pid["thatta"]), "the Indus delta lies on the Arabian Sea")
+	# India and Ceylon: Hindu subjects under the sultans, Buddhist Kotte, Adam's Bridge
+	const Faith = preload("res://scripts/core/religion.gd")
+	for key in ["delhi", "jaunpur", "gaur", "vijayanagara", "calicut", "kotte", "kathmandu", "srinagar"]:
+		var pid: int = g.key_to_pid[key]
+		check(data.map.provinces[pid].get("in", false) and not Col.is_new_world(g, pid), "%s is Old World land in the in block" % key)
+	for tag in ["DLH", "JNP", "BNG", "MLW", "GUJ", "BAH", "VIJ", "ORI", "MEW", "CLC", "KOT", "JFN", "NPL", "KSH", "AHO"]:
+		check(g.nations[tag].alive and not Col.is_native_realm(g, tag), "%s is a living realm" % tag)
+	check(Faith.FAITHS.has("hindu") and Faith.FAITHS.has("buddhist"), "Hinduism and Buddhism are faiths")
+	check(g.nations.JNP.religion == "sunni" and g.provinces[g.key_to_pid["jaunpur"]].religion == "hindu", "the people of Jaunpur stay Hindu under their sultan")
+	check(g.provinces[g.key_to_pid["delhi"]].religion == "sunni" and g.provinces[g.key_to_pid["vijayanagara"]].religion == "hindu", "Delhi is Muslim, Vijayanagara Hindu")
+	check(g.provinces[g.key_to_pid["kotte"]].religion == "buddhist" and g.nations.KOT.religion == "buddhist", "Kotte is Buddhist")
+	check(Faith.unrest(g, g.provinces[g.key_to_pid["jaunpur"]]) > 0.0, "a Hindu province under a sultan has religious unrest")
+	check(float(Faith.FAITHS.hindu.drift) < 1.0, "Hindus hold on to their faith longer")
+	check(g.provinces[g.key_to_pid["madurai"]].adj.has(g.key_to_pid["vanni"]), "Adam's Bridge links India and Ceylon")
+	check(g.provinces[g.key_to_pid["golconda"]].good == "gems" and g.goods_def.has("gems"), "Golconda produces gems")
 	for i in 6:
 		g.tick()
 	check(g.nations.SIB.alive, "the game runs with the world map")

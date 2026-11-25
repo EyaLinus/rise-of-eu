@@ -197,6 +197,38 @@
     [
       "SND",
       "MUL"
+    ],
+    [
+      "DLH",
+      "JNP"
+    ],
+    [
+      "BAH",
+      "VIJ"
+    ],
+    [
+      "GUJ",
+      "MLW"
+    ],
+    [
+      "MEW",
+      "MLW"
+    ],
+    [
+      "ORI",
+      "BNG"
+    ],
+    [
+      "CLC",
+      "KOC"
+    ],
+    [
+      "KOT",
+      "JFN"
+    ],
+    [
+      "MAW",
+      "MEW"
     ]
   ],
   "claims": {
