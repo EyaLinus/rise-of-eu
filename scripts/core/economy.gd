@@ -351,13 +351,22 @@ static func local_manpower(g, p) -> float:
 
 # ---------------------------------------------------------------- goods and prices
 
-static func supply(g) -> Dictionary:
+## `u` (optional): units per province id from all_units(), so a yearly pass computes them once.
+static func supply(g, u: Array = []) -> Dictionary:
 	var s := {}
 	for k in g.goods_def:
 		s[k] = 0.0
 	for p in g.provinces:
-		s[p.good] = s.get(p.good, 0.0) + units(g, p)
+		s[p.good] = s.get(p.good, 0.0) + (u[p.id] if not u.is_empty() else units(g, p))
 	return s
+
+
+static func all_units(g) -> Array:
+	var u := []
+	u.resize(g.provinces.size())
+	for p in g.provinces:
+		u[p.id] = units(g, p)
+	return u
 
 
 ## Yearly: prices follow world supply against slowly growing demand; the biggest producer of a good
@@ -371,16 +380,18 @@ static func yearly(g) -> void:
 ## Yearly price update and goods leaders (first part of yearly()).
 static func yearly_prices(g) -> void:
 	_shocks_yearly(g)
-	var s := supply(g)
+	var u := all_units(g)
+	var s := supply(g, u)
 	var years: float = g.year() - int(g.bal.start_year)
 	g.prev_prices = g.prices.duplicate()
 	var econ: float = economy_growth(g, s)
+	var counts := [g.Urban.count(g, false), g.Urban.count(g, true)]
 	for k in g.goods_def:
-		var demand: float = float(g.base_supply.get(k, 1.0)) * econ * (1.0 + float(g.bal.demand_growth) * years) * g.Urban.demand_mult(g, k)
+		var demand: float = float(g.base_supply.get(k, 1.0)) * econ * (1.0 + float(g.bal.demand_growth) * years) * g.Urban.demand_mult(g, k, counts)
 		var ratio: float = price_level(g) * sqrt(demand / maxf(0.01, s[k]))
 		var shock: float = float(g.shocks[k].mult) if g.shocks.has(k) else 1.0
 		g.prices[k] = snappedf(float(g.goods_def[k].price) * clampf(ratio, float(g.bal.price_min), float(g.bal.price_max)) * shock, 0.001)
-	refresh_goods_leaders(g)
+	refresh_goods_leaders(g, u)
 
 
 ## Yearly merchant moves of one realm (second part of yearly(), run for every realm in g.order).
@@ -442,22 +453,24 @@ static func _shocks_yearly(g) -> void:
 		g.log_msg("📉 Überangebot: %s %s wird für %d Jahre billiger." % [gd.emoji, gd.name, years])
 
 
-static func goods_output(g, tag: String) -> Dictionary:
+static func goods_output(g, tag: String, u: Array = []) -> Dictionary:
 	var r := {}
 	for pid in g.provinces_of(tag):
 		var p = g.provinces[pid]
-		r[p.good] = r.get(p.good, 0.0) + units(g, p)
+		r[p.good] = r.get(p.good, 0.0) + (u[pid] if not u.is_empty() else units(g, p))
 	return r
 
 
-static func refresh_goods_leaders(g) -> void:
-	var s := supply(g)
+static func refresh_goods_leaders(g, u: Array = []) -> void:
+	if u.is_empty():
+		u = all_units(g)
+	var s := supply(g, u)
 	var best := {}
 	var best_v := {}
 	for tag in g.order:
 		if not g.nations[tag].alive:
 			continue
-		var out := goods_output(g, tag)
+		var out := goods_output(g, tag, u)
 		for k in out:
 			if out[k] > best_v.get(k, 0.0):
 				best_v[k] = out[k]
@@ -523,6 +536,14 @@ static func update_markets(g) -> void:
 			t += c[m].power[tag]
 		c[m].total = t
 	g.market_cache = c
+	var by_tag := {}  # tag -> markets it has power in, in market_cache order (trade_income sums in that order)
+	for m in c:
+		for tag in c[m].power:
+			if by_tag.has(tag):
+				by_tag[tag].append(m)
+			else:
+				by_tag[tag] = [m]
+	g.market_tags = by_tag
 
 
 static func trade_share(g, tag: String, m: int) -> float:
@@ -534,9 +555,9 @@ static func trade_share(g, tag: String, m: int) -> float:
 
 static func trade_income(g, n) -> float:
 	var v := 0.0
-	for m in g.market_cache:
+	for m in g.market_tags.get(n.tag, []):
 		var e: Dictionary = g.market_cache[m]
-		if e.total > 0.0 and e.power.has(n.tag):
+		if e.total > 0.0:
 			var dom: float = 1.0 + float(g.bal.dom_bonus) if g.east.get("dom", {}).get(m, "") == n.tag else 1.0
 			v += e.value * e.power[n.tag] / e.total * dom
 	v += g.Trade.east_income(g, n.tag)

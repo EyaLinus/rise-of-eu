@@ -898,6 +898,9 @@ def main(land_path, lakes_path):
         provinces.append(d)
 
     key_to_id = {p[0]: i for i, p in enumerate(PROVINCES)}
+    if len(key_to_id) != len(PROVINCES):
+        dup = sorted({p[0] for p in PROVINCES if sum(1 for q in PROVINCES if q[0] == p[0]) > 1})
+        raise SystemExit("duplicate province keys: %s" % dup)
     adj = [set() for _ in PROVINCES]
     tree = STRtree(shapes)
     for i in range(len(shapes)):

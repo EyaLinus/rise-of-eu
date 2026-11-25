@@ -156,6 +156,7 @@ func test_map_geometry() -> void:
 
 ## The Old World (with all of Africa, over the Saharan caravan routes and the Comoros crossing to
 ## Madagascar) and the New World are each one connected landmass (no land route across the Atlantic).
+## Only Aotearoa and Hawaii are separate island groups, reached by sea.
 func test_map_connected() -> void:
 	var g = new_game()
 	var Col = load("res://scripts/core/colonial.gd")
@@ -166,8 +167,14 @@ func test_map_connected() -> void:
 		var pid: int = g.key_to_pid[k]
 		check(Col.region(g, pid) == "old" and not Col.is_new_world(g, pid) and Col.knows(g, "FRA", pid), "%s is known Old World land" % k)
 	check(Col.region(g, g.nw_end - 1) == "africa", "the overseas block ends with West Africa")
+	# Aotearoa and Hawaii lie far out in the Pacific: islands reached only by ship, each its own landmass
+	var starts := [0, g.nw_first]
+	for k in ["northland", "hawaii"]:
+		var ip: int = g.key_to_pid[k]
+		check(not g.province_seas.get(ip, []).is_empty(), "%s has a coast for ships" % k)
+		starts.append(ip)
 	var seen := {}
-	for start in [0, g.nw_first]:
+	for start in starts:
 		seen[start] = true
 		var q := [start]
 		while not q.is_empty():
@@ -1938,7 +1945,7 @@ func test_na_west_and_netherlands() -> void:
 		if data.map.provinces[pid].get("pac", false):
 			west += 1
 			check(Col.is_new_world(g, pid) and Col.region(g, pid) == "america" and p.owner == Col.NATIVE, "%s is native land in America" % p.key)
-		else:
+		elif not data.map.provinces[pid].get("nw", false):  # the world regions add overseas blocks of their own (test_world_map)
 			check(not Col.is_new_world(g, pid) and Col.region(g, pid) == "old", "%s is Old World" % p.key)
 	check(west >= 40, "the west coast has %d provinces" % west)
 	check(int(data.map.size[0]) > 4096, "the map is wider than one Android texture")
@@ -2127,6 +2134,16 @@ func test_world_map() -> void:
 	check(Col.is_native_realm(g, "TON") and Col.is_native_realm(g, "DYK"), "Tondo and the Dayak are tribal realms")
 	check(g.sea_by_id["malacca"].provinces.has(g.key_to_pid["malacca"]) and g.provinces[g.key_to_pid["malacca"]].adj.has(g.key_to_pid["pagaruyung"]), "Malacca holds the strait")
 	check(g.provinces[g.key_to_pid["ternate"]].good == "spices" and g.nations.DAI.religion == "confucian" and g.nations.AYU.religion == "buddhist", "clove islands, Confucian Dai Viet, Buddhist Siam")
+	# Oceania and the American Arctic: open land of their peoples, unknown in 1444
+	for key in ["arrernte", "eora", "sepik", "waikato", "fiji", "hawaii"]:
+		var pid: int = g.key_to_pid[key]
+		check(Col.is_new_world(g, pid) and Col.region(g, pid) == "oceania" and g.provinces[pid].owner == "NAT", "%s is open land in Oceania" % key)
+		check(not Col.knows(g, "FRA", pid) and not Col.knows(g, "AZT", pid), "%s is unknown in Europe and America" % key)
+	for key in ["yupik", "yukon", "kivalliq", "qikiqtaaluk"]:
+		var pid: int = g.key_to_pid[key]
+		check(Col.region(g, pid) == "america" and g.provinces[pid].owner == "NAT" and data.map.provinces[pid].get("ak", false), "%s is open land in the American north" % key)
+	check(g.provinces[g.key_to_pid["kulin"]].adj.has(g.key_to_pid["palawa"]) and g.provinces[g.key_to_pid["arnhem"]].adj.has(g.key_to_pid["timor"]), "Bass Strait and the Timor Sea crossings")
+	check(Col.region(g, g.key_to_pid["timor"]) == "old", "Timor stays Old World")
 	for i in 6:
 		g.tick()
 	check(g.nations.SIB.alive, "the game runs with the world map")

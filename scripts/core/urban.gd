@@ -111,14 +111,15 @@ static func slot_bonus(g, p) -> int:
 
 
 ## Demand multiplier of a good from the world's share of cities (1.0 at the start).
-static func demand_mult(g, good: String) -> float:
+## `counts` (optional): [rural, urban] province counts, precomputed for a loop over all goods.
+static func demand_mult(g, good: String, counts: Array = []) -> float:
 	if g.urban_start.is_empty():
 		return 1.0
 	var city := is_city_good(g, good)
 	var start: int = int(g.urban_start[1 if city else 0])
 	if start <= 0:
 		return 1.0
-	var now: int = count(g, city)
+	var now: int = int(counts[1 if city else 0]) if counts.size() == 2 else count(g, city)
 	return maxf(0.5, 1.0 + float(g.bal.urban_demand_shift) * (float(now) / float(start) - 1.0))
 
 

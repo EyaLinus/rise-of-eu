@@ -389,7 +389,8 @@ func _sync_terrain() -> void:
 		var rc: Rect2 = r.get_meta("rect")
 		r.visible = view.intersects(rc)
 		r.position = offset + rc.position * zoom
-		r.size = rc.size
+		# overlap the next tile by ~1.5 screen pixels: rounding at fractional zoom left hairline seams
+		r.size = rc.size + Vector2.ONE * (1.5 / zoom)
 		r.scale = Vector2(zoom, zoom)
 
 
