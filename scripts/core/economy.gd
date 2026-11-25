@@ -763,13 +763,21 @@ static func building_candidates(g, n, war: bool, only_best := false) -> Array:
 	var best_score := 0.0
 	var mult := build_cost_mult(g, n)
 	var counts := {}
+	# building_cost inlined with the same arithmetic (this loop prices every building in every province)
+	var cm := float(g.bal.building_cost_mult)
+	var ex := float(g.bal.building_level_exp)
+	var cpd := float(g.bal.building_cost_per_dev)
 	for pid in g.provinces_of(n.tag):
 		var p = g.provinces[pid]
 		if p.controller != n.tag or not p.constructing.is_empty():
 			continue
+		var full: bool = p.buildings.size() >= slots(g, p)
+		var dev_mult: float = 1.0 + p.dev * cpd
 		var ctx := {}  # per-province values shared by all building types (unrest, exposed border)
 		for bid in g.buildings_def:
-			var cost := building_cost(g, n.tag, pid, bid, mult)
+			if full and not p.buildings.has(bid):
+				continue  # no free slot: _build_block_no_gold would refuse it too
+			var cost: float = round(float(g.buildings_def[bid].cost) * cm * pow(level(p, bid) + 1, ex) * dev_mult * mult)
 			if n.gold < cost or _build_block_no_gold(g, n.tag, p, bid, counts) != "":  # gold first: the cheap test
 				continue
 			var s := _building_value(g, n, p, bid, war, ctx) / cost

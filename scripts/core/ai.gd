@@ -617,16 +617,21 @@ func control_armies(g, tag: String) -> void:
 	var n = g.nations[tag]
 	var enemies: Array = g.enemies_of(tag)
 	var mine: Array = []
+	var at_cap := 0  # all own armies in the capital (merge_armies joins them, auto or not)
 	for a in g.armies:
-		if a.owner == tag and a.auto:
-			mine.append(a)
+		if a.owner == tag:
+			if a.auto:
+				mine.append(a)
+			if a.pid == n.capital:
+				at_cap += 1
 	if mine.is_empty():
 		return
 	if enemies.is_empty():
 		for a in mine:
 			if a.pid != n.capital and a.target != n.capital:
 				g.move_army(a, n.capital)
-		g.merge_armies(tag, n.capital)
+		if at_cap > 1:  # one army alone has nothing to merge with (moving armies arrive in later months)
+			g.merge_armies(tag, n.capital)
 		return
 	if (g.month + tag.hash()) % 2 != 0:
 		return
