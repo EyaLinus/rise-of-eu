@@ -64,5 +64,22 @@
 ["tsugaru", "oshima"],
 ["satsuma", "amami"],
 ["amami", "okinawa"],
-["jeolla", "jeju"]
+["jeolla", "jeju"],
+["malacca", "pagaruyung"],
+["johor", "pagaruyung"],
+["lampung", "pakuan"],
+["blambangan", "bali"],
+["bali", "nusa_tenggara"],
+["trowulan", "madura"],
+["sabah", "sulu"],
+["sulu", "maguindanao"],
+["bicol", "cebu"],
+["cebu", "butuan"],
+["nakhon_si", "kedah"],
+["nusa_tenggara", "timor"],
+["ternate", "ambon"],
+["ternate", "minahasa"],
+["makassar", "kutai"],
+["banjar", "madura"],
+["tanjungpura", "jambi"]
 ]

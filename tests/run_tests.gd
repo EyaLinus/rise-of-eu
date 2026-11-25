@@ -2118,6 +2118,15 @@ func test_world_map() -> void:
 	check(g.provinces[g.key_to_pid["dongnae"]].adj.has(g.key_to_pid["tsushima"]) and g.provinces[g.key_to_pid["tsushima"]].adj.has(g.key_to_pid["hizen"]), "Tsushima links Korea and Japan")
 	check(g.provinces[g.key_to_pid["kaiyuan"]].adj.has(g.key_to_pid["jianzhou"]) or g.provinces[g.key_to_pid["liaoyang"]].adj.has(g.key_to_pid["jianzhou"]), "Liaodong borders the Jurchen")
 	check(g.sea_by_id["japan_sea"].provinces.has(g.key_to_pid["hamhung"]) and g.sea_by_id["east_china"].provinces.has(g.key_to_pid["ningbo"]), "the seas of East Asia have their coasts")
+	# Southeast Asia and the islands
+	for key in ["ayutthaya", "pegu", "thang_long", "malacca", "trowulan", "ternate", "tondo"]:
+		var pid: int = g.key_to_pid[key]
+		check(data.map.provinces[pid].get("se", false) and not Col.is_new_world(g, pid), "%s is Old World land in the se block" % key)
+	for tag in ["AVA", "HAN", "AYU", "DAI", "KHM", "MLC", "MJP", "TER", "BRU"]:
+		check(g.nations[tag].alive and not Col.is_native_realm(g, tag), "%s is a living realm" % tag)
+	check(Col.is_native_realm(g, "TON") and Col.is_native_realm(g, "DYK"), "Tondo and the Dayak are tribal realms")
+	check(g.sea_by_id["malacca"].provinces.has(g.key_to_pid["malacca"]) and g.provinces[g.key_to_pid["malacca"]].adj.has(g.key_to_pid["pagaruyung"]), "Malacca holds the strait")
+	check(g.provinces[g.key_to_pid["ternate"]].good == "spices" and g.nations.DAI.religion == "confucian" and g.nations.AYU.religion == "buddhist", "clove islands, Confucian Dai Viet, Buddhist Siam")
 	for i in 6:
 		g.tick()
 	check(g.nations.SIB.alive, "the game runs with the world map")
