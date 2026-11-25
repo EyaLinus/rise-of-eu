@@ -151,7 +151,9 @@ static func build_block_reason(g, tag: String, pid: int, bid: String) -> String:
 
 
 ## Every rule of build_block_reason except the price.
-static func _build_block_no_gold(g, tag: String, p, bid: String) -> String:
+## `counts` (optional) caches count_in_realm per building for one scan over a realm (nothing may be built
+## in between).
+static func _build_block_no_gold(g, tag: String, p, bid: String, counts = null) -> String:
 	var d: Dictionary = g.buildings_def.get(bid, {})
 	if d.is_empty():
 		return "Unbekanntes Gebäude."
@@ -172,8 +174,21 @@ static func _build_block_no_gold(g, tag: String, p, bid: String) -> String:
 	var tech := level_tech(g, bid, level(p, bid) + 1)
 	if tech != "" and not g.nations[tag].techs.has(tech):
 		return "Braucht Technologie: %s." % g.tree.by_id[tech].name
-	if d.has("max_count") and not p.buildings.has(bid) and count_in_realm(g, tag, bid) >= int(d.max_count):
+	if d.has("max_count") and not p.buildings.has(bid):
+		var c: int
+		if counts == null:
+			c = count_in_realm(g, tag, bid)
+		else:
+			if not counts.has(bid):
+				counts[bid] = count_in_realm(g, tag, bid)
+			c = counts[bid]
+		if c < int(d.max_count):
+			return _block_dev(g, p, bid)
 		return "Höchstens %d im Reich." % int(d.max_count)
+	return _block_dev(g, p, bid)
+
+
+static func _block_dev(g, p, bid: String) -> String:
 	if p.dev < level_dev(g, p, bid):
 		return "Braucht Entwicklung %d." % level_dev(g, p, bid)
 	return ""
@@ -714,9 +729,19 @@ static func autobuild(g, n) -> int:
 
 ## Best building for the AI: highest extra monthly value per gold. Returns [pid, bid] or [].
 static func best_building(g, n, war: bool) -> Array:
-	var best: Array = []
+	var c: Array = building_candidates(g, n, war, true)
+	return [] if c.is_empty() else [c[0][1], c[0][2]]
+
+
+## Every building `n` can afford and build now, best value per gold first: [score, pid, bid, cost].
+## Scores do not depend on the treasury, so a buyer can walk down the list (re-checking each entry
+## with _build_block_no_gold and its gold) instead of searching again after every purchase.
+## only_best: just the best entry (the plain search).
+static func building_candidates(g, n, war: bool, only_best := false) -> Array:
+	var out: Array = []
 	var best_score := 0.0
 	var mult := build_cost_mult(g, n)
+	var counts := {}
 	for pid in g.provinces_of(n.tag):
 		var p = g.provinces[pid]
 		if p.controller != n.tag or not p.constructing.is_empty():
@@ -724,15 +749,23 @@ static func best_building(g, n, war: bool) -> Array:
 		var ctx := {}  # per-province values shared by all building types (unrest, exposed border)
 		for bid in g.buildings_def:
 			var cost := building_cost(g, n.tag, pid, bid, mult)
-			if n.gold < cost or _build_block_no_gold(g, n.tag, p, bid) != "":  # gold first: the cheap test
+			if n.gold < cost or _build_block_no_gold(g, n.tag, p, bid, counts) != "":  # gold first: the cheap test
 				continue
 			var s := _building_value(g, n, p, bid, war, ctx) / cost
 			if not p.buildings.has(bid):
 				s *= 0.8  # a new building uses up a slot
-			if s > best_score:
+			if s > best_score:  # same tie rule as a plain search: the first of equal scores wins
 				best_score = s
-				best = [pid, bid]
-	return best
+				out.append([s, pid, bid, cost])
+			elif not only_best and s > 0.0:
+				out.append([s, pid, bid, cost])
+	if only_best:
+		return [] if out.is_empty() else [out[out.size() - 1]]
+	# stable: equal scores keep scan order, like the plain search
+	for i in out.size():
+		out[i].append(i)
+	out.sort_custom(func(a, b): return a[0] > b[0] or (a[0] == b[0] and a[4] < b[4]))
+	return out
 
 
 static func _ctx_unrest(g, p, ctx: Dictionary) -> float:

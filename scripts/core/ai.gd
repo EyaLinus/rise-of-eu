@@ -183,11 +183,22 @@ func _spend_gold(g, n) -> void:
 		return
 	var margin: float = 20.0 if (not war and regs >= want - 1.0) else 120.0
 	if n.gold > reserve + margin + _cheapest_building_cost(g, n):  # else nothing affordable: skip the expensive search
+		# one search, then walk down the list: entries that turned invalid (too dear now, province busy,
+		# realm limit reached) stay invalid, so this picks what a new search would pick
+		var cands: Array = Eco.building_candidates(g, n, war)
+		var ci := 0
 		for i in 3:
-			var best: Array = g.Economy.best_building(g, n, war)
+			var best: Array = []
+			while ci < cands.size():
+				var c: Array = cands[ci]
+				ci += 1
+				if n.gold >= c[3] and Eco._build_block_no_gold(g, tag, g.provinces[c[1]], c[2]) == "":
+					best = [c[1], c[2]]
+					break
 			if best.is_empty() or n.gold <= g.Economy.building_cost(g, tag, best[0], best[1]) + reserve + margin:
 				break
 			g.construct(tag, best[0], best[1])
+	g._pmark("ai.build")
 	if not war:
 		_peace_spending(g, n, reserve + margin)
 
