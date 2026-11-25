@@ -7,8 +7,10 @@ Land and lakes: Natural Earth 1:50m (public domain, github.com/nvkelso/natural-e
 Projection: tools/mapproj.py.
 """
 import json
+import math
 import os
 import sys
+import zlib
 
 from shapely import voronoi_polygons
 from shapely import STRtree
@@ -800,6 +802,22 @@ def main(land_path, lakes_path):
 
     pts = [proj(p[2], p[3]) for p in PROVINCES]
     W, H = size()
+
+    def blob(c, r, key):
+        """The radius cap of a province: a wobbly disc (fixed per key) instead of a circle, so sparse desert
+        and tundra provinces end in natural-looking edges, not in rings with lens-shaped gaps between them."""
+        rnd = zlib.crc32(key.encode())
+        harm = []
+        for k in (2, 3, 5, 7):
+            rnd = (rnd * 1103515245 + 12345) & 0x7FFFFFFF
+            harm.append((k, 0.16 / math.sqrt(k), rnd / 0x7FFFFFFF * math.tau))
+        ring = []
+        for j in range(64):
+            t = j / 64.0 * math.tau
+            # never inside the old circle: a smaller cap would open gaps the sea tools read as water
+            f = 1.0 + 0.5 * (sum(a * math.sin(k * t + ph) for k, a, ph in harm) + 0.34)
+            ring.append((c[0] + math.cos(t) * r * f, c[1] + math.sin(t) * r * f))
+        return Polygon(ring)
     vor = voronoi_polygons(MultiPoint(pts), extend_to=box(-500, -500, W + 500, H + 500))
     cells_by_idx = {}
     for cell in vor.geoms:
@@ -819,7 +837,7 @@ def main(land_path, lakes_path):
     raw = []
     for i, p in enumerate(PROVINCES):
         cell = cells_by_idx[i]
-        disc = Point(pts[i]).buffer(p[6] * SCALE if len(p) > 6 else max_r, 24)
+        disc = blob(pts[i], p[6] * SCALE if len(p) > 6 else max_r, p[0])
         g = cell.intersection(disc).intersection(land)
         polys = [q for q in parts_of(g) if q.area > 25.0]
         if not polys:

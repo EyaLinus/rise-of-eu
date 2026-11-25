@@ -1,0 +1,3 @@
+- **Lebendigere Weltkarte:** Die gemalte Karte zeigt jetzt die Landschaft. Wälder sind mit kleinen Bäumen gezeichnet (Nadelwald im Norden, Laubwald und Dschungel weiter südlich), Wüsten mit Dünen, Sümpfe mit Schilf, Hügelland mit Bögen und Gebirgsprovinzen auch abseits der großen Ketten mit Gipfeln. Dazu kommen sanfte Farbtöne für Wald, Wüste, Sumpf und Tundra im hohen Norden.
+- **Unbesiedeltes Land** (Australien, Kanada, Amazonas, Kongo …) ist nur noch hauchzart eingefärbt, sodass man das Gelände sieht statt einer braunen Fläche.
+- **Natürliche Provinzformen:** Große Wüsten- und Tundraprovinzen enden nicht mehr in exakten Kreisen mit linsenförmigen Lücken dazwischen (Sahara, Arabien, Sibirien), sondern in unregelmäßigen Rändern.

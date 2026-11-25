@@ -7,6 +7,7 @@
 "aden",
 "aki",
 "albania",
+"aldan",
 "aleppo",
 "aleut",
 "alexandria",
@@ -147,6 +148,7 @@
 "crete",
 "crimea",
 "croatia",
+"crow",
 "cumana",
 "cuscatlan",
 "cuttack",
@@ -154,6 +156,7 @@
 "dabhol",
 "dahistan",
 "dakelh",
+"dakota",
 "dalarna",
 "dalmatia",
 "damaraland",
@@ -307,6 +310,7 @@
 "kongo",
 "koryak",
 "kotte",
+"kucha",
 "kulin",
 "kumeyaay",
 "kutai",
@@ -580,6 +584,7 @@
 "tripoli_sy",
 "trondelag",
 "trowulan",
+"tsaidam",
 "tsugaru",
 "tsushima",
 "tumbes",
@@ -632,5 +637,6 @@
 "zaporozhia",
 "zeeland",
 "zeila",
-"zenu"
+"zenu",
+"zeya"
 ]
