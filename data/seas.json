@@ -15,7 +15,7 @@
 {"id": "guinea", "name": "Golf von Guinea", "center": [4350.4, 3235.2], "provinces": ["allada", "benin", "cameroon", "gold_coast", "ivory_coast", "niger_delta", "pepper_coast"], "adj": ["amazon", "south_atlantic", "west_africa"]},
 {"id": "red_sea", "name": "Rotes Meer", "center": [5596.9, 2467.2], "provinces": ["asir", "aswan", "cairo", "danakil", "mecca", "medina", "medri_bahri", "sanaa", "sinai", "suakin", "tabuk", "tihama", "upper_egypt"], "adj": ["aden"]},
 {"id": "aden", "name": "Golf von Aden", "center": [5893.1, 2851.2], "provinces": ["aden", "berbera", "danakil", "hadramaut", "majerteen", "zeila"], "adj": ["arabian", "red_sea"]},
-{"id": "arabian", "name": "Arabisches Meer", "center": [6062.8, 2928.0], "provinces": ["bampur", "dhofar", "hobyo", "majerteen", "makran", "mogadishu", "sehwan", "thatta"], "adj": ["aden", "indian", "malabar", "persian_gulf", "swahili"]},
+{"id": "arabian", "name": "Arabisches Meer", "center": [6062.8, 2928.0], "provinces": ["bampur", "dhofar", "hobyo", "kutch", "majerteen", "makran", "mogadishu", "sehwan", "thatta"], "adj": ["aden", "indian", "malabar", "persian_gulf", "swahili"]},
 {"id": "persian_gulf", "name": "Persischer Golf", "center": [5998.0, 2150.4], "provinces": ["bampur", "basra", "bushehr", "hasa", "hormuz", "khuzestan", "laristan"], "adj": ["arabian"]},
 {"id": "south_atlantic", "name": "Südatlantik", "center": [4597.2, 4128.0], "provinces": ["benguela", "cape", "damaraland", "kongo", "loango", "namaqua", "ndongo", "ogowe", "ovambo"], "adj": ["amazon", "brazil", "cape", "guinea", "patagonian", "plata"]},
 {"id": "cape", "name": "Kap der Guten Hoffnung", "center": [5090.9, 5136.0], "provinces": ["cape", "karoo", "natal", "xhosa"], "adj": ["indian", "mozambique", "south_atlantic"]},
@@ -53,8 +53,8 @@
 {"id": "chukchi", "name": "Beringstraße", "center": [123.4, 384.0], "provinces": [], "adj": ["beaufort", "bering", "east_pacific", "gulf_alaska"]},
 {"id": "gulf_alaska", "name": "Golf von Alaska", "center": [740.5, 720.0], "provinces": ["dakelh", "sekani"], "adj": ["cascadia", "chukchi", "east_pacific", "west_pacific"]},
 {"id": "east_pacific", "name": "Östlicher Pazifik", "center": [771.3, 1920.0], "provinces": [], "adj": ["california", "cascadia", "chukchi", "gulf_alaska", "humboldt", "pacific", "south_pacific", "west_pacific"]},
-{"id": "malabar", "name": "Malabarküste", "center": [6602.7, 2880.0], "provinces": ["thatta"], "adj": ["arabian", "bengal", "indian"]},
-{"id": "bengal", "name": "Golf von Bengalen", "center": [7127.2, 2688.0], "provinces": [], "adj": ["andaman", "east_indian", "indian", "malabar"]},
+{"id": "malabar", "name": "Malabarküste", "center": [6602.7, 2880.0], "provinces": ["belgaum", "calicut", "cambay", "cannanore", "chaul", "cochin", "dabhol", "goa", "halar", "honavar", "junagadh", "junnar", "kutch", "mangalore", "surat", "tirunelveli", "venad"], "adj": ["arabian", "bengal", "indian"]},
+{"id": "bengal", "name": "Golf von Bengalen", "center": [7127.2, 2688.0], "provinces": ["balasore", "chandragiri", "chittagong", "cuttack", "ganjam", "jaffna", "jessore", "kanchipuram", "kandy", "kondavidu", "kotte", "madurai", "nellore", "rajahmundry", "ruhuna", "satgaon", "sonargaon", "tanjore", "tirunelveli", "vanni", "vizag"], "adj": ["andaman", "east_indian", "indian", "malabar"]},
 {"id": "andaman", "name": "Andamanensee", "center": [7374.1, 2928.0], "provinces": [], "adj": ["bengal", "east_indian", "gulf_siam", "malacca"]},
 {"id": "malacca", "name": "Straße von Malakka", "center": [7497.5, 3283.2], "provinces": [], "adj": ["andaman", "east_indian", "java_sea", "south_china"]},
 {"id": "east_indian", "name": "Ostindischer Ozean", "center": [7497.5, 4176.0], "provinces": [], "adj": ["andaman", "arafura", "banda", "bengal", "indian", "java_sea", "malacca", "south_aus"]},
@@ -129,5 +129,6 @@
 "malvinas|santa_cruz": "patagonian",
 "nuu_chah_nulth|salish": "cascadia",
 "nuu_chah_nulth|secwepemc": "cascadia",
-"iceland|bergen": "north"
+"iceland|bergen": "north",
+"madurai|vanni": "bengal"
 }}

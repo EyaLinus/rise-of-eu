@@ -1404,3 +1404,255 @@ assets:
     source: assets/src/pixel/flags/flag_MUL.txt
     status: done
     updated: '2026-11-25'
+  flag_DLH:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_DLH (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_DLH.png
+    source: assets/src/pixel/flags/flag_DLH.txt
+    status: done
+    updated: '2026-11-25'
+  flag_JNP:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_JNP (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_JNP.png
+    source: assets/src/pixel/flags/flag_JNP.txt
+    status: done
+    updated: '2026-11-25'
+  flag_BNG:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_BNG (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_BNG.png
+    source: assets/src/pixel/flags/flag_BNG.txt
+    status: done
+    updated: '2026-11-25'
+  flag_MLW:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_MLW (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_MLW.png
+    source: assets/src/pixel/flags/flag_MLW.txt
+    status: done
+    updated: '2026-11-25'
+  flag_GUJ:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_GUJ (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_GUJ.png
+    source: assets/src/pixel/flags/flag_GUJ.txt
+    status: done
+    updated: '2026-11-25'
+  flag_KHD:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_KHD (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_KHD.png
+    source: assets/src/pixel/flags/flag_KHD.txt
+    status: done
+    updated: '2026-11-25'
+  flag_BAH:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_BAH (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_BAH.png
+    source: assets/src/pixel/flags/flag_BAH.txt
+    status: done
+    updated: '2026-11-25'
+  flag_KSH:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_KSH (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_KSH.png
+    source: assets/src/pixel/flags/flag_KSH.txt
+    status: done
+    updated: '2026-11-25'
+  flag_VIJ:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_VIJ (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_VIJ.png
+    source: assets/src/pixel/flags/flag_VIJ.txt
+    status: done
+    updated: '2026-11-25'
+  flag_ORI:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_ORI (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_ORI.png
+    source: assets/src/pixel/flags/flag_ORI.txt
+    status: done
+    updated: '2026-11-25'
+  flag_MEW:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_MEW (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_MEW.png
+    source: assets/src/pixel/flags/flag_MEW.txt
+    status: done
+    updated: '2026-11-25'
+  flag_MAW:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_MAW (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_MAW.png
+    source: assets/src/pixel/flags/flag_MAW.txt
+    status: done
+    updated: '2026-11-25'
+  flag_AMB:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_AMB (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_AMB.png
+    source: assets/src/pixel/flags/flag_AMB.txt
+    status: done
+    updated: '2026-11-25'
+  flag_GWA:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_GWA (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_GWA.png
+    source: assets/src/pixel/flags/flag_GWA.txt
+    status: done
+    updated: '2026-11-25'
+  flag_NPL:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_NPL (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_NPL.png
+    source: assets/src/pixel/flags/flag_NPL.txt
+    status: done
+    updated: '2026-11-25'
+  flag_KUM:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_KUM (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_KUM.png
+    source: assets/src/pixel/flags/flag_KUM.txt
+    status: done
+    updated: '2026-11-25'
+  flag_KGR:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_KGR (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_KGR.png
+    source: assets/src/pixel/flags/flag_KGR.txt
+    status: done
+    updated: '2026-11-25'
+  flag_LDK:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_LDK (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_LDK.png
+    source: assets/src/pixel/flags/flag_LDK.txt
+    status: done
+    updated: '2026-11-25'
+  flag_KMT:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_KMT (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_KMT.png
+    source: assets/src/pixel/flags/flag_KMT.txt
+    status: done
+    updated: '2026-11-25'
+  flag_AHO:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_AHO (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_AHO.png
+    source: assets/src/pixel/flags/flag_AHO.txt
+    status: done
+    updated: '2026-11-25'
+  flag_TRP:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_TRP (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_TRP.png
+    source: assets/src/pixel/flags/flag_TRP.txt
+    status: done
+    updated: '2026-11-25'
+  flag_CLC:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_CLC (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_CLC.png
+    source: assets/src/pixel/flags/flag_CLC.txt
+    status: done
+    updated: '2026-11-25'
+  flag_KOC:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_KOC (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_KOC.png
+    source: assets/src/pixel/flags/flag_KOC.txt
+    status: done
+    updated: '2026-11-25'
+  flag_VND:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_VND (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_VND.png
+    source: assets/src/pixel/flags/flag_VND.txt
+    status: done
+    updated: '2026-11-25'
+  flag_GND:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_GND (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_GND.png
+    source: assets/src/pixel/flags/flag_GND.txt
+    status: done
+    updated: '2026-11-25'
+  flag_NAG:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_NAG (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_NAG.png
+    source: assets/src/pixel/flags/flag_NAG.txt
+    status: done
+    updated: '2026-11-25'
+  flag_JFN:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_JFN (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_JFN.png
+    source: assets/src/pixel/flags/flag_JFN.txt
+    status: done
+    updated: '2026-11-25'
+  flag_KOT:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_KOT (tools/art/flags.py, tools/world/india.py)
+    outputs:
+    - assets/art/icons/flag_KOT.png
+    source: assets/src/pixel/flags/flag_KOT.txt
+    status: done
+    updated: '2026-11-25'

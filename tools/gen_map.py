@@ -893,6 +893,8 @@ def main(land_path, lakes_path):
         if r is not None:
             d[r.BLOCK] = True
             d.update(r.FLAGS)
+            if p[0] in getattr(r, "RELIGION", {}):
+                d["religion"] = r.RELIGION[p[0]]  # the people's faith, when it is not the ruler's
         provinces.append(d)
 
     key_to_id = {p[0]: i for i, p in enumerate(PROVINCES)}
