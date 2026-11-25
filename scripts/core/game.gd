@@ -302,6 +302,7 @@ var nation_data_native := {}  # tags of the native realms (nations.json "native"
 var colonial_drive := {}  # AI colonial ambition per tag (nations.json "colonial", default balance ai_colonial_drive)
 var urban_start: Array = []  # [rural, urban] province counts at the start (demand baseline, Urban)
 var market_cache := {}
+var market_tags := {}  # tag -> markets with its trade power (built with market_cache)
 var east := {}  # far trade state (Trade): Cape route, Indiamen, factories, market dominance
 var levant: Array = []  # market pids that lose value once the Cape route is open
 ## Fog of war for the player's view (Vision; a display setting of the UI, the AI always sees everything).
@@ -1442,8 +1443,14 @@ func armies_in(pid: int) -> Array:
 func _armies_tick() -> void:
 	Warfare.move_armies(self)
 	Warfare.battles_tick(self)
+	var by_pid := {}  # one pass over the armies instead of one per province
+	for a in armies:
+		if by_pid.has(a.pid):
+			by_pid[a.pid].append(a)
+		else:
+			by_pid[a.pid] = [a]
 	for p in provinces:
-		_siege(p)
+		_siege(p, by_pid.get(p.id, []))
 	_merge_ai_stacks()
 	Warfare.attrition(self)
 	for a in armies:
@@ -1542,8 +1549,7 @@ func _retreat(a: Army) -> void:
 	a.target = -1
 
 
-func _siege(p: Province) -> void:
-	var here := armies_in(p.id)
+func _siege(p: Province, here: Array) -> void:
 	if here.is_empty():
 		p.siege = maxf(0.0, p.siege - 10.0)
 		return
