@@ -41,7 +41,7 @@ static func setup(g, data: Dictionary) -> void:
 		var pd: Dictionary = data.map.provinces[i]
 		var nw: bool = pd.get("nw", false)
 		g.nw_mask[i] = 1 if nw else 0
-		g.wa_mask[i] = 1 if pd.get("wa", false) else 0
+		g.wa_mask[i] = 1 if pd.get("wa", false) else (2 if pd.get("oc", false) else 0)
 		if nw and g.nw_first == n_prov:
 			g.nw_first = i
 		if pd.get("wa", false) and g.wa_first == n_prov:
@@ -126,11 +126,13 @@ static func reset_knowledge(g, n) -> void:
 				n.known_nw[a] = true
 
 
-## "old" (Europe, North Africa, the Near East), "america" or "africa" (West Africa and the south).
+## "old" (Europe, North Africa, the Near East, Asia), "america", "africa" (West Africa and the south) or
+## "oceania" (Australia, New Guinea, the Pacific islands; wa_mask 2).
 static func region(g, pid: int) -> String:
 	if not is_new_world(g, pid):
 		return "old"
-	return "africa" if g.wa_mask[pid] == 1 else "america"
+	var m: int = g.wa_mask[pid]
+	return "africa" if m == 1 else ("oceania" if m == 2 else "america")
 
 
 static func is_native_realm(g, tag: String) -> bool:

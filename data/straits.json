@@ -81,5 +81,20 @@
 ["ternate", "minahasa"],
 ["makassar", "kutai"],
 ["banjar", "madura"],
-["tanjungpura", "jambi"]
+["tanjungpura", "jambi"],
+["kulin", "palawa"],
+["cape_york", "trans_fly"],
+["huon", "new_britain"],
+["new_britain", "solomons"],
+["solomons", "vanuatu"],
+["vanuatu", "new_caledonia"],
+["vanuatu", "fiji"],
+["waikato", "northland"],
+["te_whanganui", "waitaha"],
+["hawaii", "oahu"],
+["vogelkop", "ambon"],
+["arnhem", "timor"],
+["unangan", "kodiak"],
+["haida", "tlingit"],
+["qikiqtaaluk", "nunavik"]
 ]
