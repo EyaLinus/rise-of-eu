@@ -1656,3 +1656,282 @@ assets:
     source: assets/src/pixel/flags/flag_KOT.txt
     status: done
     updated: '2026-11-25'
+  flag_MNG:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_MNG (tools/art/flags.py, tools/world/china.py)
+    outputs:
+    - assets/art/icons/flag_MNG.png
+    source: assets/src/pixel/flags/flag_MNG.txt
+    status: done
+    updated: '2026-11-25'
+  flag_TIB:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_TIB (tools/art/flags.py, tools/world/china.py)
+    outputs:
+    - assets/art/icons/flag_TIB.png
+    source: assets/src/pixel/flags/flag_TIB.txt
+    status: done
+    updated: '2026-11-25'
+  flag_TSA:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_TSA (tools/art/flags.py, tools/world/china.py)
+    outputs:
+    - assets/art/icons/flag_TSA.png
+    source: assets/src/pixel/flags/flag_TSA.txt
+    status: done
+    updated: '2026-11-25'
+  flag_GUG:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_GUG (tools/art/flags.py, tools/world/china.py)
+    outputs:
+    - assets/art/icons/flag_GUG.png
+    source: assets/src/pixel/flags/flag_GUG.txt
+    status: done
+    updated: '2026-11-25'
+  flag_BHU:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_BHU (tools/art/flags.py, tools/world/china.py)
+    outputs:
+    - assets/art/icons/flag_BHU.png
+    source: assets/src/pixel/flags/flag_BHU.txt
+    status: done
+    updated: '2026-11-25'
+  flag_MGL:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_MGL (tools/art/flags.py, tools/world/china.py)
+    outputs:
+    - assets/art/icons/flag_MGL.png
+    source: assets/src/pixel/flags/flag_MGL.txt
+    status: done
+    updated: '2026-11-25'
+  flag_OIR:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_OIR (tools/art/flags.py, tools/world/china.py)
+    outputs:
+    - assets/art/icons/flag_OIR.png
+    source: assets/src/pixel/flags/flag_OIR.txt
+    status: done
+    updated: '2026-11-25'
+  flag_HAM:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_HAM (tools/art/flags.py, tools/world/china.py)
+    outputs:
+    - assets/art/icons/flag_HAM.png
+    source: assets/src/pixel/flags/flag_HAM.txt
+    status: done
+    updated: '2026-11-25'
+  flag_JIA:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_JIA (tools/art/flags.py, tools/world/china.py)
+    outputs:
+    - assets/art/icons/flag_JIA.png
+    source: assets/src/pixel/flags/flag_JIA.txt
+    status: done
+    updated: '2026-11-25'
+  flag_HXI:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_HXI (tools/art/flags.py, tools/world/china.py)
+    outputs:
+    - assets/art/icons/flag_HXI.png
+    source: assets/src/pixel/flags/flag_HXI.txt
+    status: done
+    updated: '2026-11-25'
+  flag_YRN:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_YRN (tools/art/flags.py, tools/world/china.py)
+    outputs:
+    - assets/art/icons/flag_YRN.png
+    source: assets/src/pixel/flags/flag_YRN.txt
+    status: done
+    updated: '2026-11-25'
+  flag_DAU:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_DAU (tools/art/flags.py, tools/world/china.py)
+    outputs:
+    - assets/art/icons/flag_DAU.png
+    source: assets/src/pixel/flags/flag_DAU.txt
+    status: done
+    updated: '2026-11-25'
+  flag_NIV:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_NIV (tools/art/flags.py, tools/world/china.py)
+    outputs:
+    - assets/art/icons/flag_NIV.png
+    source: assets/src/pixel/flags/flag_NIV.txt
+    status: done
+    updated: '2026-11-25'
+  flag_TAW:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_TAW (tools/art/flags.py, tools/world/china.py)
+    outputs:
+    - assets/art/icons/flag_TAW.png
+    source: assets/src/pixel/flags/flag_TAW.txt
+    status: done
+    updated: '2026-11-25'
+  flag_JOS:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_JOS (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_JOS.png
+    source: assets/src/pixel/flags/flag_JOS.txt
+    status: done
+    updated: '2026-11-25'
+  flag_ASH:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_ASH (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_ASH.png
+    source: assets/src/pixel/flags/flag_ASH.txt
+    status: done
+    updated: '2026-11-25'
+  flag_HSK:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_HSK (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_HSK.png
+    source: assets/src/pixel/flags/flag_HSK.txt
+    status: done
+    updated: '2026-11-25'
+  flag_HTK:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_HTK (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_HTK.png
+    source: assets/src/pixel/flags/flag_HTK.txt
+    status: done
+    updated: '2026-11-25'
+  flag_YMN:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_YMN (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_YMN.png
+    source: assets/src/pixel/flags/flag_YMN.txt
+    status: done
+    updated: '2026-11-25'
+  flag_OUC:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_OUC (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_OUC.png
+    source: assets/src/pixel/flags/flag_OUC.txt
+    status: done
+    updated: '2026-11-25'
+  flag_SBA:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_SBA (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_SBA.png
+    source: assets/src/pixel/flags/flag_SBA.txt
+    status: done
+    updated: '2026-11-25'
+  flag_TKD:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_TKD (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_TKD.png
+    source: assets/src/pixel/flags/flag_TKD.txt
+    status: done
+    updated: '2026-11-25'
+  flag_IMG:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_IMG (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_IMG.png
+    source: assets/src/pixel/flags/flag_IMG.txt
+    status: done
+    updated: '2026-11-25'
+  flag_UES:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_UES (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_UES.png
+    source: assets/src/pixel/flags/flag_UES.txt
+    status: done
+    updated: '2026-11-25'
+  flag_DTE:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_DTE (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_DTE.png
+    source: assets/src/pixel/flags/flag_DTE.txt
+    status: done
+    updated: '2026-11-25'
+  flag_AND:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_AND (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_AND.png
+    source: assets/src/pixel/flags/flag_AND.txt
+    status: done
+    updated: '2026-11-25'
+  flag_SHO:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_SHO (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_SHO.png
+    source: assets/src/pixel/flags/flag_SHO.txt
+    status: done
+    updated: '2026-11-25'
+  flag_OTO:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_OTO (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_OTO.png
+    source: assets/src/pixel/flags/flag_OTO.txt
+    status: done
+    updated: '2026-11-25'
+  flag_SHZ:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_SHZ (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_SHZ.png
+    source: assets/src/pixel/flags/flag_SHZ.txt
+    status: done
+    updated: '2026-11-25'
+  flag_RYU:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_RYU (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_RYU.png
+    source: assets/src/pixel/flags/flag_RYU.txt
+    status: done
+    updated: '2026-11-25'
+  flag_AIN:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_AIN (tools/art/flags.py, tools/world/japan_korea.py)
+    outputs:
+    - assets/art/icons/flag_AIN.png
+    source: assets/src/pixel/flags/flag_AIN.txt
+    status: done
+    updated: '2026-11-25'

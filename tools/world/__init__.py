@@ -17,9 +17,9 @@ optional:
     NEW_GOODS   {good: goods.json entry} (pixel glyph in tools/art/emoji_icons.py) -> tools/world/apply.py
     RELIGION    {key: faith} the people's faith where it is not the owner's  -> map.json "religion"
 """
-from . import central_asia, india, russia
+from . import central_asia, china, india, japan_korea, russia
 
-REGIONS = [russia, central_asia, india]
+REGIONS = [russia, central_asia, india, china, japan_korea]
 
 
 def provinces():

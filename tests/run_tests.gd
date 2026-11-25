@@ -1243,7 +1243,7 @@ func test_urban() -> void:
 	var Eco = g.Economy
 	var Urb = g.Urban
 	var cities: int = Urb.count(g, true)
-	check(cities >= 25 and cities <= 60, "a plausible number of starting cities (%d)" % cities)
+	check(cities >= 25 and cities <= g.provinces.size() / 10, "a plausible number of starting cities (%d)" % cities)
 	check(g.provinces[g.key_to_pid["paris"]].urban, "Paris starts as a city")
 	check(g.provinces[g.key_to_pid["london"]].urban, "London starts as a city")
 	var n = g.nations.FRA
@@ -2104,6 +2104,20 @@ func test_world_map() -> void:
 	check(float(Faith.FAITHS.hindu.drift) < 1.0, "Hindus hold on to their faith longer")
 	check(g.provinces[g.key_to_pid["madurai"]].adj.has(g.key_to_pid["vanni"]), "Adam's Bridge links India and Ceylon")
 	check(g.provinces[g.key_to_pid["golconda"]].good == "gems" and g.goods_def.has("gems"), "Golconda produces gems")
+	# East Asia: Ming China, Tibet, the steppe, Manchuria, Korea and Japan
+	for key in ["beijing", "nanjing", "guangzhou", "lhasa", "karakorum", "liaoyang", "sakhalin"]:
+		var pid: int = g.key_to_pid[key]
+		check(data.map.provinces[pid].get("cn", false) and not Col.is_new_world(g, pid), "%s is Old World land in the cn block" % key)
+	for key in ["hanseong", "kyoto", "okinawa", "ezo"]:
+		check(data.map.provinces[g.key_to_pid[key]].get("jk", false), "%s is in the jk block" % key)
+	for tag in ["MNG", "TIB", "MGL", "OIR", "JIA", "JOS", "ASH", "HSK", "OUC", "SHZ", "RYU"]:
+		check(g.nations[tag].alive and not Col.is_native_realm(g, tag), "%s is a living realm" % tag)
+	check(Col.is_native_realm(g, "AIN") and Col.is_native_realm(g, "NIV") and Col.is_native_realm(g, "TAW"), "Ainu, Nivkh and Formosa are tribal realms")
+	check(g.nations.MNG.religion == "confucian" and g.nations.ASH.religion == "shinto" and g.provinces[g.key_to_pid["xining"]].religion == "buddhist", "Confucian Ming, Shinto Japan, Buddhist Amdo")
+	check(g.provinces[g.key_to_pid["jingdezhen"]].good == "porcelain" and g.provinces[g.key_to_pid["jianning"]].good == "tea", "Jingdezhen porcelain, Fujian tea")
+	check(g.provinces[g.key_to_pid["dongnae"]].adj.has(g.key_to_pid["tsushima"]) and g.provinces[g.key_to_pid["tsushima"]].adj.has(g.key_to_pid["hizen"]), "Tsushima links Korea and Japan")
+	check(g.provinces[g.key_to_pid["kaiyuan"]].adj.has(g.key_to_pid["jianzhou"]) or g.provinces[g.key_to_pid["liaoyang"]].adj.has(g.key_to_pid["jianzhou"]), "Liaodong borders the Jurchen")
+	check(g.sea_by_id["japan_sea"].provinces.has(g.key_to_pid["hamhung"]) and g.sea_by_id["east_china"].provinces.has(g.key_to_pid["ningbo"]), "the seas of East Asia have their coasts")
 	for i in 6:
 		g.tick()
 	check(g.nations.SIB.alive, "the game runs with the world map")

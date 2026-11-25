@@ -51,6 +51,10 @@
     [
       "MLD",
       "AJU"
+    ],
+    [
+      "HSK",
+      "ASH"
     ]
   ],
   "rivals": [
@@ -229,6 +233,50 @@
     [
       "MAW",
       "MEW"
+    ],
+    [
+      "MNG",
+      "OIR"
+    ],
+    [
+      "MNG",
+      "MGL"
+    ],
+    [
+      "OIR",
+      "MGL"
+    ],
+    [
+      "TIB",
+      "TSA"
+    ],
+    [
+      "JIA",
+      "HXI"
+    ],
+    [
+      "HSK",
+      "YMN"
+    ],
+    [
+      "OUC",
+      "SHO"
+    ],
+    [
+      "UES",
+      "TKD"
+    ],
+    [
+      "SHZ",
+      "OTO"
+    ],
+    [
+      "HTK",
+      "HSK"
+    ],
+    [
+      "IMG",
+      "SBA"
     ]
   ],
   "claims": {

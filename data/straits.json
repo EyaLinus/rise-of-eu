@@ -50,5 +50,19 @@
 ["nuu_chah_nulth", "salish"],
 ["nuu_chah_nulth", "secwepemc"],
 ["iceland", "bergen"],
-["madurai", "vanni"]
+["madurai", "vanni"],
+["leizhou", "hainan"],
+["amur_mouth", "sakhalin"],
+["quanzhou", "taiwan"],
+["dengzhou", "lushun"],
+["dongnae", "tsushima"],
+["tsushima", "hizen"],
+["nagato", "chikuzen"],
+["aki", "iyo"],
+["harima", "sanuki"],
+["kii", "sanuki"],
+["tsugaru", "oshima"],
+["satsuma", "amami"],
+["amami", "okinawa"],
+["jeolla", "jeju"]
 ]
