@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.1.1 – 2026-11-25
+**Die Weltkarte sieht jetzt aus wie eine alte Landkarte:** gemalte Wälder, Wüsten, Sümpfe und Hügel, geschwungene Grenzen und keine Kreis-Provinzen mehr.
+
+- **Leistung:** Die KI plant ihre Bauten und verwaltet ihre Armeen in Friedenszeiten schneller, ohne anders zu entscheiden. Ein Monat ist auf der ganzen Weltkarte rund 10 % schneller berechnet.
+- **Natürliche Grenzen:** Provinzgrenzen im Landesinneren verlaufen nicht mehr schnurgerade wie mit dem Lineal gezogen, sondern geschwungen und unregelmäßig wie auf einer alten Karte.
+- **Lebendigere Weltkarte:** Die gemalte Karte zeigt jetzt die Landschaft. Wälder sind mit kleinen Bäumen gezeichnet (Nadelwald im Norden, Laubwald und Dschungel weiter südlich), Wüsten mit Dünen, Sümpfe mit Schilf, Hügelland mit Bögen und Gebirgsprovinzen auch abseits der großen Ketten mit Gipfeln. Dazu kommen sanfte Farbtöne für Wald, Wüste, Sumpf und Tundra im hohen Norden.
+- **Unbesiedeltes Land** (Australien, Kanada, Amazonas, Kongo …) ist nur noch hauchzart eingefärbt, sodass man das Gelände sieht statt einer braunen Fläche.
+- **Natürliche Provinzformen:** Große Wüsten- und Tundraprovinzen enden nicht mehr in exakten Kreisen mit linsenförmigen Lücken dazwischen (Sahara, Arabien, Sibirien), sondern in unregelmäßigen Rändern.
+
 ## v1.1.0 – 2026-11-25
 **Die ganze Welt ist auf der Karte:** von Alaska bis Neuseeland, 1194 Provinzen statt rund 620, über 100 neue Reiche in Asien, dazu Ozeanien und der amerikanische Norden zum Entdecken und Besiedeln.
 
