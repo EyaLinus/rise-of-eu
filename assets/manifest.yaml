@@ -1215,3 +1215,129 @@ assets:
     source: assets/src/pixel/icons/war.txt
     status: done
     updated: '2026-10-24'
+  flag_GHO:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_GHO (tools/art/flags.py, tools/world/russia.py)
+    outputs:
+    - assets/art/icons/flag_GHO.png
+    source: assets/src/pixel/flags/flag_GHO.txt
+    status: done
+    updated: '2026-11-25'
+  flag_NOG:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_NOG (tools/art/flags.py, tools/world/russia.py)
+    outputs:
+    - assets/art/icons/flag_NOG.png
+    source: assets/src/pixel/flags/flag_NOG.txt
+    status: done
+    updated: '2026-11-25'
+  flag_PRM:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_PRM (tools/art/flags.py, tools/world/russia.py)
+    outputs:
+    - assets/art/icons/flag_PRM.png
+    source: assets/src/pixel/flags/flag_PRM.txt
+    status: done
+    updated: '2026-11-25'
+  flag_SIB:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_SIB (tools/art/flags.py, tools/world/russia.py)
+    outputs:
+    - assets/art/icons/flag_SIB.png
+    source: assets/src/pixel/flags/flag_SIB.txt
+    status: done
+    updated: '2026-11-25'
+  flag_YUG:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_YUG (tools/art/flags.py, tools/world/russia.py)
+    outputs:
+    - assets/art/icons/flag_YUG.png
+    source: assets/src/pixel/flags/flag_YUG.txt
+    status: done
+    updated: '2026-11-25'
+  flag_SEL:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_SEL (tools/art/flags.py, tools/world/russia.py)
+    outputs:
+    - assets/art/icons/flag_SEL.png
+    source: assets/src/pixel/flags/flag_SEL.txt
+    status: done
+    updated: '2026-11-25'
+  flag_NEN:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_NEN (tools/art/flags.py, tools/world/russia.py)
+    outputs:
+    - assets/art/icons/flag_NEN.png
+    source: assets/src/pixel/flags/flag_NEN.txt
+    status: done
+    updated: '2026-11-25'
+  flag_KYR:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_KYR (tools/art/flags.py, tools/world/russia.py)
+    outputs:
+    - assets/art/icons/flag_KYR.png
+    source: assets/src/pixel/flags/flag_KYR.txt
+    status: done
+    updated: '2026-11-25'
+  flag_EVK:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_EVK (tools/art/flags.py, tools/world/russia.py)
+    outputs:
+    - assets/art/icons/flag_EVK.png
+    source: assets/src/pixel/flags/flag_EVK.txt
+    status: done
+    updated: '2026-11-25'
+  flag_BRT:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_BRT (tools/art/flags.py, tools/world/russia.py)
+    outputs:
+    - assets/art/icons/flag_BRT.png
+    source: assets/src/pixel/flags/flag_BRT.txt
+    status: done
+    updated: '2026-11-25'
+  flag_YAK:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_YAK (tools/art/flags.py, tools/world/russia.py)
+    outputs:
+    - assets/art/icons/flag_YAK.png
+    source: assets/src/pixel/flags/flag_YAK.txt
+    status: done
+    updated: '2026-11-25'
+  flag_YUK:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_YUK (tools/art/flags.py, tools/world/russia.py)
+    outputs:
+    - assets/art/icons/flag_YUK.png
+    source: assets/src/pixel/flags/flag_YUK.txt
+    status: done
+    updated: '2026-11-25'
+  flag_CHK:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_CHK (tools/art/flags.py, tools/world/russia.py)
+    outputs:
+    - assets/art/icons/flag_CHK.png
+    source: assets/src/pixel/flags/flag_CHK.txt
+    status: done
+    updated: '2026-11-25'
+  flag_ITL:
+    created: '2026-11-25'
+    kind: flag
+    note: flag_ITL (tools/art/flags.py, tools/world/russia.py)
+    outputs:
+    - assets/art/icons/flag_ITL.png
+    source: assets/src/pixel/flags/flag_ITL.txt
+    status: done
+    updated: '2026-11-25'

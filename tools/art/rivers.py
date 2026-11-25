@@ -100,6 +100,10 @@ LIGHT = (0x8c, 0xbd, 0xd6, 255)
 MAX_HALF = {1: 0.9, 2: 1.3, 3: 1.8}  # half width of the water at the mouth, per width class (map px)
 
 
+import world  # noqa: E402  (tools/world: rivers of the regions appended later)
+for _r in world.REGIONS:
+    RIVERS = RIVERS + _r.RIVERS
+
 def _catmull(pts, step=3.0):
     """Smooth curve through the trace points, resampled every `step` px."""
     p = [pts[0]] + pts + [pts[-1]]

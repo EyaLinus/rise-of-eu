@@ -78,8 +78,29 @@ SEAS = [
 ]
 
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from world import seas as world_seas  # noqa: E402
+SEAS = SEAS + world_seas.SEAS
+SEAS = [(sid, name, lbl, seeds + world_seas.EXTRA_SEEDS.get(sid, [])) for sid, name, lbl, seeds in SEAS]
+INLAND = {"af_lakes"} | world_seas.INLAND
+# no sailing through the ice: the Northwest and Northeast Passages stay closed
+ICE = [{"nw_passage", "baffin"}, {"nw_passage", "hudson"}, {"kara", "arctic"}, {"indian", "south_atlantic"}]
+
 # seas joined beyond the map edge
-EXTRA_ADJ = [("persian_gulf", "arabian")]
+EXTRA_ADJ = [("persian_gulf", "arabian")] + world_seas.EXTRA_ADJ
+
+
+def province_mask(p, W, H, pad):
+    """Boolean mask of a province inside its bounding box (+ pad px) and the box's top-left corner."""
+    xs = [c[0] for poly in p["polys"] for c in poly]
+    ys = [c[1] for poly in p["polys"] for c in poly]
+    bx, by = max(0, int(min(xs)) - pad), max(0, int(min(ys)) - pad)
+    ex, ey = min(W, int(max(xs)) + pad + 2), min(H, int(max(ys)) + pad + 2)
+    mask = Image.new("L", (ex - bx, ey - by), 0)
+    md = ImageDraw.Draw(mask)
+    for poly in p["polys"]:
+        md.polygon([(c[0] - bx, c[1] - by) for c in poly], fill=255)
+    return np.asarray(mask) > 0, (bx, by)
 
 
 def main():
@@ -94,31 +115,27 @@ def main():
     for poly in m["background"]:
         d.polygon([tuple(c) for c in poly], fill=255)
     water = np.asarray(land) == 0
-    # nearest seed over water pixels
-    seeds = []
+    # nearest seed over water pixels (one distance transform from all seed pixels at once)
+    seed_lab = np.full((H, W), -1, np.int16)
     for i, s in enumerate(SEAS):
         for ll in s[3]:
-            seeds.append((i, proj(*ll)))
-    yy, xx = np.mgrid[0:H, 0:W]
-    best = np.full((H, W), 1e12, np.float32)
-    label = np.full((H, W), -1, np.int16)
-    for i, (x, y) in seeds:
-        dist = (xx - x) ** 2 + (yy - y) ** 2
-        upd = dist < best
-        best[upd] = dist[upd]
-        label[upd] = i
+            x, y = proj(*ll)
+            xi, yi = min(W - 1, max(0, int(x))), min(H - 1, max(0, int(y)))
+            seed_lab[yi, xi] = i
+    _, (iy, ix) = ndimage.distance_transform_edt(seed_lab < 0, return_indices=True)
+    label = seed_lab[iy, ix]
+    del iy, ix
     label[~water] = -1
     out = []
     members = {s[0]: [] for s in SEAS}
     for p in m["provinces"]:
         if p["key"] not in coastal:
             continue
-        mask = Image.new("L", (W, H), 0)
-        md = ImageDraw.Draw(mask)
-        for poly in p["polys"]:
-            md.polygon([tuple(c) for c in poly], fill=255)
-        ring = ndimage.binary_dilation(np.asarray(mask) > 0, iterations=6)
-        labs, counts = np.unique(label[ring & water], return_counts=True)
+        mk, (bx, by) = province_mask(p, W, H, 10)
+        ring = ndimage.binary_dilation(mk, iterations=6)
+        sub_l = label[by:by + mk.shape[0], bx:bx + mk.shape[1]]
+        sub_w = water[by:by + mk.shape[0], bx:bx + mk.shape[1]]
+        labs, counts = np.unique(sub_l[ring & sub_w], return_counts=True)
         tot = counts[labs >= 0].sum()
         for lab, c in zip(labs, counts):
             if lab >= 0 and c >= max(8, 0.12 * tot):
@@ -146,9 +163,11 @@ def main():
         for x, y in set(zip(a[mask].tolist(), b[mask].tolist())):
             if {SEAS[x][0], SEAS[y][0]} in ({"caribbean", "pacific"}, {"guinea", "east_med"}, {"red_sea", "east_med"}, {"pacific", "ocean"}):  # map bottom edge; Suez lagoons
                 continue
-            if "af_lakes" in (SEAS[x][0], SEAS[y][0]):
-                continue  # the African lakes are inland water
-            if {SEAS[x][0], SEAS[y][0]} & {"humboldt", "pacific", "cortez", "california", "cascadia"} and {SEAS[x][0], SEAS[y][0]} & {"caribbean", "gulf", "guiana", "amazon", "ocean"}:
+            if SEAS[x][0] in INLAND or SEAS[y][0] in INLAND:
+                continue  # lakes are inland water
+            if {SEAS[x][0], SEAS[y][0]} in ICE:
+                continue
+            if {SEAS[x][0], SEAS[y][0]} & {"humboldt", "pacific", "cortez", "california", "cascadia", "east_pacific"} and {SEAS[x][0], SEAS[y][0]} & {"caribbean", "gulf", "guiana", "amazon", "ocean"}:
                 continue  # the Pacific reaches the Atlantic only round Cape Horn (no Panama canal)
             if {SEAS[x][0], SEAS[y][0]} & {"south_atlantic", "cape"} and {SEAS[x][0], SEAS[y][0]} & {"pacific", "caribbean", "gulf", "sargasso", "humboldt"}:
                 continue  # the map's empty south-west corner: no shortcut from the Americas to the Cape
@@ -175,7 +194,7 @@ def main():
 
 NEW_SEAS = {"guinea", "ocean", "labrador", "st_lawrence", "east_coast", "sargasso", "caribbean", "gulf", "pacific", "hudson", "lakes",
             "south_atlantic", "cape", "mozambique", "swahili", "indian", "af_lakes",
-            "guiana", "amazon", "brazil", "plata", "patagonian", "horn", "humboldt", "cortez", "california", "cascadia"}
+            "guiana", "amazon", "brazil", "plata", "patagonian", "horn", "humboldt", "cortez", "california", "cascadia"} | world_seas.NEW
 FOG_CELL = 8
 
 
@@ -199,27 +218,28 @@ def write_fog(m, label, water):
     old = np.zeros((H, W), bool)
     old[water & (reg == 0)] = True
     for p in m["provinces"]:
-        mask = Image.new("L", (W, H), 0)
-        md = ImageDraw.Draw(mask)
-        for poly in p["polys"]:
-            md.polygon([tuple(c) for c in poly], fill=255)
-        mk = np.asarray(mask) > 0
+        mk, (bx, by) = province_mask(p, W, H, 0)
+        sl = (slice(by, by + mk.shape[0]), slice(bx, bx + mk.shape[1]))
         if p.get("nw"):
-            reg[mk] = rid("p:%d" % p["id"])
+            reg[sl][mk] = rid("p:%d" % p["id"])
         else:
-            old[mk] = True
+            old[sl][mk] = True
     # unlabelled background land: nearest labelled pixel (old world land stays known)
     known = (reg > 0) | old
     _, (iy, ix) = ndimage.distance_transform_edt(~known, return_indices=True)
     reg = np.where(known, reg, reg[iy, ix])
     reg[old] = 0
     gh, gw = H // FOG_CELL, W // FOG_CELL
+    blocks = reg[:gh * FOG_CELL, :gw * FOG_CELL].reshape(gh, FOG_CELL, gw, FOG_CELL).transpose(0, 2, 1, 3).reshape(gh, gw, -1)
     rows = []
     for gy in range(gh):
-        # majority label per cell (sample the cell centre region)
+        # majority label per cell
         row = []
         for gx in range(gw):
-            blk = reg[gy * FOG_CELL:(gy + 1) * FOG_CELL, gx * FOG_CELL:(gx + 1) * FOG_CELL].ravel()
+            blk = blocks[gy, gx]
+            if blk[0] == blk[-1] and (blk == blk[0]).all():
+                row.append(int(blk[0]))
+                continue
             vals, cnt = np.unique(blk, return_counts=True)
             row.append(int(vals[cnt.argmax()]))
         rle = []

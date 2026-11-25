@@ -5,7 +5,12 @@ mountain ranges (real lon/lat polylines) as relief plus small peak glyphs, darke
 outside the playable provinces. Colours come from the art_profile palette; noise only blends
 between neighbouring ramp colours. Needs numpy, scipy, pillow, pyyaml.
 
-    python3 tools/art/map_terrain.py   # writes assets/art/map/terrain.png, the tiles (terrain_south.png, terrain_sa.png) and terrain_half.png
+    python3 tools/art/map_terrain.py [--jobs 4] [--only terrain_3_1.png]
+
+writes one PNG per map.json "terrain_tiles" entry (2048 px grid cells with land nearby). Every tile is painted
+on its own with a margin, so memory stays small however large the world gets; the noise is a function of
+the map position (value-noise lattices shared by all tiles), so the tiles fit seamlessly. Open sea fades to
+the plain deep-sea colour away from the coasts, which is also what the map view draws where no tile is.
 """
 import json
 import math
@@ -18,7 +23,7 @@ from PIL import Image, ImageDraw
 from scipy import ndimage
 
 ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
-OUT = os.path.join(ROOT, "assets", "art", "map", "terrain.png")
+OUT_DIR = os.path.join(ROOT, "assets", "art", "map")
 
 # shared with tools/gen_map.py
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
@@ -119,24 +124,46 @@ RANGES = [
 ]
 
 
+MARGIN = 256  # px painted around each tile (blurs, distances and noise fades must fit in it)
+SEA_FLAT = 240.0  # px from land where the sea is the plain deep-sea colour (the view's background)
+
+
+import world  # noqa: E402  (tools/world: ridges of the regions appended later)
+for _r in world.REGIONS:
+    RANGES = RANGES + _r.RANGES
+
 def palette():
     prof = yaml.safe_load(open(os.path.join(ROOT, "art_profile.yaml")))
     return {k: np.array([int(v[i:i + 2], 16) for i in (1, 3, 5)], dtype=np.float32) for k, v in prof["palette"].items()}
 
 
-def fbm(h, w, rng, octaves=5, base=6):
-    """Fractal value noise in [0,1] (not tileable; the map is one image)."""
-    out = np.zeros((h, w), np.float32)
-    amp, tot = 1.0, 0.0
-    for o in range(octaves):
-        f = base * 2 ** o
-        grid = rng.random((int(h / w * f) + 3, f + 3)).astype(np.float32)
-        layer = ndimage.zoom(grid, (h / (grid.shape[0] - 3), w / (grid.shape[1] - 3)), order=3)[:h, :w]
-        out += amp * layer
-        tot += amp
-        amp *= 0.5
-    out /= tot
-    return (out - out.min()) / (out.max() - out.min() + 1e-6)
+class Noise:
+    """Fractal value noise in [0,1] as a function of the map position: one random lattice per octave
+    (cell size W / (base * 2^octave)), sampled with cubic splines; normalised by the global range."""
+
+    def __init__(self, W, H, rng, octaves, base):
+        self.layers = []
+        amp = 1.0
+        for o in range(octaves):
+            c = W / (base * 2 ** o)
+            grid = rng.random((int(H / c) + 6, int(W / c) + 6)).astype(np.float32)
+            self.layers.append((c, amp, ndimage.spline_filter(grid, order=3)))
+            amp *= 0.5
+        self.tot = sum(a for _, a, _ in self.layers)
+        coarse = self.raw(0, 0, W, H, step=16)
+        self.lo, self.hi = float(coarse.min()), float(coarse.max())
+
+    def raw(self, x0, y0, w, h, step=1):
+        ys = (np.arange(y0, y0 + h, step, dtype=np.float32))
+        xs = (np.arange(x0, x0 + w, step, dtype=np.float32))
+        out = np.zeros((len(ys), len(xs)), np.float32)
+        for c, amp, grid in self.layers:
+            yy, xx = np.meshgrid(ys / c + 2.0, xs / c + 2.0, indexing="ij")
+            out += amp * ndimage.map_coordinates(grid, [yy, xx], order=3, prefilter=False, mode="nearest")
+        return out / self.tot
+
+    def __call__(self, x0, y0, w, h):
+        return np.clip((self.raw(x0, y0, w, h) - self.lo) / (self.hi - self.lo + 1e-6), 0, 1)
 
 
 def ramp(t, cols):
@@ -150,126 +177,209 @@ def ramp(t, cols):
     return a + (b - a) * f
 
 
-def raster(polys, w, h, ss=1):
+def raster(polys, x0, y0, w, h, ss=1):
     im = Image.new("L", (w * ss, h * ss), 0)
     d = ImageDraw.Draw(im)
     for poly in polys:
         if len(poly) >= 3:
-            d.polygon([(x * ss, y * ss) for x, y in poly], fill=255)
+            d.polygon([((x - x0) * ss, (y - y0) * ss) for x, y in poly], fill=255)
     if ss > 1:
         im = im.resize((w, h), Image.LANCZOS)
     return np.asarray(im, np.float32) / 255.0
 
 
+def _bbox(poly):
+    xs = [p[0] for p in poly]
+    ys = [p[1] for p in poly]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def _near(items, x0, y0, x1, y1):
+    return [poly for poly, (a, b, c, d) in items if c >= x0 and a <= x1 and d >= y0 and b <= y1]
+
+
+class World:
+    """Everything shared by the tiles (built once, then forked into the worker processes)."""
+
+    def __init__(self):
+        self.m = json.load(open(os.path.join(ROOT, "data", "map.json")))
+        self.W, self.H = int(math.ceil(self.m["size"][0])), int(math.ceil(self.m["size"][1]))
+        self.P = palette()
+        rng = np.random.default_rng(1444)
+        self.n_sea = Noise(self.W, self.H, rng, 4, 5)
+        self.hills = Noise(self.W, self.H, rng, 6, 8)
+        self.prov = [(poly, _bbox(poly)) for p in self.m["provinces"] for poly in p["polys"]]
+        self.waste = [(poly, _bbox(poly)) for poly in self.m["background"]]
+        self.ridges = []
+        self.peaks = []
+        for strength, pts in RANGES:
+            xy = [proj(*p) for p in pts]
+            self.ridges.append((strength, xy))
+            for (x0, y0), (x1, y1) in zip(xy, xy[1:]):
+                seg = math.hypot(x1 - x0, y1 - y0)
+                nx, ny = -(y1 - y0) / max(seg, 1), (x1 - x0) / max(seg, 1)
+                rows = (-1, 1) if strength >= 0.6 else (0,)
+                for i in range(int(seg / 11) + 1):
+                    f = i * 11 / max(seg, 1)
+                    for row in rows:
+                        jitter = rng.normal(0, 2.5, 2)
+                        off = row * 6.0 + (3.0 if i % 2 else 0.0) * row
+                        self.peaks.append((x0 + (x1 - x0) * f + nx * off + jitter[0], y0 + (y1 - y0) * f + ny * off + jitter[1], strength))
+        self.peaks.sort(key=lambda p: p[1])
+
+    def paint(self, tx, ty, tw, th):
+        P = self.P
+        x0, y0 = tx - MARGIN, ty - MARGIN
+        w, h = tw + 2 * MARGIN, th + 2 * MARGIN
+        box = (x0 - 4, y0 - 4, x0 + w + 4, y0 + h + 4)
+        prov = raster(_near(self.prov, *box), x0, y0, w, h, 2)
+        waste = raster(_near(self.waste, *box), x0, y0, w, h, 2)
+        # close hairline gaps between neighbouring province polygons
+        closed = ndimage.binary_closing(prov > 0.5, iterations=2)
+        prov = np.maximum(prov, closed.astype(np.float32))
+        land = np.clip(prov + waste, 0, 1)
+        land_bin = land > 0.5
+
+        # ---- sea: distance from the coast (2x supersampled, smoothed so ripple lines stay round)
+        big = np.asarray(Image.fromarray((land * 255).astype(np.uint8)).resize((w * 2, h * 2), Image.BILINEAR)) > 127
+        if big.any():
+            dist = ndimage.distance_transform_edt(~big).astype(np.float32)
+        else:
+            dist = np.full(big.shape, 2 * (MARGIN + SEA_FLAT), np.float32)
+        dist = ndimage.gaussian_filter(dist, 2.0)
+        dist = np.asarray(Image.fromarray(dist).resize((w, h), Image.BILINEAR)) / 2.0
+        n_sea = self.n_sea(x0, y0, w, h)
+        # far from land the sea turns into the plain colour of the untextured map background
+        calm = np.clip((SEA_FLAT - dist) / (SEA_FLAT * 0.5), 0, 1)
+        t = np.clip(dist / 90.0, 0, 1) ** 0.6 + (n_sea - 0.5) * 0.25 * calm
+        sea = ramp(1 - t, [P["sea_deep"], P["sea"], P["sea_shallow"]])
+        for k, a in ((5.0, 0.35), (10.0, 0.22), (16.0, 0.12)):
+            line = np.clip(1.0 - np.abs(dist - k) / 0.9, 0, 1) * a
+            sea = sea + (P["foam"] - sea) * line[..., None]
+        foam = np.clip(1.0 - (dist - 0.5) / 2.0, 0, 1) * 0.5
+        sea = sea + (P["foam"] - sea) * foam[..., None]
+
+        # ---- relief
+        ridge = Image.new("L", (w, h), 0)
+        rd = ImageDraw.Draw(ridge)
+        for strength, xy in self.ridges:
+            xs = [p[0] for p in xy]
+            ys = [p[1] for p in xy]
+            if max(xs) < x0 - 60 or min(xs) > x0 + w + 60 or max(ys) < y0 - 60 or min(ys) > y0 + h + 60:
+                continue
+            rd.line([(x - x0, y - y0) for x, y in xy], fill=int(255 * strength), width=int(10 + 14 * strength), joint="curve")
+        mount = ndimage.gaussian_filter(np.asarray(ridge, np.float32) / 255.0, 6) * 2.2
+        hills = self.hills(x0, y0, w, h)
+        height = hills * 0.9 + np.clip(mount, 0, 1.4) * (0.6 + hills * 0.6)
+        gy, gx = np.gradient(ndimage.gaussian_filter(height, 1.2))
+        shade = np.clip(0.55 - (gx + gy) * 22.0, 0, 1)  # light from the top-left
+
+        lowland = ramp(shade, [P["land_dark"], P["land"], P["land_light"]])
+        rock_t = np.clip(shade * 0.8 + np.clip(mount - 0.9, 0, 1) * 0.6, 0, 1)
+        rocky = ramp(rock_t, [P["rock_dark"], P["rock"], P["rock_light"], P["snow"]])
+        rock_w = np.clip((mount - 0.25) * 1.4, 0, 1)[..., None]
+        landc = lowland + (rocky - lowland) * rock_w
+        wastec = ramp(shade, [P["waste_dark"], P["waste"]])
+        wastec = wastec + (rocky * 0.7 + wastec * 0.3 - wastec) * rock_w * 0.6
+
+        img = sea
+        img = img + (wastec - img) * waste[..., None]
+        img = img + (landc - img) * prov[..., None]
+        out = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8), "RGB")
+
+        # ---- peak glyphs (stamped, land only)
+        d = ImageDraw.Draw(out)
+        for x, y, s in self.peaks:
+            if y < y0 - 20 or y > y0 + h + 20:
+                continue
+            xi, yi = int(x) - x0, int(y) - y0
+            if not (0 <= xi < w and 0 <= yi < h) or not land_bin[yi, xi]:
+                continue
+            x, y = x - x0, y - y0
+            r = 4.5 + 3.5 * s
+            top = (x, y - r * 1.25)
+            left, right, mid = (x - r, y + r * 0.45), (x + r, y + r * 0.45), (x + r * 0.15, y + r * 0.45)
+            d.polygon([top, left, mid], fill=tuple(int(c) for c in P["rock_light"]))
+            d.polygon([top, mid, right], fill=tuple(int(c) for c in P["rock_dark"]))
+            if s >= 0.7:  # snow cap
+                cap = r * 0.45
+                d.polygon([top, (x - cap * 0.8, y - r * 1.25 + cap), (x + cap * 0.8, y - r * 1.25 + cap)], fill=tuple(int(c) for c in P["snow"]))
+            d.line([left, top, right], fill=tuple(int(c) for c in P["rock_dark"]), width=1)
+        return out.crop((MARGIN, MARGIN, MARGIN + tw, MARGIN + th))
+
+
+_WORLD = None
+
+
+def _paint_tile(td):
+    name, tx, ty, tw, th = td
+    img = _WORLD.paint(tx, ty, tw, th)
+    f = os.path.join(OUT_DIR, name)
+    img.save(f, optimize=True)
+    return f
+
+
 def main():
-    m = json.load(open(os.path.join(ROOT, "data", "map.json")))
-    W, H = int(math.ceil(m["size"][0])), int(math.ceil(m["size"][1]))
-    P = palette()
-    rng = np.random.default_rng(1444)
+    global _WORLD
+    import argparse
+    from multiprocessing import get_context
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--jobs", type=int, default=4)
+    ap.add_argument("--only", action="append", default=[])
+    a = ap.parse_args()
+    _WORLD = World()
+    tiles = [t for t in _WORLD.m["terrain_tiles"] if not a.only or t[0] in a.only]
+    os.makedirs(OUT_DIR, exist_ok=True)
+    with get_context("fork").Pool(a.jobs) as pool:
+        for f in pool.imap_unordered(_paint_tile, tiles):
+            print(os.path.relpath(f, ROOT), os.path.getsize(f) // 1024, "KiB", flush=True)
+    # .import next to every tile: VRAM-compressed with mipmaps (Godot fills in the uid on the next import)
+    keep = {t[0] for t in _WORLD.m["terrain_tiles"]}
+    for f in os.listdir(OUT_DIR):
+        if f.startswith("terrain") and f.endswith(".png") and f not in keep and not a.only:
+            os.remove(os.path.join(OUT_DIR, f))
+            if os.path.exists(os.path.join(OUT_DIR, f + ".import")):
+                os.remove(os.path.join(OUT_DIR, f + ".import"))
+            print("removed", f)
+    for name in keep:
+        imp = os.path.join(OUT_DIR, name + ".import")
+        if not os.path.exists(imp):
+            open(imp, "w").write(IMPORT % name)
 
-    prov = raster([poly for p in m["provinces"] for poly in p["polys"]], W, H, 2)
-    waste = raster(m["background"], W, H, 2)
-    # close hairline gaps between neighbouring province polygons
-    closed = ndimage.binary_closing(prov > 0.5, iterations=2)
-    prov = np.maximum(prov, closed.astype(np.float32))
-    land = np.clip(prov + waste, 0, 1)
-    land_bin = land > 0.5
 
-    # ---- sea
-    # distance from the coast, from a 2x supersampled mask and smoothed so ripple lines stay round
-    big = np.asarray(Image.fromarray((land * 255).astype(np.uint8)).resize((W * 2, H * 2), Image.BILINEAR)) > 127
-    dist = ndimage.distance_transform_edt(~big).astype(np.float32)
-    dist = ndimage.gaussian_filter(dist, 2.0)
-    dist = np.asarray(Image.fromarray(dist).resize((W, H), Image.BILINEAR)) / 2.0
-    n_sea = fbm(H, W, rng, 4, 5)
-    # the part of the map below "terrain_split" that no tile covers is drawn in plain sea_deep:
-    # fade the sea noise out towards it so the tile edges do not show
-    sy = int(m.get("terrain_split", H))
-    tiles = m.get("terrain_tiles", [])
-    if sy < H:
-        bare = np.zeros((H, W), bool)
-        bare[sy:, :] = True
-        for _, tx, ty, tw, th in tiles:
-            bare[ty:ty + th, tx:tx + tw] = False
-        n_sea = 0.5 + (n_sea - 0.5) * np.clip(ndimage.distance_transform_edt(~bare) / 80.0, 0, 1)
-    t = np.clip(dist / 90.0, 0, 1) ** 0.6 + (n_sea - 0.5) * 0.25
-    sea = ramp(1 - t, [P["sea_deep"], P["sea"], P["sea_shallow"]])
-    # coastal ripple lines, fading outwards (classic atlas hatching)
-    for k, a in ((5.0, 0.35), (10.0, 0.22), (16.0, 0.12)):
-        line = np.clip(1.0 - np.abs(dist - k) / 0.9, 0, 1) * a
-        sea = sea + (P["foam"] - sea) * line[..., None]
-    foam = np.clip(1.0 - (dist - 0.5) / 2.0, 0, 1) * 0.5
-    sea = sea + (P["foam"] - sea) * foam[..., None]
+IMPORT = """[remap]
 
-    # ---- relief
-    mount = np.zeros((H, W), np.float32)
-    ridge = Image.new("L", (W, H), 0)
-    rd = ImageDraw.Draw(ridge)
-    peaks = []
-    for strength, pts in RANGES:
-        xy = [proj(*p) for p in pts]
-        rd.line(xy, fill=int(255 * strength), width=int(10 + 14 * strength), joint="curve")
-        for (x0, y0), (x1, y1) in zip(xy, xy[1:]):
-            seg = math.hypot(x1 - x0, y1 - y0)
-            nx, ny = -(y1 - y0) / max(seg, 1), (x1 - x0) / max(seg, 1)
-            rows = (-1, 1) if strength >= 0.6 else (0,)
-            for i in range(int(seg / 11) + 1):
-                f = i * 11 / max(seg, 1)
-                for row in rows:
-                    jitter = rng.normal(0, 2.5, 2)
-                    off = row * 6.0 + (3.0 if i % 2 else 0.0) * row
-                    peaks.append((x0 + (x1 - x0) * f + nx * off + jitter[0], y0 + (y1 - y0) * f + ny * off + jitter[1], strength))
-    mount = ndimage.gaussian_filter(np.asarray(ridge, np.float32) / 255.0, 6) * 2.2
-    hills = fbm(H, W, rng, 6, 8)
-    height = hills * 0.9 + np.clip(mount, 0, 1.4) * (0.6 + hills * 0.6)
-    gy, gx = np.gradient(ndimage.gaussian_filter(height, 1.2))
-    shade = np.clip(0.55 - (gx + gy) * 22.0, 0, 1)  # light from the top-left
+importer="texture"
+type="CompressedTexture2D"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
 
-    lowland = ramp(shade, [P["land_dark"], P["land"], P["land_light"]])
-    rock_t = np.clip(shade * 0.8 + np.clip(mount - 0.9, 0, 1) * 0.6, 0, 1)
-    rocky = ramp(rock_t, [P["rock_dark"], P["rock"], P["rock_light"], P["snow"]])
-    rock_w = np.clip((mount - 0.25) * 1.4, 0, 1)[..., None]
-    landc = lowland + (rocky - lowland) * rock_w
-    wastec = ramp(shade, [P["waste_dark"], P["waste"]])
-    wastec = wastec + (rocky * 0.7 + wastec * 0.3 - wastec) * rock_w * 0.6
+[deps]
 
-    img = sea
-    img = img + (wastec - img) * waste[..., None]
-    img = img + (landc - img) * prov[..., None]
-    out = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8), "RGB")
+source_file="res://assets/art/map/%s"
 
-    # ---- peak glyphs (stamped, land only)
-    d = ImageDraw.Draw(out)
-    for x, y, s in sorted(peaks, key=lambda p: p[1]):
-        xi, yi = int(x), int(y)
-        if not (0 <= xi < W and 0 <= yi < H) or not land_bin[yi, xi]:
-            continue
-        r = 4.5 + 3.5 * s
-        top = (x, y - r * 1.25)
-        left, right, mid = (x - r, y + r * 0.45), (x + r, y + r * 0.45), (x + r * 0.15, y + r * 0.45)
-        d.polygon([top, left, mid], fill=tuple(int(c) for c in P["rock_light"]))
-        d.polygon([top, mid, right], fill=tuple(int(c) for c in P["rock_dark"]))
-        if s >= 0.7:  # snow cap
-            cap = r * 0.45
-            d.polygon([top, (x - cap * 0.8, y - r * 1.25 + cap), (x + cap * 0.8, y - r * 1.25 + cap)], fill=tuple(int(c) for c in P["snow"]))
-        d.line([left, top, right], fill=tuple(int(c) for c in P["rock_dark"]), width=1)
+[params]
 
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    # Android caps textures at 4096 px: below "terrain_split" (the Gulf of Guinea) the map is cut into tiles
-    # ("terrain_tiles" in map.json: Africa, South America); open sea outside them is the plain sea colour
-    mx, my, mw, mh = m.get("terrain_main", [0, 0, W, sy])  # terrain.png: the eastern 4096 px of the top band
-    out.crop((mx, my, mx + mw, my + mh)).save(OUT, optimize=True)
-    files = [OUT]
-    for name, tx, ty, tw, th in tiles:
-        f = os.path.join(os.path.dirname(OUT), name)
-        out.crop((tx, ty, tx + tw, ty + th)).save(f, optimize=True)
-        files.append(f)
-    # half size for zoomed-out views (no mipmaps: .import files are not versioned)
-    half = OUT.replace("terrain.png", "terrain_half.png")
-    out.resize((W // 2, H // 2), Image.LANCZOS).save(half, optimize=True)
-    files.append(half)
-    for f in files:
-        print(f, os.path.getsize(f) // 1024, "KiB")
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1
+"""
 
 
 if __name__ == "__main__":

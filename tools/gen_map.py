@@ -11,7 +11,8 @@ import os
 import sys
 
 from shapely import voronoi_polygons
-from shapely.geometry import MultiPoint, Point, box, shape
+from shapely import STRtree
+from shapely.geometry import MultiPoint, Point, Polygon, box, shape
 from shapely.ops import unary_union
 
 # (key, name, lon, lat, owner, dev[, max radius in degrees for desert provinces])
@@ -736,7 +737,12 @@ LAND_LINKS = [("constantinople", "edirne"), ("morea", "thessaly"), ("crimea", "z
               ("darien", "zenu")]
 
 sys.path.insert(0, os.path.dirname(__file__))
-from mapproj import ATL_SHIFT, LAT0, MIN_LAT, NEW_WORLD, NW_MIN_LAT, OLD_WORLD, SCALE, SOUTH_AMERICA, proj, size  # noqa: E402
+import world  # noqa: E402  (the regions appended after the Low Countries: tools/world/)
+PROVINCES = PROVINCES + world.provinces()
+for _r in world.REGIONS:
+    STRAITS += _r.STRAITS
+    LAND_LINKS += _r.LAND_LINKS
+from mapproj import SCALE, proj, size, windows  # noqa: E402
 
 FIRST_NEW_WORLD = "tenochtitlan"  # provinces from here on are overseas/colonial ("nw" in map.json)
 FIRST_AFRICA = "arguin"  # ... and from here on they are West Africa ("wa" in map.json, also "nw")
@@ -746,15 +752,14 @@ FIRST_SA = "calusa"  # ... and from here on South America and the finer east coa
 FIRST_PAC = "nayarit"  # ... then the North American west ("pac", also "nw"; region "america")
 FIRST_LOW = "zeeland"  # ... and the Low Countries: Old World again (no flag)
 # big African lakes cut out of the land south of the Sahara
-AF_LAKES = {"Lake Victoria", "Lake Tanganyika", "Lake Malawi"}
-# the map texture is split below this latitude (each part < 4096 px on Android): the south part is two
-# tiles, Africa (east of TERRAIN_SOUTH_LON, down to TERRAIN_AFRICA_MIN_LAT) and South America (west of it,
-# down to the map edge); the rest is plain open sea. The lines run through open water well away from any
-# coast, so map_terrain can fade the sea into the plain colour
-TERRAIN_SOUTH_LAT = 1.5
-TERRAIN_SOUTH_LON = -2.0
-TERRAIN_AFRICA_MIN_LAT = -37.0
-TERRAIN_SA_LON = (-56.5, -2.0)  # shifted longitudes: the Pacific coast of Peru at -81.3 is -54.3 after the shift
+AF_LAKES = {"Lake Victoria", "Lake Tanganyika", "Lake Malawi", "Lake Baikal", "Lake Balkhash", "Issyk-Kul"}
+# the Aral Sea of the 15th century (Natural Earth has today's remnant)
+ARAL = [(58.2, 45.0), (58.6, 44.0), (59.5, 43.5), (60.6, 43.6), (61.3, 44.3), (61.7, 45.3), (61.4, 46.2), (60.8, 46.8), (59.8, 46.8),
+        (59.0, 46.3), (58.3, 45.8)]
+# the painted map is cut into square tiles (Android caps textures at 4096 px); a tile is only painted if
+# land lies within TILE_MARGIN px of it, the rest of the sea is the plain deep-sea colour
+TILE = 2048
+TILE_MARGIN = 256
 # big lakes cut out of the New World land (Natural Earth lakes); Europe keeps its old shapes
 LAKES = {"Lake Superior", "Lake Michigan", "Lake Huron", "Lake Erie", "Lake Ontario", "Lake Winnipeg", "Lago de Nicaragua", "Lago Titicaca"}
 
@@ -776,13 +781,11 @@ def main(land_path, lakes_path):
     with open(lakes_path) as f:
         lakes_gj = json.load(f)
     lakes = unary_union([shape(ft["geometry"]) for ft in lakes_gj["features"] if ft["properties"].get("name") in LAKES])
-    af_lakes = unary_union([shape(ft["geometry"]) for ft in lakes_gj["features"] if ft["properties"].get("name") in AF_LAKES])
-    windows = [box(OLD_WORLD[0], MIN_LAT, OLD_WORLD[1], LAT0),
-               box(NEW_WORLD[0], NW_MIN_LAT, NEW_WORLD[1], LAT0).union(box(*SOUTH_AMERICA))]
+    af_lakes = unary_union([shape(ft["geometry"]) for ft in lakes_gj["features"] if ft["properties"].get("name") in AF_LAKES] + [Polygon(ARAL)])
     land_parts = []
     for feat in gj["features"]:
         g = shape(feat["geometry"])
-        for wi, window in enumerate(windows):
+        for wi, window in enumerate(windows()):
             if g.intersects(window):
                 part = g.intersection(window)
                 if wi == 1:
@@ -886,12 +889,20 @@ def main(land_path, lakes_path):
         if low_first > i >= pac_first:
             d["nw"] = True
             d["pac"] = True
+        r = world.region_of(p[0]) if i >= low_first else None
+        if r is not None:
+            d[r.BLOCK] = True
+            d.update(r.FLAGS)
         provinces.append(d)
 
     key_to_id = {p[0]: i for i, p in enumerate(PROVINCES)}
     adj = [set() for _ in PROVINCES]
+    tree = STRtree(shapes)
     for i in range(len(shapes)):
-        for j in range(i + 1, len(shapes)):
+        for j in tree.query(shapes[i].buffer(1.5)):
+            j = int(j)
+            if j <= i:
+                continue
             if shapes[i].distance(shapes[j]) < 1.5:
                 inter = shapes[i].buffer(1.0).intersection(shapes[j].buffer(1.0))
                 if inter.area > 6.0:
@@ -914,19 +925,14 @@ def main(land_path, lakes_path):
         if q.geom_type == "Polygon" and q.area > 200.0:
             bg.append([[round(x, 1), round(y, 1)] for x, y in list(q.exterior.coords)[:-1]])
 
-    tx, ty = proj(TERRAIN_SOUTH_LON, TERRAIN_SOUTH_LAT)
-    tx, ty = int(tx), int(round(ty))
-    _, ay = proj(TERRAIN_SOUTH_LON, TERRAIN_AFRICA_MIN_LAT)
-    sx0, _ = proj(TERRAIN_SA_LON[0] - ATL_SHIFT, 0.0)
-    sx0 = int(sx0)
-    # [file, x, y, w, h] in map pixels; terrain.png covers the eastern 4096 px down to ty ("terrain_main"),
-    # terrain_west.png the rest of that band (the North American west)
-    mx = max(0, W - 4096)
-    tiles = [["terrain_south.png", tx, ty, W - tx, int(ay) - ty], ["terrain_sa.png", sx0, ty, tx - sx0, H - ty]]
-    if mx > 0:
-        tiles.append(["terrain_west.png", 0, 0, mx, ty])
-    out = {"size": [W, H], "terrain_split": ty, "terrain_main": [mx, 0, W - mx, ty], "terrain_tiles": tiles,
-           "provinces": provinces, "background": bg}
+    # [file, x, y, w, h] in map pixels: the grid cells with land nearby
+    tiles = []
+    for row in range(0, H, TILE):
+        for col in range(0, W, TILE):
+            cell = box(col - TILE_MARGIN, row - TILE_MARGIN, col + TILE + TILE_MARGIN, row + TILE + TILE_MARGIN)
+            if full_land.intersects(cell):
+                tiles.append(["terrain_%d_%d.png" % (col // TILE, row // TILE), col, row, min(TILE, W - col), min(TILE, H - row)])
+    out = {"size": [W, H], "terrain_tiles": tiles, "provinces": provinces, "background": bg}
     with open("data/map.json", "w") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
     # sea crossings: slower marches, need sea control in war (scripts/core/warfare.gd)
