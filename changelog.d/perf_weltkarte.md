@@ -1,1 +1,0 @@
-- **Leistung:** Belagerungen, der jährliche Preisabgleich und die Handelseinnahmen werden schneller berechnet. Der längste Einzelschritt eines Monats ist nur noch halb so lang, das Spiel ruckelt beim Jahreswechsel weniger.
