@@ -27,6 +27,7 @@ const FOG := Color("2f2c26")
 ## Android caps textures at 4096 px.
 const TERRAIN_DIR := "res://assets/art/map/"
 const FILL_ALPHA := 0.7
+const NATIVE_ALPHA := 0.1
 const PROV_BORDER := Color(0.12, 0.09, 0.06, 0.28)
 const NATION_BORDER := Color(0.07, 0.05, 0.09, 0.9)
 const COAST := Color(0.03, 0.09, 0.16, 0.8)
@@ -563,6 +564,8 @@ func _draw_layer(ci) -> void:
 			var c := province_color(p)
 			if has_terrain:
 				c.a = FILL_ALPHA if map_mode < 2 else 0.86
+				if map_mode < 2 and p.owner == Colonial.NATIVE:
+					c.a = NATIVE_ALPHA  # open land of its peoples: the painted forests, deserts and hills show through
 			for poly in polys[p.id]:
 				ci.draw_colored_polygon(poly, c)
 			var hatch = _hatch_color(p)

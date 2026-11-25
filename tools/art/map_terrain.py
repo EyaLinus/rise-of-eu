@@ -209,6 +209,14 @@ class World:
         self.n_sea = Noise(self.W, self.H, rng, 4, 5)
         self.hills = Noise(self.W, self.H, rng, 6, 8)
         self.prov = [(poly, _bbox(poly)) for p in self.m["provinces"] for poly in p["polys"]]
+        terr = json.load(open(os.path.join(ROOT, "data", "terrain.json")))
+        self.biome = {}  # terrain type -> [(poly, bbox)] (data/terrain.json, the same types the game uses)
+        for p in self.m["provinces"]:
+            for poly in p["polys"]:
+                self.biome.setdefault(terr.get(p["key"], "plains"), []).append((poly, _bbox(poly)))
+        brng = np.random.default_rng(1492)  # own stream: the peaks below keep their places
+        self.n_biome = Noise(self.W, self.H, brng, 4, 14)
+        self.n_edge = Noise(self.W, self.H, brng, 3, 70)
         self.waste = [(poly, _bbox(poly)) for poly in self.m["background"]]
         self.ridges = []
         self.peaks = []
@@ -282,10 +290,13 @@ class World:
         wastec = ramp(shade, [P["waste_dark"], P["waste"]])
         wastec = wastec + (rocky * 0.7 + wastec * 0.3 - wastec) * rock_w * 0.6
 
+        landc, masks, lat = self._biomes(landc, shade, mount, hills, x0, y0, w, h, box)
+
         img = sea
         img = img + (wastec - img) * waste[..., None]
         img = img + (landc - img) * prov[..., None]
         out = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8), "RGB")
+        self._stipple(out, masks, lat, mount, land_bin, x0, y0, w, h)
 
         # ---- peak glyphs (stamped, land only)
         d = ImageDraw.Draw(out)
@@ -306,6 +317,105 @@ class World:
                 d.polygon([top, (x - cap * 0.8, y - r * 1.25 + cap), (x + cap * 0.8, y - r * 1.25 + cap)], fill=tuple(int(c) for c in P["snow"]))
             d.line([left, top, right], fill=tuple(int(c) for c in P["rock_dark"]), width=1)
         return out.crop((MARGIN, MARGIN, MARGIN + tw, MARGIN + th))
+
+
+    # ---- biomes: soft colour by terrain type and latitude, then small stamped glyphs (trees, dunes, reeds)
+
+    def _biomes(self, landc, shade, mount, hills, x0, y0, w, h, box):
+        masks = {}
+        edge = self.n_edge(x0, y0, w, h)
+        for kind in ("forest", "desert", "marsh", "hills", "mountains"):
+            m = raster(_near(self.biome.get(kind, []), *box), x0, y0, w, h)
+            if m.any():
+                # soft, ragged edges instead of the straight province borders the regions come from
+                m = ndimage.gaussian_filter(m, 14.0)
+                m = np.clip((m - 0.5) * 1.8 + 0.5 + (edge - 0.5) * 1.3, 0, 1)
+            masks[kind] = m
+        lat = (LAT0 - (y0 + np.arange(h, dtype=np.float32)) / SCALE)[:, None] * np.ones((1, w), np.float32)
+        nb = self.n_biome(x0, y0, w, h)
+        light = (0.80 + 0.40 * shade)[..., None]
+        out = landc
+        jungle = np.clip((20.0 - np.abs(lat)) / 6.0, 0, 1)
+        taiga = np.clip((lat - 50.0) / 8.0, 0, 1)
+        forest_col = BIOME["forest"] + (BIOME["jungle"] - BIOME["forest"]) * jungle[..., None]
+        forest_col = forest_col + (BIOME["taiga"] - forest_col) * taiga[..., None]
+        for kind, col, k in (("forest", forest_col, 0.55), ("desert", BIOME["desert"], 0.6), ("marsh", BIOME["marsh"], 0.5),
+                             ("hills", BIOME["hills"], 0.35)):
+            a = masks[kind] * (k * (0.75 + 0.5 * nb))
+            out = out + (col * light - out) * a[..., None]
+        # the far north and south: pale tundra, then ice
+        tundra = np.clip((np.abs(lat) - 61.0) / 5.0, 0, 1) * (1.0 - np.clip(mount - 0.3, 0, 1)) * 0.55
+        out = out + (BIOME["tundra"] * light - out) * tundra[..., None]
+        return out, masks, lat
+
+    def _stipple(self, out, masks, lat, mount, land_bin, x0, y0, w, h):
+        d = ImageDraw.Draw(out)
+
+        def cells(step, kind, thr):
+            m = masks[kind]
+            if m.max() < thr:
+                return
+            for gy in range((y0 - 8) // step, (y0 + h + 8) // step + 1):
+                for gx in range((x0 - 8) // step, (x0 + w + 8) // step + 1):
+                    hsh = (gx * 73856093 ^ gy * 19349663 ^ step * 83492791) & 0xFFFFFFFF
+                    jx = (hsh & 0xFF) / 255.0
+                    jy = ((hsh >> 8) & 0xFF) / 255.0
+                    pick = ((hsh >> 16) & 0xFF) / 255.0
+                    x = gx * step + jx * step * 0.8
+                    y = gy * step + jy * step * 0.8
+                    xi, yi = int(x) - x0, int(y) - y0
+                    if not (2 <= xi < w - 2 and 2 <= yi < h - 2) or not land_bin[yi, xi]:
+                        continue
+                    if m[yi, xi] < thr + pick * 0.35:  # thinner towards the edges of the region
+                        continue
+                    yield x - x0, y - y0, pick, xi, yi
+
+        dark, mid = tuple(int(c) for c in BIOME["tree_dark"]), tuple(int(c) for c in BIOME["tree"])
+        for x, y, pick, xi, yi in cells(11, "forest", 0.35):
+            if mount[yi, xi] > 0.9:
+                continue
+            if lat[yi, xi] > 48.0 or pick > 0.75:  # conifer
+                d.polygon([(x, y - 4.5), (x - 2.6, y + 1.5), (x + 2.6, y + 1.5)], fill=mid)
+                d.line([(x, y - 4.5), (x + 2.6, y + 1.5)], fill=dark, width=1)
+                d.line([(x, y + 1.5), (x, y + 2.8)], fill=dark, width=1)
+            else:  # broadleaf crown with a shadow
+                d.ellipse([x - 2.6, y - 3.4, x + 2.6, y + 1.2], fill=mid)
+                d.arc([x - 2.6, y - 3.4, x + 2.6, y + 1.2], 300, 120, fill=dark, width=1)
+                d.line([(x, y + 1.2), (x, y + 2.6)], fill=dark, width=1)
+        sand = tuple(int(c) for c in BIOME["dune"])
+        for x, y, pick, xi, yi in cells(19, "desert", 0.4):
+            d.arc([x - 5, y - 2, x + 5, y + 3], 200, 340, fill=sand, width=1)
+            if pick > 0.5:
+                d.arc([x - 1, y + 1, x + 7, y + 5], 200, 340, fill=sand, width=1)
+        reed = tuple(int(c) for c in BIOME["reed"])
+        for x, y, pick, xi, yi in cells(13, "marsh", 0.4):
+            d.line([(x - 4, y + 2), (x + 4, y + 2)], fill=reed, width=1)
+            for dx in (-2, 0, 2):
+                d.line([(x + dx, y + 1), (x + dx * 1.4, y - 2.5)], fill=reed, width=1)
+        hill = tuple(int(c) for c in BIOME["hill_line"])
+        for x, y, pick, xi, yi in cells(17, "hills", 0.4):
+            if mount[yi, xi] > 0.5:
+                continue
+            d.arc([x - 5, y - 3, x + 5, y + 5], 200, 340, fill=hill, width=1)
+        rl, rd_ = tuple(int(c) for c in self.P["rock_light"]), tuple(int(c) for c in self.P["rock_dark"])
+        for x, y, pick, xi, yi in cells(16, "mountains", 0.45):
+            if mount[yi, xi] > 0.6:  # the ranges already carry their own peaks
+                continue
+            r = 3.5 + pick * 2.0
+            d.polygon([(x, y - r * 1.2), (x - r, y + r * 0.45), (x + r * 0.15, y + r * 0.45)], fill=rl)
+            d.polygon([(x, y - r * 1.2), (x + r * 0.15, y + r * 0.45), (x + r, y + r * 0.45)], fill=rd_)
+
+
+def _hex(c):
+    return np.array([int(c[i:i + 2], 16) for i in (1, 3, 5)], dtype=np.float32)
+
+
+# biome colours: muted atlas tones that sit between the parchment land and the palette greens and sands
+BIOME = {k: _hex(v) for k, v in {
+    "forest": "#a7aa72", "jungle": "#879a5c", "taiga": "#9a9f80", "desert": "#e6d29c", "marsh": "#a3aa8c",
+    "hills": "#c2ad7c", "tundra": "#d9d8cc", "tree": "#6f7f4a", "tree_dark": "#46522f", "dune": "#c2a66a",
+    "reed": "#6f7a5c", "hill_line": "#8f7c55",
+}.items()}
 
 
 _WORLD = None
