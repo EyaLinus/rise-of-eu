@@ -3817,11 +3817,12 @@ func _sync_flags() -> void:
 		map.refresh()
 
 
-## Realms this nation may proclaim (Formables): progress on the core provinces and the button.
+## Realms this nation may proclaim (Formables), EU5-style: every requirement as a checklist in the tooltip, the
+## first open one on the button, and a 🔍 button that shows the nearest missing province on the map.
 func _nation_formables(me: String) -> void:
 	var ids: Array = Formables.options(game, me)
 	var ready := ids.any(func(id): return Formables.block_reason(game, me, id) == "")
-	if ids.is_empty() or not _section("nat_formables", "👑 Reich gründen" + (" ✨" if ready else ""), ready, "Mit genug Kernprovinzen ruft deine Nation ein größeres Reich aus: neuer Name, neue Farbe, Prestige, dauerhafter Bonus und Ansprüche auf die fehlenden Provinzen."):
+	if ids.is_empty() or not _section("nat_formables", "👑 Reich gründen" + (" ✨" if ready else ""), ready, "Erfüllt deine Nation die Bedingungen, ruft sie ein größeres Reich aus: neuer Name, Flagge und Farbe, Prestige, Stabilität, oft ein höherer Rang, ein dauerhafter Bonus und Ansprüche auf die fehlenden Provinzen. Große Imperien (Stufe 2) lassen sich auch nach einer ersten Gründung noch ausrufen."):
 		return
 	for id in ids:
 		var f: Dictionary = game.formable_defs[id]
@@ -3829,15 +3830,42 @@ func _nation_formables(me: String) -> void:
 		var parts := []
 		for r in UiTheme.mod_rows(f.bonus):
 			parts.append("%s %s" % [r[0], r[1]])
-		var miss := []
-		for pid in Formables.missing(game, me, id):
-			miss.append(game.provinces[pid].name)
-		var tip: String = "%s\nBonus: %s, +%d ⭐\nKernprovinzen %d/%d.%s" % [f.text, ", ".join(parts), int(game.bal.form_prestige), pr[0], pr[1],
-				("\nEs fehlen: " + ", ".join(miss)) if not miss.is_empty() else ""]
+		var checks := []
+		for rq in Formables.requirements(game, me, id):
+			checks.append(("✅ " if rq[0] else "❌ ") + str(rq[1]))
+		var miss: Array = Formables.missing(game, me, id)
+		var names := []
+		for pid in miss.slice(0, 8):
+			names.append(game.provinces[pid].name)
+		var reward := "+%d ⭐, +%d Stabilität" % [int(Formables.prestige_gain(game, id)), int(game.bal.get("form_stability", 0.0))]
+		if int(f.get("rank_to", -1)) > int(game.nations[me].rank):
+			reward += ", Rang %s" % game.Progression.RANKS[int(f.rank_to)].name
+		var tip: String = "%s%s\n\nBedingungen:\n%s\n\nBelohnung: %s\nBonus: %s%s" % [f.text,
+				"\n🏛️ Großes Imperium (auch nach einer ersten Reichsgründung)" if Formables.tier(game, id) >= 2 else "",
+				"\n".join(checks), reward, ", ".join(parts),
+				("\nEs fehlen u. a.: " + ", ".join(names)) if not names.is_empty() else ""]
 		var br: String = Formables.block_reason(game, me, id)
-		side_box.add_child(_btn("👑 %s ausrufen (%d/%d, %d 📜)" % [f.name, pr[0], pr[1], int(Formables.cost(game))],
-				func(): _form_realm(id),
-				tip + ("\n❌ " + br if br != "" else ""), br != ""))
+		var b := _btn("👑 %s ausrufen\n%s" % [f.name, ("%d/%d Provinzen · %d 📜" % [pr[0], pr[1], int(Formables.cost(game, id))]) if br == "" else "❌ " + br],
+				func(): _form_realm(id), tip, br != "")
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if miss.is_empty():
+			side_box.add_child(b)
+			continue
+		var target: int = miss[0]
+		var cap: int = game.nations[me].capital
+		if cap >= 0:
+			var best := INF
+			for pid in miss:
+				var d: float = game.provinces[pid].center.distance_squared_to(game.provinces[cap].center)
+				if d < best:
+					best = d
+					target = pid
+		var look := _btn("🔍", func(): map.focus(game.provinces[target].center, maxf(map.zoom, 1.2)), "Nächste fehlende Provinz zeigen: " + game.provinces[target].name)
+		var row := _row([b, look])
+		look.size_flags_horizontal = Control.SIZE_SHRINK_END
+		side_box.add_child(row)
 
 
 func _form_realm(id: String) -> void:

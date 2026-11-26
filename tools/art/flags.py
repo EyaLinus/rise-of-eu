@@ -409,7 +409,22 @@ F["PLC"] = (centred(f, recolor(EAGLE2, TO_WHITE), cy=2), "Poland-Lithuania – w
 F["IBE"] = (border(copy.deepcopy(FLAGS["SPA"][0]), "G", 1), "Iberian crown – Castile quarters in a gold border")
 F["ROM"] = (border(centred(solid("U"), recolor(EAGLE2, TO_GOLD), cy=2), "G", 2), "Roman Empire – gold eagle on imperial purple, gold border")
 F["PER"] = (centred(solid("L"), recolor(LION_RAMPANT, {"w": "G", "a": "D"}), cy=1), "Persia – gold lion on green")
-F["MAG"] = (centred(field("L", "w", "L"), recolor(CRESCENT, TO_RED), cy=3), "Maghreb – red crescent on green and white")
+F["MGB"] = (centred(field("L", "w", "L"), recolor(CRESCENT, TO_RED), cy=3), "Maghreb – red crescent on green and white")
+DISC = ["..RRRR..", ".RRRRRR.", "RRRRRRRR", "RRRRRRRE", "RRRRRRRE", "RRRRRREE", ".RRRREE.", "..EEEE.."]
+F["JPN"] = (centred(solid("w"), DISC), "Japan – red sun disc on white")
+F["HIN"] = (border(centred(solid("L"), SUN), "G", 1), "Hindustan – gold sun on green, gold border")
+F["ARB"] = (centred(solid("F"), ["....w....", "...www...", "..wwwww..", "....w....", "....w....", "....w....", "..GGGGG..", "....D....", "....D...."]), "Arabia – white blade with gold hilt on dark green")
+f = stripes(["R", "w"], 7)
+for y in range(8):
+    for x in range(10):
+        f[y][x] = "w" if (y % 2 == 1 and x % 3 == 1 and y < 7) else "N"
+F["USA"] = (f, "United States – red and white stripes, white stars on a blue canton")
+OWL = [".k.....k.", ".kk...kk.", ".kkkkkkk.", "kkwkkkwkk", "kkkkDkkkk", ".kkkkkkk.", ".kkkkkkk.", "..kkkkk..", "..D...D.."]
+F["TTA"] = (centred(solid("G"), OWL, cy=2), "Tartary – black owl on yellow")
+f = solid("N")
+for (x, y) in [(11, 1), (14, 2), (16, 4), (17, 7), (16, 10), (14, 12), (11, 12), (8, 12), (6, 10), (5, 7), (6, 4), (8, 2)]:
+    f[y][x - 1] = "G"
+F["EUR"] = (centred(f, CROWN, cy=6), "Imperium Europa – gold crown inside a ring of gold stars on dark blue")
 FLAGS.update(F)
 
 # ---------------------------------------------------------------- the world regions (tools/world/*.py)
