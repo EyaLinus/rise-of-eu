@@ -17,11 +17,12 @@ const Warfare = preload("res://scripts/core/warfare.gd")
 const Naval = preload("res://scripts/core/naval.gd")
 const Colonial = preload("res://scripts/core/colonial.gd")
 const Vision = preload("res://scripts/core/vision.gd")
-## Fog of war (Vision): a dark veil over known land the player cannot see right now.
-const FOG_OF_WAR := Color(0.06, 0.06, 0.09, 0.4)
-## Terra incognita (data/fog.json from tools/gen_seas.py): a coarse grid of New World regions.
+## Fog of war (Vision): drifting pixel-art mist over known land the player cannot see right now. It is a
+## pattern, not a flat dark veil, so a realm half in sight and half in the fog still reads as one colour.
+const MistArt = preload("res://scripts/ui/map_mist.gd")
+## Terra incognita (data/fog.json from tools/gen_seas.py): a coarse grid of New World regions, drawn by
+## a shader (map_mist.gd) as ragged clouds at map resolution instead of the blurry grid itself.
 const FOG_PATH := "res://data/fog.json"
-const FOG := Color("2f2c26")
 ## Painted base map (tools/art/map_terrain.py). Without it the map falls back to flat SEA/WASTE.
 
 ## The map below the Gulf of Guinea is cut into tiles (Africa, South America; map.json "terrain_tiles"):
@@ -29,8 +30,9 @@ const FOG := Color("2f2c26")
 const TERRAIN_DIR := "res://assets/art/map/"
 const FILL_ALPHA := 0.7
 const NATIVE_ALPHA := 0.1
-const PROV_BORDER := Color(0.12, 0.09, 0.06, 0.28)
-const NATION_BORDER := Color(0.07, 0.05, 0.09, 0.9)
+## Borders are quiet pixel lines: they separate, the colours and names carry the map.
+const PROV_BORDER := Color(0.12, 0.09, 0.06, 0.17)
+const NATION_BORDER := Color(0.07, 0.05, 0.09, 0.6)
 const COAST := Color(0.03, 0.09, 0.16, 0.8)
 const COUNTER_SIZE := Vector2(48, 28)
 const SELECT := Color("f4d35e")  # selection and the player's realm border (gold from the art palette)
@@ -59,6 +61,8 @@ var _sea_rect: ColorRect
 var _fog: Dictionary = {}  # parsed fog.json: cell, w, h, ids, cells (PackedInt32Array, 0 = never fogged)
 var _fog_sprite: Sprite2D
 var _fog_sig := ""
+var _mist_tex: Texture2D  # fog of war pattern (tileable, MistArt)
+var _veil_mat: ShaderMaterial  # shared by the province pieces: scales the mist with the zoom
 var _sight := PackedByteArray()  # Vision.player_sight, empty = no fog of war (everything visible)
 ## Border segments in world space: points 2e and 2e+1 between provinces edge_l[e] and edge_r[e] (-1 = sea)
 var edge_pts := PackedVector2Array()
@@ -167,6 +171,9 @@ func setup(g, map_data: Dictionary) -> void:
 		_world = Node2D.new()
 		_world.show_behind_parent = true
 		add_child(_world)
+	if _mist_tex == null:
+		_mist_tex = MistArt.veil_texture()
+		_veil_mat = MistArt.veil_material()
 	if _prov_layers.size() != polys.size():
 		for l in _layers:
 			l.free()
@@ -197,18 +204,20 @@ func _setup_fog() -> void:
 	var d = JSON.parse_string(FileAccess.get_file_as_string(FOG_PATH))
 	if typeof(d) != TYPE_DICTIONARY:
 		return
-	var cells := PackedInt32Array()
+	var run_id := PackedInt32Array()  # the grid as runs (id, length), row after row
+	var run_len := PackedInt32Array()
 	for row in d.rows:
 		for i in range(0, row.size(), 2):
-			for k in int(row[i + 1]):
-				cells.append(int(row[i]))
-	_fog = {"cell": float(d.cell), "w": int(d.w), "h": int(d.h), "ids": d.ids, "cells": cells}
+			run_id.append(int(row[i]))
+			run_len.append(int(row[i + 1]))
+	_fog = {"cell": float(d.cell), "w": int(d.w), "h": int(d.h), "ids": d.ids, "run_id": run_id, "run_len": run_len}
 	if _fog_sprite == null:
 		_fog_sprite = Sprite2D.new()
 		_fog_sprite.centered = false
-		_fog_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		_fog_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 		_world.add_child(_fog_sprite)
 	_fog_sprite.scale = Vector2(_fog.cell, _fog.cell)
+	_fog_sprite.material = MistArt.fog_material(_fog.w, _fog.h, _fog.cell)
 
 
 ## Fog over every New World sea and province the player has not discovered (rebuilt when that changes).
@@ -238,19 +247,29 @@ func _update_fog() -> void:
 		else:
 			ok = Colonial.knows(game, me, int(key.substr(2)))
 		known[i + 1] = 1 if ok else 0
+	# a one-byte mask (255 = unknown) built run by run; the shader turns it into clouds
 	var w: int = _fog.w
 	var h: int = _fog.h
-	var cells: PackedInt32Array = _fog.cells
-	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	var run_id: PackedInt32Array = _fog.run_id
+	var run_len: PackedInt32Array = _fog.run_len
+	var full := PackedByteArray()
+	full.resize(w)
+	full.fill(255)
+	var empty := PackedByteArray()
+	empty.resize(w)
+	var data := PackedByteArray()
 	var any := false
-	for y in h:
-		for x in w:
-			if known[cells[y * w + x]] == 0:
-				var shade := 0.92 + 0.08 * sin(x * 0.7 + y * 1.3) * cos(x * 0.31 - y * 0.47)
-				img.set_pixel(x, y, Color(FOG.r * shade, FOG.g * shade, FOG.b * shade, 0.97))
-				any = true
+	for r in run_id.size():
+		var k: int = run_len[r]
+		if known[run_id[r]] == 0:
+			data.append_array(full.slice(0, k))
+			any = true
+		else:
+			data.append_array(empty.slice(0, k))
 	_fog_sprite.visible = any
-	if any:
+	if any and data.size() == w * h:
+		var img := Image.create_from_data(w, h, false, Image.FORMAT_L8, data)
+		img.generate_mipmaps()  # the shader blurs the grid by reading a smaller mip level
 		_fog_sprite.texture = ImageTexture.create_from_image(img)
 
 
@@ -271,9 +290,19 @@ func known(pid: int) -> bool:
 	return game == null or Colonial.knows(game, game.player, pid)
 
 
+## Map pixels per texel of the fog of war mist: about two screen pixels at every zoom (powers of two,
+## so the pattern stays crisp pixel art). Only shader uniforms follow it, no piece is redrawn.
+func _mist_texel() -> float:
+	var t := 2.0 / maxf(zoom, 0.05)
+	return pow(2.0, roundf(log(t) / log(2.0)))
+
+
 func _add_layer(kind: String, pid: int = -1) -> Node2D:
 	var l := Node2D.new()
 	l.set_script(WorldLayer)
+	if kind == "prov":
+		l.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+		l.material = _veil_mat
 	l.map = self
 	l.kind = kind
 	l.pid = pid
@@ -538,6 +567,11 @@ func _draw() -> void:
 		return
 	_build_mode_data()
 	_update_sight()
+	var texel := _mist_texel()
+	if _veil_mat != null:
+		_veil_mat.set_shader_parameter("tile", MistArt.SIZE * texel)
+	if _fog_sprite != null and _fog_sprite.material != null:
+		_fog_sprite.material.set_shader_parameter("px", clampf(texel, 1.0, 8.0))
 	draw_set_transform(offset, 0.0, Vector2(zoom, zoom))
 	# hover / selection tint on top of the world layer's fill
 	for pid in [hover_pid, selected_pid]:
@@ -606,7 +640,7 @@ func _draw_layer(ci) -> void:
 					_draw_hatch(ci, poly, bboxes[p.id], hatch)
 			if not sees(p.id) and known(p.id):
 				for poly in polys[p.id]:
-					ci.draw_colored_polygon(poly, FOG_OF_WAR)
+					ci.draw_colored_polygon(poly, Color.WHITE, poly, _mist_tex)  # UV = map px, see _veil_mat
 		"terrain":
 			_draw_rivers(ci)
 			_draw_terrain_glyphs(ci)
@@ -1373,7 +1407,7 @@ func _draw_borders(ci: CanvasItem) -> void:
 		ci.draw_multiline(thin, PROV_BORDER, 1.0 / zoom)
 	if not coast.is_empty():
 		ci.draw_multiline(coast, COAST, 1.5 / zoom)
-	var nw := clampf(2.6 * zoom, 1.6, 3.4)
+	var nw := 2.0 if zoom < 1.3 else 3.0  # whole screen pixels: crisp pixel-art strokes
 	if not nation.is_empty():
 		ci.draw_multiline(nation, NATION_BORDER, nw / zoom)
 	if not realm.is_empty():
