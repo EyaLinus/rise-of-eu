@@ -3512,7 +3512,10 @@ func _panel_native_land(p) -> void:
 	var used: int = Colonial.running_colonies(game, me).size()
 	side_box.add_child(_btn("🏕 Kolonie gründen %d 💰" % cost, func(): _act(Colonial.start_colony(game, me, pid), "🏕 Die Siedler sind unterwegs"),
 			"Siedler gründen hier eine Kolonie: sie kostet %d Gold und %.1f Gold im Monat, wächst etwa %d Monate (Ureinwohner verlangsamen und überfallen sie) und wird dann ein fester Teil deines Reiches. Siedler: %d/%d beschäftigt." % [
-			cost, float(game.bal.colony_upkeep), Colonial.colony_months(game, p), used, Colonial.colonists(game, game.nations[me])] + (("\n❌ " + why) if why != "" else ""), why != ""))
+			cost, Colonial.upkeep(game, game.nations[me]), Colonial.colony_months(game, p, me), used, Colonial.colonists(game, game.nations[me])]
+			+ (("\n😩 Koloniale Erschöpfung %d: +%d %% Dauer, +%d %% Kosten." % [int(game.nations[me].col_exhaust), int(game.nations[me].col_exhaust * float(game.bal.col_exhaust_slow)),
+			int(game.nations[me].col_exhaust * float(game.bal.col_exhaust_cost))]) if game.nations[me].col_exhaust >= 1.0 else "")
+			+ (("\n❌ " + why) if why != "" else ""), why != ""))
 
 
 ## Exploration and colonies of the player (nation panel): expeditions to the next unknown seas,
@@ -3522,8 +3525,8 @@ func _new_world_section() -> void:
 	var n = game.nations[me]
 	if not game.atlantic_tags.has(me):
 		return
-	if not _section("nat_newworld", "🧭 Neue Welt und Afrika", true,
-			"Entdeckungsfahrten decken die Meere und Küsten Amerikas und Afrikas auf (Golf von Guinea, Südatlantik, Kap, Indischer Ozean), Siedler gründen dort Kolonien. Ab Diplomatie-Technologie %d." % int(game.bal.explore_dip_tech)):
+	if not _section("nat_newworld", "🧭 Neue Welt, Afrika und Ozeanien", true,
+			"Entdeckungsfahrten decken die Meere und Küsten Amerikas, Afrikas und Ozeaniens auf (Golf von Guinea, Südatlantik, Kap, Indischer Ozean, dann Ostindischer Ozean und die Meere um Australien), Siedler gründen dort Kolonien. Ab Diplomatie-Technologie %d." % int(game.bal.explore_dip_tech)):
 		return
 	var running: Array = Colonial.running_colonies(game, me)
 	var chips := [
@@ -3531,12 +3534,17 @@ func _new_world_section() -> void:
 		_chip("🏕 Siedler %d/%d" % [running.size(), Colonial.colonists(game, n)], "So viele Kolonien können gleichzeitig wachsen.\n• 1 Grundstock\n• +1 je %d Diplomatie-Technologien (jetzt +%d)\n• +1 je %d fertige Kolonien, höchstens +2 (jetzt +%d)\n• +1 je angeworbene Siedlergruppe (jetzt +%d von %d)" % [
 				int(game.bal.dip_tech_per_colonist), int(n.tech.dip / int(game.bal.dip_tech_per_colonist)), int(game.bal.colonies_per_colonist), Colonial.colony_settlers(game, n),
 				Colonial.recruited(n), int(game.bal.recruit_colonist_max)]),
-		_chip("🌍 %d Kolonien" % Colonial.colonies_owned(game, me), "Fertige Kolonien in Amerika und Afrika."),
+		_chip("🌍 %d Kolonien" % Colonial.colonies_owned(game, me), "Fertige Kolonien in Amerika, Afrika und Ozeanien."),
+		_chip("😩 Erschöpfung %d" % int(n.col_exhaust), "Koloniale Erschöpfung (%s): jede fertige Kolonie ermüdet das Mutterland, umso mehr, je mehr Kolonien es schon hat (nächste +%.0f).\n• Kolonien wachsen %d %% langsamer\n• Gründung und Unterhalt kosten %d %% mehr\n• sinkt um etwa %.1f im Jahr (schneller mit Verwaltungs-Technologie)" % [
+				Colonial.exhaust_level(n), Colonial.exhaust_gain(game, me), int(n.col_exhaust * float(game.bal.col_exhaust_slow)), int(n.col_exhaust * float(game.bal.col_exhaust_cost)),
+				Colonial.exhaust_decay(game, n) * 12.0], "bad" if n.col_exhaust >= 60.0 else ("" if n.col_exhaust >= 30.0 else "good")),
 		_chip("🗺️ Nach Amerika", "Karte nach Amerika schwenken."),
 		_chip("🌍 Nach Afrika", "Karte nach Afrika schwenken."),
+		_chip("⛵ Nach Ozeanien", "Karte nach Australien und Ozeanien schwenken."),
 	]
-	chips[3].gui_input.connect(func(e): if _is_click(e): map.focus(game.provinces[game.nw_first].center, 0.6); map.refresh())
-	chips[4].gui_input.connect(func(e): if _is_click(e): map.focus(game.provinces[game.key_to_pid.get("kongo", mini(game.wa_first, game.provinces.size() - 1))].center, 0.5); map.refresh())
+	chips[4].gui_input.connect(func(e): if _is_click(e): map.focus(game.provinces[game.nw_first].center, 0.6); map.refresh())
+	chips[5].gui_input.connect(func(e): if _is_click(e): map.focus(game.provinces[game.key_to_pid.get("kongo", mini(game.wa_first, game.provinces.size() - 1))].center, 0.5); map.refresh())
+	chips[6].gui_input.connect(func(e): if _is_click(e): map.focus(game.provinces[game.key_to_pid.get("arrernte", game.nw_first)].center, 0.5); map.refresh())
 	chips.append(Control.new())
 	side_box.add_child(_grid(chips))
 	var rw: String = Colonial.recruit_block_reason(game, me)
@@ -5077,6 +5085,8 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["🏕 Kolonie " + (game.provinces[cpid].name if cpid >= 0 else "(Gebiet schon vergeben)") + " + Region entdeckt", 1])
 		elif k == "discover":
 			parts.append(["🧭 Neue Küsten werden entdeckt", 1])
+		elif k == "col_exhaust":
+			parts.append(["😩 Koloniale Erschöpfung %+d" % int(v), sgn.call(float(v), false)])
 		elif k == "isolate":
 			parts.append(["💔 %s verliert alle Verbündeten" % game.nations[v].name, 1])
 		elif k == "war":
@@ -5203,6 +5213,17 @@ func conditions_text(c: Dictionary) -> String:
 					lines.append(mark + "Ereignis bei %s eingetreten" % (game.nations[t].name if game.nations.has(t) else t))
 			"colony_free":
 				lines.append(mark + "Das Siedlungsgebiet ist noch frei")
+			"colonies_min":
+				lines.append(mark + "Mindestens %d Kolonien (jetzt %d)" % [int(v), Colonial.colonies_owned(game, me)])
+			"region_colonies":
+				for r in v:
+					lines.append(mark + "Mindestens %d Kolonien in %s" % [int(v[r]), {"america": "Amerika", "africa": "Afrika", "oceania": "Ozeanien"}.get(r, r)])
+			"col_exhaust_min":
+				lines.append(mark + "Koloniale Erschöpfung mindestens %d" % int(v))
+			"col_exhaust_max":
+				lines.append(mark + "Koloniale Erschöpfung höchstens %d" % int(v))
+			"knows_sea":
+				lines.append(mark + "Kennt den Seeweg: " + ", ".join((v if v is Array else [v]).map(func(sea): return game.Naval.sea_name(game, sea))))
 			"produces":
 				lines.append(mark + "Stellt %s %s her" % [game.goods_def[v].emoji, game.goods_def[v].name])
 			"goods_leader":

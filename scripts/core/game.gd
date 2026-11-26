@@ -83,6 +83,7 @@ class Nation:
 	var known_seas := {}  # sea id -> true (Colonial: the New World seas start unknown)
 	var known_nw := {}  # New World province id -> true
 	var expedition := {}  # {"sea", "months"} while an expedition is at sea
+	var col_exhaust: float = 0.0  # colonial exhaustion 0..100 (Colonial.exhaustion): slower, dearer colonies
 	var ruler := {"adm": 2, "dip": 2, "mil": 2, "years": 20}
 	var ruler_name: String = ""
 	var ruler_names: Array = []
@@ -3064,6 +3065,8 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 				Colonial.grant(self, tag, v if v is Array else [v])
 			"discover":
 				Colonial.discover(self, tag, v if v is Array else [v])
+			"col_exhaust":
+				n.col_exhaust = clampf(n.col_exhaust + float(v), 0.0, 100.0)
 			"isolate":
 				# the target stands alone: its allies and guarantors abandon it (comes before "war")
 				if nations.has(v) and nations[v].alive:
@@ -3288,6 +3291,28 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 					return false
 			"cities_max":
 				if Urban.count_of(self, tag) > int(v):
+					return false
+			"colonies_min":
+				if Colonial.colonies_owned(self, tag) < int(v):
+					return false
+			"region_colonies":
+				# {"oceania": 1}: at least this many finished colonies in each named region
+				for r in v:
+					if Colonial.colonies_in(self, tag, r) < int(v[r]):
+						return false
+			"col_exhaust_min":
+				if n.col_exhaust < float(v):
+					return false
+			"col_exhaust_max":
+				if n.col_exhaust > float(v):
+					return false
+			"knows_sea":
+				# any of these seas is known
+				var known := false
+				for sea in (v if v is Array else [v]):
+					if n.known_seas.has(sea):
+						known = true
+				if not known:
 					return false
 			"colony_free":
 				# one of these provinces (map keys) is still free native land

@@ -77,7 +77,7 @@ func _init() -> void:
 		"test_goods_events",
 		"test_playable_flavour",
 		"test_hungary_powerhouse",
-		"test_colonial_events",
+		"test_colonial_events", "test_colonial_exhaustion",
 		"test_event_balance",
 		"test_more_goods_and_softer_costs",
 		"test_supply_and_ai_stacks",
@@ -4485,6 +4485,58 @@ func test_colonial_events() -> void:
 			check(g.nations.has(ev.tag) and data.nations[ev.tag].has("colonial"), "%s belongs to a colonial nation" % ev.id)
 			check(ev.options[0].effects.has("colony_grant") and ev.trigger.has("colony_free"), "%s grants a colony" % ev.id)
 
+
+
+## Colonial exhaustion: finished colonies build it up, it slows and prices new colonies, decays, saves;
+## the colp_ events and their conditions; Oceania is colonial land of its own region.
+func test_colonial_exhaustion() -> void:
+	var Col = preload("res://scripts/core/colonial.gd")
+	var g = new_game("POR", 5)
+	var n = g.nations.POR
+	var pid: int = g.key_to_pid["quisqueya"]
+	var p = g.provinces[pid]
+	var months0: int = Col.colony_months(g, p, "POR")
+	var cost0: float = Col.colony_cost(g, "POR", pid)
+	check(n.col_exhaust == 0.0 and is_equal_approx(Col.upkeep(g, n), float(g.bal.colony_upkeep)), "no exhaustion at start")
+	g.apply_effects("POR", {"colony_grant": ["quisqueya"]})
+	var after_one: float = n.col_exhaust
+	check(after_one >= float(g.bal.col_exhaust_gain) - 0.01, "a finished colony tires the motherland (%.1f)" % after_one)
+	check(Col.exhaust_gain(g, "POR") > float(g.bal.col_exhaust_gain), "each colony held makes the next one more tiring")
+	var q: int = g.key_to_pid["ayiti"]
+	n.col_exhaust = 50.0
+	check(Col.colony_months(g, g.provinces[q], "POR") > Col.colony_months(g, g.provinces[q], "SPA"), "exhaustion slows new colonies")
+	check(Col.colony_cost(g, "POR", q) > Col.colony_cost(g, "SPA", q) and Col.upkeep(g, n) > float(g.bal.colony_upkeep), "and makes them dearer")
+	check(months0 > 0 and cost0 > 0.0, "base colony values")
+	check(g.check_conditions("POR", {"col_exhaust_min": 40}) and not g.check_conditions("POR", {"col_exhaust_max": 40}), "exhaustion conditions")
+	g.apply_effects("POR", {"col_exhaust": -30})
+	check(is_equal_approx(n.col_exhaust, 20.0), "col_exhaust effect")
+	g.apply_effects("POR", {"col_exhaust": -500})
+	check(n.col_exhaust == 0.0, "exhaustion never below 0")
+	n.col_exhaust = 30.0
+	g.tick()
+	check(n.col_exhaust < 30.0 and n.col_exhaust > 28.0, "exhaustion fades every month (%.2f)" % n.col_exhaust)
+	var saved = g.Colonial.nation_save(n)
+	n.col_exhaust = 0.0
+	g.Colonial.nation_load(g, n, saved)
+	check(n.col_exhaust > 28.0, "exhaustion survives save/load")
+	check(g.check_conditions("POR", {"colonies_min": 1}) and not g.check_conditions("POR", {"colonies_min": 50}), "colonies_min")
+	check(g.check_conditions("POR", {"region_colonies": {"america": 1}}) and not g.check_conditions("POR", {"region_colonies": {"oceania": 1}}), "region_colonies")
+	check(not g.check_conditions("POR", {"knows_sea": ["coral", "tasman"]}), "Oceania seas unknown at start")
+	# Oceania: a granted historical colony belongs to region oceania
+	g.apply_effects("NED", {"colony_grant": ["gascoyne", "swan"]})
+	var gp: int = g.key_to_pid["gascoyne"]
+	check(g.provinces[gp].owner == "NED" and Col.region(g, gp) == "oceania" and Col.colonies_in(g, "NED", "oceania") == 1, "Dutch Eendrachtsland in Oceania")
+	check(g.check_conditions("NED", {"knows_sea": ["east_indian"]}), "the grant charts the Indian coast of Australia")
+	var ids := {}
+	for ev in g.event_defs:
+		if String(ev.id).begins_with("colp_"):
+			ids[ev.id] = true
+			check(not ev.has("tag") or g.nations.has(ev.tag), "%s names a realm" % ev.id)
+			for sea in ev.trigger.get("knows_sea", []):
+				check(Col.NEW_SEAS.has(sea), "%s: %s starts unknown" % [ev.id, sea])
+			for k in ev.trigger.get("colony_free", []):
+				check(g.key_to_pid.has(k), "%s: province %s exists" % [ev.id, k])
+	check(ids.size() >= 15 and ids.has("colp_tasman") and ids.has("colp_viceroy") and ids.has("colp_tired"), "colonial superpower and Oceania events (%d)" % ids.size())
 
 ## Balance pass: manpower is counted in regiments (no more "+1500" that refills the pool), no option is
 ## better than another one on every single effect.
