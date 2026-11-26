@@ -77,7 +77,7 @@ func _init() -> void:
 		"test_goods_events",
 		"test_playable_flavour",
 		"test_hungary_powerhouse",
-		"test_colonial_events", "test_subjects",
+		"test_colonial_events", "test_colonial_exhaustion", "test_subjects",
 		"test_event_balance",
 		"test_more_goods_and_softer_costs",
 		"test_supply_and_ai_stacks",
@@ -4019,13 +4019,19 @@ func test_formables() -> void:
 	var g = new_game("NAP")
 	for id in g.formable_defs:
 		var f: Dictionary = g.formable_defs[id]
+		check(not g.nations.has(id), "formable id %s collides with a nation tag (flags would mix)" % id)
+		check(ResourceLoader.exists("res://assets/art/icons/flag_%s.png" % id), "formable %s has a flag" % id)
+		check(g.event_by_id.has("form_" + id.to_lower()), "formable %s has its event" % id)
 		for t in f.from:
-			check(g.nations.has(t), "formable %s: unknown nation %s" % [id, t])
-		for k in f.provinces:
+			check(t == "*" or g.nations.has(t), "formable %s: unknown nation %s" % [id, t])
+		for k in g.Formables.all_provinces(g, id) + f.get("capital_in", []):
 			check(g.key_to_pid.has(k), "formable %s: unknown province %s" % [id, k])
-		check(int(f.need) <= f.provinces.size(), "formable %s: need too high" % id)
+		for gr in g.Formables.groups(g, id):
+			check(int(gr.need) <= gr.provinces.size(), "formable %s: need too high" % id)
+		for k in f.get("bonus", {}):
+			check(UiTheme.label(k)[0] != k, "formable %s: bonus key %s has no label" % [id, k])
 		for t in g.order:
-			if t in f.from:
+			if g.nations[t].alive and ("*" in f.from or t in f.from):
 				check(g.Formables.block_reason(g, t, id) != "", "%s can form %s at the start" % [t, id])
 	check("ITA" in g.Formables.options(g, "NAP"), "Naples may form Italy")
 	check(not "ITA" in g.Formables.options(g, "FRA"), "France may not form Italy")
@@ -4042,10 +4048,48 @@ func test_formables() -> void:
 	check(n.formed == "ITA" and n.name == "Italien" and n.prestige > pr and n.bonus.has("formed"), "new identity and bonus")
 	check(n.claims.has(g.key_to_pid["bologna"]), "claim on the missing province")
 	check(g.pending_events.has("form_ita"), "the player gets the formation event")
-	check(g.Formables.options(g, "NAP").is_empty() and g.Formables.block_reason(g, "VEN", "ITA") != "", "only one formation")
+	check(g.Formables.options(g, "NAP").all(func(id): return g.Formables.tier(g, id) >= 2) and g.Formables.block_reason(g, "VEN", "ITA") != "", "only one regional formation")
 	var g2 = new_game("NAP")
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
 	check(g2.nations.NAP.name == "Italien" and g2.nations.NAP.bonus.has("formed"), "formed realm survives save/load")
+	check(n.rank >= 3, "Italy is at least a kingdom")
+	# tier 2: a formed realm may still proclaim a great empire; Europe needs rank, year and 9 capitals
+	check(not "EUR" in g.Formables.options(g, "NAP"), "Europe is not listed while far out of reach")
+	check(g.Formables.block_reason(g, "NAP", "EUR").contains("1500"), "Europe waits for 1500")
+	g.month = (1500 - 1444) * 12
+	check(g.Formables.block_reason(g, "NAP", "EUR").contains("Rang"), "Europe needs the empire rank")
+	n.rank = 4
+	var reqs: Array = g.Formables.requirements(g, "NAP", "EUR")
+	check(reqs.any(func(r): return not r[0] and str(r[1]).contains("Hauptstädte")), "checklist shows the missing capitals")
+	for k in ["london", "paris", "toledo", "lisbon", "wien", "prague", "buda", "krakow"]:
+		var p = g.provinces[g.key_to_pid[k]]
+		p.owner = "NAP"
+		p.controller = "NAP"
+	g._rebuild_owned()
+	n.adm = 999.0
+	check("EUR" in g.Formables.options(g, "NAP"), "Italy may still aim for Europe")
+	check(g.Formables.block_reason(g, "NAP", "EUR") == "", "Europe can be proclaimed: " + g.Formables.block_reason(g, "NAP", "EUR"))
+	check(g.Formables.form(g, "NAP", "EUR") == "" and n.formed == "EUR" and n.rank == 5, "Imperium Europa: hegemon rank")
+	check(n.flags.formed_hist == ["ITA"] and float(n.bonus.formed.get("trade", 0.0)) > 0.15, "Italy's bonus stays on top of Europe's")
+	check(g.Formables.block_reason(g, "VEN", "ITA") != "", "Italy stays taken after the second formation")
+	# USA: any non-native realm with its capital on the North American east coast
+	var u = g.nations.ENG
+	check(g.Formables.block_reason(g, "ENG", "USA").contains("Hauptstadt"), "England (capital London) cannot form the USA")
+	check(not "USA" in g.Formables.options(g, "IRO"), "natives do not form the USA")
+	var na: Array = g.formable_defs.USA.groups[0].provinces
+	for k in na:
+		var p = g.provinces[g.key_to_pid[k]]
+		p.owner = "ENG"
+		p.controller = "ENG"
+	g._rebuild_owned()
+	u.capital = g.key_to_pid["massachusett"]
+	u.adm = 999.0
+	check(g.is_at_war("ENG") or (g.Formables.form(g, "ENG", "USA") == "" and u.name == "Vereinigte Staaten"), "USA proclaimed")
+	# old saves: the Maghreb was stored as MAG (Maguindanao's tag)
+	var m = g.nations.MOR
+	m.formed = "MAG"
+	g.Formables.apply_identity(g, m)
+	check(m.formed == "MGB" and m.name == "Maghreb", "old MAG formation is read as the Maghreb")
 
 
 func test_chronicle() -> void:
@@ -4530,6 +4574,58 @@ func test_subjects() -> void:
 		g.tick()
 	check(g.nations[ap].alive and g.provinces[pid].owner == ap, "appanage survives ticks")
 
+
+
+## Colonial exhaustion: finished colonies build it up, it slows and prices new colonies, decays, saves;
+## the colp_ events and their conditions; Oceania is colonial land of its own region.
+func test_colonial_exhaustion() -> void:
+	var Col = preload("res://scripts/core/colonial.gd")
+	var g = new_game("POR", 5)
+	var n = g.nations.POR
+	var pid: int = g.key_to_pid["quisqueya"]
+	var p = g.provinces[pid]
+	var months0: int = Col.colony_months(g, p, "POR")
+	var cost0: float = Col.colony_cost(g, "POR", pid)
+	check(n.col_exhaust == 0.0 and is_equal_approx(Col.upkeep(g, n), float(g.bal.colony_upkeep)), "no exhaustion at start")
+	g.apply_effects("POR", {"colony_grant": ["quisqueya"]})
+	var after_one: float = n.col_exhaust
+	check(after_one >= float(g.bal.col_exhaust_gain) - 0.01, "a finished colony tires the motherland (%.1f)" % after_one)
+	check(Col.exhaust_gain(g, "POR") > float(g.bal.col_exhaust_gain), "each colony held makes the next one more tiring")
+	var q: int = g.key_to_pid["ayiti"]
+	n.col_exhaust = 50.0
+	check(Col.colony_months(g, g.provinces[q], "POR") > Col.colony_months(g, g.provinces[q], "SPA"), "exhaustion slows new colonies")
+	check(Col.colony_cost(g, "POR", q) > Col.colony_cost(g, "SPA", q) and Col.upkeep(g, n) > float(g.bal.colony_upkeep), "and makes them dearer")
+	check(months0 > 0 and cost0 > 0.0, "base colony values")
+	check(g.check_conditions("POR", {"col_exhaust_min": 40}) and not g.check_conditions("POR", {"col_exhaust_max": 40}), "exhaustion conditions")
+	g.apply_effects("POR", {"col_exhaust": -30})
+	check(is_equal_approx(n.col_exhaust, 20.0), "col_exhaust effect")
+	g.apply_effects("POR", {"col_exhaust": -500})
+	check(n.col_exhaust == 0.0, "exhaustion never below 0")
+	n.col_exhaust = 30.0
+	g.tick()
+	check(n.col_exhaust < 30.0 and n.col_exhaust > 28.0, "exhaustion fades every month (%.2f)" % n.col_exhaust)
+	var saved = g.Colonial.nation_save(n)
+	n.col_exhaust = 0.0
+	g.Colonial.nation_load(g, n, saved)
+	check(n.col_exhaust > 28.0, "exhaustion survives save/load")
+	check(g.check_conditions("POR", {"colonies_min": 1}) and not g.check_conditions("POR", {"colonies_min": 50}), "colonies_min")
+	check(g.check_conditions("POR", {"region_colonies": {"america": 1}}) and not g.check_conditions("POR", {"region_colonies": {"oceania": 1}}), "region_colonies")
+	check(not g.check_conditions("POR", {"knows_sea": ["coral", "tasman"]}), "Oceania seas unknown at start")
+	# Oceania: a granted historical colony belongs to region oceania
+	g.apply_effects("NED", {"colony_grant": ["gascoyne", "swan"]})
+	var gp: int = g.key_to_pid["gascoyne"]
+	check(g.provinces[gp].owner == "NED" and Col.region(g, gp) == "oceania" and Col.colonies_in(g, "NED", "oceania") == 1, "Dutch Eendrachtsland in Oceania")
+	check(g.check_conditions("NED", {"knows_sea": ["east_indian"]}), "the grant charts the Indian coast of Australia")
+	var ids := {}
+	for ev in g.event_defs:
+		if String(ev.id).begins_with("colp_"):
+			ids[ev.id] = true
+			check(not ev.has("tag") or g.nations.has(ev.tag), "%s names a realm" % ev.id)
+			for sea in ev.trigger.get("knows_sea", []):
+				check(Col.NEW_SEAS.has(sea), "%s: %s starts unknown" % [ev.id, sea])
+			for k in ev.trigger.get("colony_free", []):
+				check(g.key_to_pid.has(k), "%s: province %s exists" % [ev.id, k])
+	check(ids.size() >= 15 and ids.has("colp_tasman") and ids.has("colp_viceroy") and ids.has("colp_tired"), "colonial superpower and Oceania events (%d)" % ids.size())
 
 ## Balance pass: manpower is counted in regiments (no more "+1500" that refills the pool), no option is
 ## better than another one on every single effect.

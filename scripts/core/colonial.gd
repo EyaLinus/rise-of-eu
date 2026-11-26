@@ -18,6 +18,9 @@ const NEW_SEAS := ["guinea", "ocean", "labrador", "st_lawrence", "east_coast", "
 		"guiana", "amazon", "brazil", "plata", "patagonian", "horn", "humboldt", "cortez", "california", "cascadia",
 		"beaufort", "nw_passage", "baffin", "chukchi", "gulf_alaska", "east_pacific", "arafura", "coral", "tasman", "south_aus", "melanesia",
 		"south_pacific", "east_indian"]
+## The seas around Australia, New Guinea and the Pacific islands (and Hawaii's): ships of the Old World only
+## dare the long voyage from bal.oceania_year (Mendaña reached the Solomons 1568, the Duyfken Cape York 1606).
+const OCEANIA_SEAS := ["arafura", "coral", "tasman", "south_aus", "melanesia", "south_pacific", "east_pacific"]
 ## Monsoon trade: realms with a coast on one of these known seas also know the Swahili coast from the start.
 const MONSOON := {"swahili": ["aden", "arabian", "persian_gulf"]}
 
@@ -207,6 +210,8 @@ static func explore_targets(g, tag: String) -> Array:
 	for s in g.seas:
 		if not NEW_SEAS.has(s.id) or n.known_seas.has(s.id):
 			continue
+		if OCEANIA_SEAS.has(s.id) and g.year() < int(g.bal.oceania_year) and tag != g.player:
+			continue  # the player still sees the sea, with the reason why it is too far
 		for a in s.get("adj", []):
 			if reach.has(a):  # a known sea our ships can sail to (not the Arabian Sea from the Atlantic)
 				r.append(s.id)
@@ -265,6 +270,8 @@ static func explore_block_reason(g, tag: String, sea: String) -> String:
 		return "Eine Expedition ist schon unterwegs."
 	if n.known_seas.has(sea):
 		return "Dieses Meer ist schon bekannt."
+	if OCEANIA_SEAS.has(sea) and g.year() < int(g.bal.oceania_year):
+		return "Das Südmeer ist noch zu fern: erst ab etwa %d." % int(g.bal.oceania_year)
 	if not explore_targets(g, tag).has(sea):
 		return "Zu weit: erst ein Nachbarmeer erkunden."
 	if n.gold < explore_cost(g, n):
@@ -365,12 +372,17 @@ static func running_colonies(g, tag: String) -> Array:
 static func colony_cost(g, tag: String, pid: int) -> float:
 	var n = g.nations[tag]
 	var more: float = 1.0 + float(g.bal.colony_cost_per_colony) * colonies_owned(g, tag)  # far-flung empires cost more
-	return round(float(g.bal.colony_cost) * (1.0 + 0.1 * g.provinces[pid].dev) * more * maxf(0.5, 1.0 + g.mod(n, "colony_cost")))
+	return round(float(g.bal.colony_cost) * (1.0 + 0.1 * g.provinces[pid].dev) * more * maxf(0.5, 1.0 + g.mod(n, "colony_cost"))
+			* (1.0 + n.col_exhaust * 0.01 * float(g.bal.col_exhaust_cost)))
 
 
-## Months a colony needs; strong natives slow it down.
-static func colony_months(g, p) -> int:
-	return int(round(float(g.bal.colony_months) * (1.0 + p.natives * float(g.bal.natives_slow))))
+## Months a colony needs; strong natives slow it down, and so does the colonizer's exhaustion (`tag`, or
+## the realm already settling it).
+static func colony_months(g, p, tag: String = "") -> int:
+	var who: String = tag if tag != "" else p.colonist
+	var ex: float = g.nations[who].col_exhaust if who != "" and g.nations.has(who) else 0.0
+	return int(round(float(g.bal.colony_months) * (1.0 + p.natives * float(g.bal.natives_slow))
+			* (1.0 + ex * 0.01 * float(g.bal.col_exhaust_slow))))
 
 
 ## A province the realm can reach with settlers: next to its land, or a known coast on a sea its ships
@@ -405,6 +417,8 @@ static func colony_block_reason(g, tag: String, pid: int) -> String:
 		return "Nur Reiche der Alten Welt gründen Kolonien."
 	if not knows(g, tag, pid):
 		return "Unbekanntes Land: erst erkunden."
+	if region(g, pid) == "oceania" and g.year() < int(g.bal.oceania_year):
+		return "Ozeanien ist noch zu fern: Siedler wagen die Fahrt erst ab etwa %d." % int(g.bal.oceania_year)
 	if p.colonist != "":
 		return "Hier entsteht schon eine Kolonie (%s)." % g.nations[p.colonist].name
 	if not can_explore_tech(g, n):
@@ -481,7 +495,7 @@ static func _colony_tick(g, p) -> void:
 	if not n.alive:
 		p.colonist = ""
 		return
-	n.gold -= float(g.bal.colony_upkeep)
+	n.gold -= upkeep(g, n)
 	p.colony_months += 1
 	# native raids
 	if p.natives > 0.0 and g.rng.randf() < p.natives * float(g.bal.native_raid_chance):
@@ -519,6 +533,7 @@ static func _finish(g, p) -> void:
 		reveal(g, tag, a)
 	g.Subjects.on_colony_finished(g, p)  # next to the realm's colonial nation: it joins that nation
 	g.stats.colonies = int(g.stats.get("colonies", 0)) + 1
+	n.col_exhaust = minf(100.0, n.col_exhaust + exhaust_gain(g, tag))
 	g.log_msg("🏕 %s: Die Kolonie %s ist gewachsen und gehört nun fest zum Reich." % [n.name, p.name], [tag])
 
 
@@ -572,6 +587,50 @@ static func colonies_owned(g, tag: String) -> int:
 	return c
 
 
+# ---------------------------------------------------------------- colonial exhaustion
+
+## Colonial exhaustion (0..100): every finished colony tires the motherland (settlers, ships, officials),
+## the more colonies it already holds the more. It slows new colonies and makes them dearer, and fades
+## every month (faster with a high administrative technology).
+static func exhaustion(n) -> float:
+	return n.col_exhaust
+
+
+## Exhaustion a new colony adds: base plus a share per colony the realm already holds.
+static func exhaust_gain(g, tag: String) -> float:
+	var n = g.nations[tag]
+	var f: float = maxf(0.25, 1.0 + g.mod(n, "col_exhaust_gain"))
+	return (float(g.bal.col_exhaust_gain) + float(g.bal.col_exhaust_per_colony) * colonies_owned(g, tag)) * f
+
+
+## Monthly decay of the exhaustion.
+static func exhaust_decay(g, n) -> float:
+	return float(g.bal.col_exhaust_decay) * (1.0 + 0.02 * float(n.tech.adm)) * maxf(0.25, 1.0 + g.mod(n, "col_exhaust_decay"))
+
+
+## Monthly upkeep of one growing colony (exhaustion makes supplies dearer too).
+static func upkeep(g, n) -> float:
+	return float(g.bal.colony_upkeep) * (1.0 + n.col_exhaust * 0.01 * float(g.bal.col_exhaust_cost))
+
+
+## Short label for the UI.
+static func exhaust_level(n) -> String:
+	if n.col_exhaust >= 60.0:
+		return "erschöpft"
+	if n.col_exhaust >= 30.0:
+		return "angespannt"
+	return "frisch"
+
+
+## Finished colonies of `tag` in one region ("america", "africa", "oceania").
+static func colonies_in(g, tag: String, r: String) -> int:
+	var c := 0
+	for pid in g.provinces_of(tag):
+		if is_new_world(g, pid) and region(g, pid) == r:
+			c += 1
+	return c
+
+
 # ---------------------------------------------------------------- ticks
 
 static func monthly(g) -> void:
@@ -581,6 +640,10 @@ static func monthly(g) -> void:
 		var p = g.provinces[pid]
 		if p.colonist != "":
 			_colony_tick(g, p)
+	for tag in g.order:
+		var n = g.nations[tag]
+		if n.col_exhaust > 0.0:
+			n.col_exhaust = maxf(0.0, n.col_exhaust - exhaust_decay(g, n))
 	for tag in g.atlantic_tags:
 		var n = g.nations[tag]
 		if not n.alive:
@@ -641,6 +704,9 @@ static func _ai(g, n) -> void:
 			explore(g, n.tag, targets[g.rng.randi_range(0, targets.size() - 1)])
 	if running_colonies(g, n.tag).size() >= colonists(g, n) and drive >= 1.0 and n.dip > recruit_cost(g, n) + 150.0:
 		recruit_colonist(g, n.tag)
+	# an exhausted motherland rests before it sends the next settlers
+	if n.col_exhaust > float(g.bal.ai_col_exhaust_pause) and g.rng.randf() < 0.75:
+		return
 	if running_colonies(g, n.tag).size() >= colonists(g, n) or g.rng.randf() > 0.5 * drive:
 		for pid in running_colonies(g, n.tag):
 			if g.provinces[pid].natives >= 3.0 and n.dip > float(g.bal.treaty_dip) + 60.0:
@@ -648,9 +714,12 @@ static func _ai(g, n) -> void:
 		return
 	var best := -1
 	var best_v := -1e9
+	var early_oceania: bool = g.year() < int(g.bal.oceania_year)
 	for pid in n.known_nw:
 		var p = g.provinces[pid]
 		if p.owner != NATIVE or p.colonist != "" or not reachable(g, n.tag, pid):
+			continue
+		if early_oceania and region(g, pid) == "oceania":
 			continue
 		var v: float = p.dev * 2.0 - p.natives * 0.6 + float(g.goods_def[p.good].price) * 10.0 + g.rng.randf() * 2.0
 		for a in p.adj:
@@ -681,7 +750,7 @@ static func province_load(g, p, e: Array) -> void:
 
 
 static func nation_save(n) -> Dictionary:
-	return {"seas": n.known_seas.keys(), "nw": n.known_nw.keys(), "exp": n.expedition}
+	return {"seas": n.known_seas.keys(), "nw": n.known_nw.keys(), "exp": n.expedition, "ex": snappedf(n.col_exhaust, 0.01)}
 
 
 static func nation_load(g, n, d: Dictionary) -> void:
@@ -693,5 +762,6 @@ static func nation_load(g, n, d: Dictionary) -> void:
 	n.known_nw = {}
 	for pid in d.get("nw", []):
 		n.known_nw[int(pid)] = true
+	n.col_exhaust = float(d.get("ex", 0.0))
 	var e: Dictionary = d.get("exp", {})
 	n.expedition = {} if e.is_empty() else {"sea": str(e.sea), "months": int(e.months)}
