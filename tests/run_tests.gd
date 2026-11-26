@@ -4475,6 +4475,11 @@ func test_subjects() -> void:
 	check(is_equal_approx(S.tribute_share(g, cn), float(g.bal.sub_colony_tribute)), "colonial tariff")
 	check(g.mod(g.nations.ENG, "trade") > 0.0 and g.nations.ENG.bonus.has("subjects"), "overlord earns from its colonial nation")
 	check(g.atlantic_tags.has(cn) and S.colonies_with_subjects(g, "ENG") == 5, "colonial nation colonizes on its own")
+	var Ic = load("res://scripts/ui/icons.gd")
+	for k in ["col:ENG", "app:FRA"]:
+		var df: Texture2D = Ic.derived_flag(k)
+		check(df != null and df.get_size() == Ic.texture("flag_" + k.substr(4)).get_size(), "derived flag %s" % k)
+	check(Ic.derived_flag("col:XXX") == null, "no derived flag without a founder flag")
 	g.apply_effects("ENG", {"colony_grant": ["susquehannock"]})
 	check(g.provinces[g.key_to_pid["susquehannock"]].owner == cn, "a new colony next to it joins the colonial nation")
 	# save / load keeps name, kind and colour
@@ -4485,7 +4490,7 @@ func test_subjects() -> void:
 	check(JSON.stringify(g2.to_dict()) == text, "save round trip with subjects is identical")
 	# dominion: a grown colonial nation
 	for pid in g.provinces_of(cn):
-		g.provinces[pid].dev = 10
+		g.provinces[pid].dev = 15
 	g._update_cached(c)
 	g.nations.ENG.dip = 500.0
 	check(S.convert_subject(g, "ENG", cn, "dominion") == "", "colonial nation becomes a dominion")

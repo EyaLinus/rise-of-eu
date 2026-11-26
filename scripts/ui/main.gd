@@ -3822,9 +3822,11 @@ func _sync_flags() -> void:
 	for t in game.order:
 		var lord: String = str(game.nations[t].flags.get("flag_of", ""))
 		if lord != "" and game.nations[t].alive and game.nations.has(lord):
-			a[t] = a.get(lord, lord)
+			a[t] = ("app:" if Subjects.is_pool(game, t) and game.subject_pool.appanage.has(t) else "col:") + str(a.get(lord, lord)).trim_prefix("col:").trim_prefix("app:")
 	if a != Icons.flag_alias:
 		Icons.flag_alias = a
+		for t in a:
+			PixelEmoji.nation(t)  # register new flag glyphs now, not while text is drawn
 		map.refresh()
 
 

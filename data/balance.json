@@ -518,9 +518,9 @@
   "sub_appanage_prestige": 10.0,
   "sub_appanage_stability": 8.0,
   "sub_convert_dip": 60.0,
-  "sub_dominion_min_dev": 60,
+  "sub_dominion_min_dev": 80,
   "sub_appanage_max_dev": 30,
   "sub_ai_appanage_drive": 0.1,
   "sub_ai_dominion_home": 0.25,
-  "sub_ai_dominion": 0.04
+  "sub_ai_dominion": 0.02
 }
