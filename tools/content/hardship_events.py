@@ -67,7 +67,7 @@ PP = [
        {"gold_max": 60, "year_min": 1450},
        [opt("Die Münze strecken. Mehr Kupfer, weniger Silber.", fx(tm("pp_debased", 60, trade=-0.10, production=-0.04), gold=40), 40),
         opt("Den Hofstaat zusammenstreichen.", {"prestige": -6, "estate": {"adel": -5}}, 30),
-        opt("Einen neuen Kredit aufnehmen.", {"loan": 1}, 20)]),
+        opt("Einen neuen Kredit aufnehmen.", {"loan": 1}, 5)]),
     ev("pp_border_raids", "poison", "Plünderer an der Grenze",
        "Reiterbanden brennen Grenzdörfer nieder und verschwinden über die Grenze, bevor die Truppen kommen.", "border",
        {"year_min": 1446, "at_peace": True},
@@ -115,7 +115,7 @@ PP = [
        {"year_min": 1470},
        [opt("Die Bank fallen lassen.", fx(tm("pp_crash", 60, trade=-0.10), estate={"buerger": -5}), 40),
         opt("Die Bank mit Kronsilber retten.", {"gold": -60}),
-        opt("Ihre Schulden übernehmen.", {"loan": 1, "estate": {"buerger": 3}}, 30)]),
+        opt("Ihre Schulden übernehmen.", {"loan": 1, "estate": {"buerger": 3}}, 5)]),
     ev("pp_camp_fever", "poison", "Lagerfieber",
        "Ruhr und Fleckfieber gehen im Heerlager um. Jeden Morgen tragen sie Dutzende hinaus.", "camp",
        {"at_war": True},
@@ -178,7 +178,7 @@ PP = [
 def chain(x, warn_title, warn_text, warn_img, trigger, prevent_a, prevent_b, ignore, dis_title, dis_text, dis_img, dis_opts):
     w = ev("dz_%s_warn" % x, "warning", warn_title, warn_text, warn_img, dict(trigger, not_flag="dz_" + x),
            [opt(prevent_a[0], prevent_a[1], 45), opt(prevent_b[0], prevent_b[1], prevent_b[2] if len(prevent_b) > 2 else 30),
-            opt(ignore[0], fx(ignore[1], flag="dz_" + x), 25)], once=False)
+            opt(ignore[0], fx(ignore[1], flag="dz_" + x), 15)], once=False)
     d = ev("dz_" + x, "disaster", dis_title, dis_text, dis_img, {"flag": "dz_" + x},
            [opt(o[0], fx(o[1], clear_flag="dz_" + x), o[2] if len(o) > 2 else None) for o in dis_opts], once=False)
     return [w, d]

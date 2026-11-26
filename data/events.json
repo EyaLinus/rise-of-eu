@@ -5092,7 +5092,7 @@
    "options": [
      {"text": "Die Münze strecken. Mehr Kupfer, weniger Silber.", "effects": {"tmods": {"name": "pp_debased", "months": 60, "mods": {"trade": -0.1, "production": -0.04}}, "gold": 40}, "ai": 40},
      {"text": "Den Hofstaat zusammenstreichen.", "effects": {"prestige": -6, "estate": {"adel": -5}}, "ai": 30},
-     {"text": "Einen neuen Kredit aufnehmen.", "effects": {"loan": 1}, "ai": 20}]},
+     {"text": "Einen neuen Kredit aufnehmen.", "effects": {"loan": 1}, "ai": 5}]},
   {"id": "pp_border_raids", "tag": "*", "kind": "poison", "title": "Plünderer an der Grenze", "text": "Reiterbanden brennen Grenzdörfer nieder und verschwinden über die Grenze, bevor die Truppen kommen.", "image": "border",
    "trigger": {"year_min": 1446, "at_peace": true},
    "options": [
@@ -5140,7 +5140,7 @@
    "options": [
      {"text": "Die Bank fallen lassen.", "effects": {"tmods": {"name": "pp_crash", "months": 60, "mods": {"trade": -0.1}}, "estate": {"buerger": -5}}, "ai": 40},
      {"text": "Die Bank mit Kronsilber retten.", "effects": {"gold": -60}, "ai": 10},
-     {"text": "Ihre Schulden übernehmen.", "effects": {"loan": 1, "estate": {"buerger": 3}}, "ai": 30}]},
+     {"text": "Ihre Schulden übernehmen.", "effects": {"loan": 1, "estate": {"buerger": 3}}, "ai": 5}]},
   {"id": "pp_camp_fever", "tag": "*", "kind": "poison", "title": "Lagerfieber", "text": "Ruhr und Fleckfieber gehen im Heerlager um. Jeden Morgen tragen sie Dutzende hinaus.", "image": "camp",
    "trigger": {"at_war": true},
    "options": [
@@ -5200,7 +5200,7 @@
    "options": [
      {"text": "Vorräte anlegen lassen.", "effects": {"adm": -45}, "ai": 45},
      {"text": "Korn im Ausland kaufen.", "effects": {"gold": -50}, "ai": 10},
-     {"text": "Die Speicher verkaufen. Es wird schon gut gehen.", "effects": {"gold": 20, "flag": "dz_famine"}, "ai": 25}]},
+     {"text": "Die Speicher verkaufen. Es wird schon gut gehen.", "effects": {"gold": 20, "flag": "dz_famine"}, "ai": 15}]},
   {"id": "dz_famine", "once": false, "tag": "*", "kind": "disaster", "title": "Hungersnot", "text": "Die Ernte ist verdorben, die Speicher sind leer. Menschen essen Baumrinde, Kinder sterben am Straßenrand, ganze Dörfer ziehen bettelnd in die Städte.", "image": "famine",
    "trigger": {"flag": "dz_famine"},
    "options": [
@@ -5212,7 +5212,7 @@
    "options": [
      {"text": "Die Beschwerden der Bauern anhören.", "effects": {"adm": -40, "estate": {"adel": -3}}, "ai": 45},
      {"text": "Truppen in die Dörfer legen.", "effects": {"mil": -40}, "ai": 35},
-     {"text": "Bauern murren immer.", "effects": {"flag": "dz_peasants"}, "ai": 25}]},
+     {"text": "Bauern murren immer.", "effects": {"flag": "dz_peasants"}, "ai": 15}]},
   {"id": "dz_peasants", "once": false, "tag": "*", "kind": "disaster", "title": "Der Bauernkrieg", "text": "Die Bauern haben sich erhoben. Klöster brennen, Burgen werden gestürmt, ein Heer aus Tausenden zieht mit Fahnen und Sensen durch das Land.", "image": "revolt",
    "trigger": {"flag": "dz_peasants"},
    "options": [
@@ -5224,7 +5224,7 @@
    "options": [
      {"text": "Den Hofstaat verkleinern.", "effects": {"prestige": -5, "adm": -20}, "ai": 45},
      {"text": "Eine Sondersteuer erheben.", "effects": {"tmods": {"name": "dz_bankrupt_tax", "months": 36, "mods": {"unrest": 0.5}}, "gold": 40}, "ai": 35},
-     {"text": "Weiter auf Pump leben.", "effects": {"flag": "dz_bankrupt"}, "ai": 25}]},
+     {"text": "Weiter auf Pump leben.", "effects": {"flag": "dz_bankrupt"}, "ai": 15}]},
   {"id": "dz_bankrupt", "once": false, "tag": "*", "kind": "disaster", "title": "Staatsbankrott", "text": "Die Krone kann ihre Schulden nicht mehr bedienen. Die Bankhäuser schließen ihre Kontore, Söldner verlangen ihren Sold, und kein Kaufmann gibt mehr Kredit.", "image": "bank",
    "trigger": {"flag": "dz_bankrupt"},
    "options": [
@@ -5236,7 +5236,7 @@
    "options": [
      {"text": "Strenge Quarantäne für alle Schiffe.", "effects": {"tmods": {"name": "dz_quarantine", "months": 24, "mods": {"trade": -0.05}}}, "ai": 45},
      {"text": "Ärzte und Pestspitäler bezahlen.", "effects": {"gold": -40}, "ai": 10},
-     {"text": "Den Handel nicht behindern.", "effects": {"gold": 15, "flag": "dz_plague"}, "ai": 25}]},
+     {"text": "Den Handel nicht behindern.", "effects": {"gold": 15, "flag": "dz_plague"}, "ai": 15}]},
   {"id": "dz_plague", "once": false, "tag": "*", "kind": "disaster", "title": "Der schwarze Tod", "text": "Die Pest ist zurück. Karren voller Toter rollen durch die Straßen, die Glocken läuten nicht mehr, weil die Glöckner gestorben sind.", "image": "plague",
    "trigger": {"flag": "dz_plague"},
    "options": [
@@ -5248,7 +5248,7 @@
    "options": [
      {"text": "Drill und harte Disziplin.", "effects": {"mil": -50}, "ai": 45},
      {"text": "Sold und Wein für alle.", "effects": {"gold": -50}, "ai": 10},
-     {"text": "Sie werden schon durchhalten.", "effects": {"flag": "dz_mutiny"}, "ai": 25}]},
+     {"text": "Sie werden schon durchhalten.", "effects": {"flag": "dz_mutiny"}, "ai": 15}]},
   {"id": "dz_mutiny", "once": false, "tag": "*", "kind": "disaster", "title": "Meuternde Regimenter", "text": "Ganze Regimenter haben ihre Offiziere verjagt und ziehen plündernd durchs eigene Land. Sie verlangen Sold, Frieden und Straffreiheit.", "image": "revolt",
    "trigger": {"flag": "dz_mutiny"},
    "options": [
@@ -5260,7 +5260,7 @@
    "options": [
      {"text": "Ihre Privilegien bestätigen.", "effects": {"tmods": {"name": "dz_privileges", "months": 60, "mods": {"tax": -0.05}}, "estate": {"adel": 8}}, "ai": 45},
      {"text": "Die Rädelsführer verhaften.", "effects": {"adm": -40, "estate": {"adel": -3}}, "ai": 35},
-     {"text": "Laut bellen, nicht beißen.", "effects": {"flag": "dz_nobles"}, "ai": 25}]},
+     {"text": "Laut bellen, nicht beißen.", "effects": {"flag": "dz_nobles"}, "ai": 15}]},
   {"id": "dz_nobles", "once": false, "tag": "*", "kind": "disaster", "title": "Adelsaufstand", "text": "Die Barone haben sich erhoben. Sie besetzen Burgen und Städte und rufen einen Gegenkönig aus.", "image": "knights",
    "trigger": {"flag": "dz_nobles"},
    "options": [
@@ -5272,7 +5272,7 @@
    "options": [
      {"text": "Missionare und Schulen schicken.", "effects": {"dip": -40}, "ai": 45},
      {"text": "Die Inquisition einsetzen.", "effects": {"tmods": {"name": "dz_inquisition", "months": 36, "mods": {"unrest": 0.5}}, "estate": {"klerus": 5}}, "ai": 35},
-     {"text": "Gott wird es richten.", "effects": {"flag": "dz_heresy"}, "ai": 25}]},
+     {"text": "Gott wird es richten.", "effects": {"flag": "dz_heresy"}, "ai": 15}]},
   {"id": "dz_heresy", "once": false, "tag": "*", "kind": "disaster", "title": "Glaubenskrieg im Land", "text": "Bilderstürmer verwüsten Kirchen, Prediger rufen zum heiligen Krieg, Nachbarn erschlagen Nachbarn. Das Reich zerfällt in Glaubensparteien.", "image": "inquisition",
    "trigger": {"flag": "dz_heresy"},
    "options": [
@@ -5284,7 +5284,7 @@
    "options": [
      {"text": "Neue Siedlungen eine Weile aussetzen.", "effects": {"tmods": {"name": "dz_col_pause", "months": 36, "mods": {"colony_cost": 0.25}}}, "ai": 45},
      {"text": "Gouverneure und Garnisonen bezahlen.", "effects": {"gold": -50}, "ai": 10},
-     {"text": "Die Kolonien brauchen die Krone mehr als umgekehrt.", "effects": {"flag": "dz_colonies"}, "ai": 25}]},
+     {"text": "Die Kolonien brauchen die Krone mehr als umgekehrt.", "effects": {"flag": "dz_colonies"}, "ai": 15}]},
   {"id": "dz_colonies", "once": false, "tag": "*", "kind": "disaster", "title": "Aufstand in den Kolonien", "text": "Die Siedler haben den Statthalter vertrieben. Sie zahlen keine Abgaben mehr und handeln mit wem sie wollen.", "image": "revolt",
    "trigger": {"flag": "dz_colonies"},
    "options": [
