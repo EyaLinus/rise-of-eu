@@ -65,6 +65,14 @@ func _run(tags: Array, years: int) -> void:
 			if m.game.month != mo or m.game.player != tag or not m._save_meta().has("3"):
 				push_error("SMOKE slot 3 round trip broken")
 			g = m.game
+			# the yearly autosave writes on a worker thread: the game runs on, loading waits for the file
+			var mo2: int = g.month
+			if not m._save_game("2", true):
+				push_error("SMOKE background save did not start")
+			m._load_game("2")
+			if m.game.month != mo2 or m.game.player != tag:
+				push_error("SMOKE background save round trip broken")
+			g = m.game
 			# a save broken by a crash while writing: loading falls back to the previous save (.bak)
 			m._save_game("3")
 			var bf := FileAccess.open(m._slot_path("3"), FileAccess.WRITE)

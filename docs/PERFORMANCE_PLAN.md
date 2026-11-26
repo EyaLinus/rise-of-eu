@@ -37,6 +37,25 @@ ETC2 auf Android) mit Mipmaps: Texturspeicher **95 → 31 MB**, Videospeicher 10
 Screenshot-Vergleich kein sichtbarer Unterschied. APK wächst um ~8 MB (komprimierte Texturen sind größer als
 das verlustfreie Format auf der Platte, dafür viel kleiner im Grafikspeicher).
 
+**Pass v1.1.2 (2026-11-26, ganze Welt: 1194 Provinzen, 256 Nationen, ~206 lebend)**, wieder bitgenau gleich
+(`state_hash.gd`, 20 Jahre Seed 7). Seed 7, 1444–1464: **216 → ~146 ms/Tick (−32 %)**, schlimmster Tick
+750 → ~440 ms, **längster Einzelschritt 58 → ~17 ms**. Was es war:
+- `Formables.ai_yearly`: `options()` hielt ein leeres `taken` für „nicht übergeben“ und zählte jedes Mal alle
+  Reiche neu (solange niemand ein Reich gegründet hat, also fast immer) → 52 ms in einem Schritt, jetzt ~6 ms.
+- Armee-Index je Besitzer (`armies_of`, `own_armies`, `army_regs`, `strength`): vorher Scan aller ~220 Armeen je
+  Aufruf. **Jede Änderung an `armies` oder an `a.owner` muss `armies_dirty()` rufen** (Größenänderung fängt der
+  Index selbst ab, z. B. in Tests).
+- Rivalen-Index (`rivaled_by`): **jede Änderung an `n.rivals` muss `rivals_dirty()` rufen.**
+- Jährliche Ereignisse: generische Events je Jahr einmal gefiltert (`_generic_events_in`), Trigger ohne
+  Jahresgrenzen vorab, `match` in `check_conditions` nach Häufigkeit sortiert (GDScript prüft `match` linear).
+- Marine: nur Meere, in denen eine Kriegspartei Schiffe hat. Märkte: Provinzschleife in 300er-Schritten.
+  KI-Bauen: `_can_build` (bool) statt Ablehnungstexte zu formatieren (`test_perf_caches` hält beide gleich).
+  `_yearly_systems2` in 8 Einzelschritte. Diplomatie-KI merkt sich `nations_in_range` innerhalb eines Zuges.
+- Autosave: `to_dict` + Kopie im Hauptthread (~30 ms), JSON + Schreiben in einem Thread (vorher ~100 ms am Stück).
+- `perf.gd` zeigt jetzt die 8 längsten Schrittarten und wie oft sie über 16 ms lagen.
+Größte Restposten: Wirtschaft je Nation ~35 ms, KI-Bauen/Macht/Regierung je 10–14 ms, Märkte 12 ms.
+Nächste Hebel ohne Spieländerung: Typisierung der Hot Paths (J); mit Balance-Läufen: KI-LOD für Kleinstaaten (I).
+
 Werkzeuge (alle neu bzw. überarbeitet in diesem PR):
 
 | Werkzeug | Was es misst |
