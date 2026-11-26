@@ -108,9 +108,15 @@ static func pool(g, n, id: String) -> Array:
 	if p.is_empty() or g.month - int(p.get("m", -9999)) >= int(cfg(g).get("pool_months", 12)):
 		var c := []
 		var top: int = clampi(2 + int(n.dev_total / 150.0) + int((g.year() - 1444) / 60), 2, max_skill(g) - 1)
+		var tids: Array = []
+		for t in seat_def(g, id).get("traits", []):
+			tids.append(str(t.id))
 		for i in int(cfg(g).get("pool_size", 3)):
 			var lvl: int = 1 if i == 0 else g.rng.randi_range(1, top)
-			c.append({"name": _person_name(g, n), "skill": lvl})
+			var tr := ""
+			if not tids.is_empty():
+				tr = tids.pop_at(g.rng.randi_range(0, tids.size() - 1))
+			c.append({"name": _person_name(g, n), "skill": lvl, "trait": tr})
 		c.sort_custom(func(a, b): return a.skill < b.skill)
 		p = {"m": g.month, "c": c}
 		n.gov.cpool[id] = p
@@ -139,7 +145,7 @@ static func hire(g, tag: String, id: String, idx: int) -> String:
 	var c: Dictionary = pool(g, n, id)[idx]
 	n.gold -= hire_cost(g, n, int(c.skill))
 	var old: Dictionary = member(n, id)
-	members(n)[id] = {"name": str(c.name), "skill": int(c.skill), "since": g.month, "lvl_since": g.month,
+	members(n)[id] = {"name": str(c.name), "skill": int(c.skill), "trait": str(c.get("trait", "")), "since": g.month, "lvl_since": g.month,
 			"auto": bool(old.get("auto", tag == g.player)), "opt": old.get("opt", default_opts(g, id))}
 	n.gov.cpool[id].c.remove_at(idx)
 	if n.gov.cpool[id].c.is_empty():
@@ -196,18 +202,39 @@ static func experience_left(g, n, id: String) -> int:
 
 # ---------------------------------------------------------------- effects
 
-static func seat_effects(g, id: String, lvl: int) -> Dictionary:
+## Seat effects of a councillor on level `lvl` with personal trait `trait_id` ("" = none, e.g. old saves).
+static func seat_effects(g, id: String, lvl: int, trait_id: String = "") -> Dictionary:
 	var r := {}
 	var per: Dictionary = seat_def(g, id).get("per_level", {})
 	for k in per:
 		r[k] = float(per[k]) * lvl
+	var t := trait_def(g, id, trait_id)
+	if not t.is_empty():
+		var f: float = float(cfg(g).get("trait_base", 0.6)) + float(cfg(g).get("trait_step", 0.2)) * lvl
+		for k in t.get("effects", {}):
+			r[k] = float(r.get(k, 0.0)) + snappedf(float(t.effects[k]) * f, 0.001)
+		for k in t.get("fixed", {}):
+			r[k] = float(r.get(k, 0.0)) + float(t.fixed[k])
 	return r
+
+
+static func trait_def(g, id: String, trait_id: String) -> Dictionary:
+	if trait_id == "":
+		return {}
+	for t in seat_def(g, id).get("traits", []):
+		if str(t.id) == trait_id:
+			return t
+	return {}
+
+
+static func trait_of(n, id: String) -> String:
+	return str(member(n, id).get("trait", ""))
 
 
 static func effects(g, n) -> Array:
 	var r := []
 	for id in n.gov.get("council", {}):
-		r.append(seat_effects(g, id, skill(n, id)))
+		r.append(seat_effects(g, id, skill(n, id), trait_of(n, id)))
 	return r
 
 
@@ -508,7 +535,10 @@ static func load_save(g, n, d: Dictionary) -> void:
 		for k in mo:
 			if o.has(k):
 				o[k] = mo[k] if typeof(o[k]) == TYPE_STRING else float(mo[k])
-		c[id] = {"name": str(m.get("name", "")), "skill": clampi(int(m.get("skill", 1)), 1, max_skill(g)),
+		var tr := str(m.get("trait", ""))
+		if trait_def(g, id, tr).is_empty():
+			tr = ""
+		c[id] = {"name": str(m.get("name", "")), "skill": clampi(int(m.get("skill", 1)), 1, max_skill(g)), "trait": tr,
 				"since": int(m.get("since", 0)), "lvl_since": int(m.get("lvl_since", 0)), "auto": bool(m.get("auto", false)), "opt": o}
 	n.gov.council = c
 	var p := {}
@@ -516,6 +546,6 @@ static func load_save(g, n, d: Dictionary) -> void:
 		var e: Dictionary = d.cpool[id]
 		var cs := []
 		for x in e.get("c", []):
-			cs.append({"name": str(x.get("name", "")), "skill": int(x.get("skill", 1))})
+			cs.append({"name": str(x.get("name", "")), "skill": int(x.get("skill", 1)), "trait": str(x.get("trait", ""))})
 		p[id] = {"m": int(e.get("m", 0)), "c": cs}
 	n.gov.cpool = p

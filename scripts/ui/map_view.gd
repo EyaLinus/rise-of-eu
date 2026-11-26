@@ -5,6 +5,7 @@ signal province_tapped(pid: int)
 signal army_tapped(army_id: int)
 signal province_long_pressed(pid: int)
 signal province_context(pid: int, at: Vector2)  # right click (PC): quick actions
+signal sea_tapped(sea: String)
 
 const SEA := Color("1d3a5c")
 const SEA_DEEP := Color("132a45")  # open sea where no terrain tile is painted (art palette sea_deep)
@@ -90,6 +91,31 @@ const Faith = preload("res://scripts/core/religion.gd")
 const MARKET_COLORS := ["c0392b", "2e5bd4", "e3b21b", "1e8449", "8e44ad", "d35400", "16a085", "7f8c8d", "e84393",
 		"6c5ce7", "00b894", "fdcb6e", "a0522d"]
 
+## Sea regions (data/sea_map.json from tools/gen_seas.py): a coarse grid naming the sea of every water cell,
+## the borders between seas, each sea's size and the sea-chart decorations (tools/art/sea_icons.py).
+const SEA_MAP_PATH := "res://data/sea_map.json"
+const SEA_BORDER := Color(0.78, 0.9, 1.0, 0.2)
+const SEA_LABEL := Color(0.8, 0.9, 1.0, 0.72)
+const SEA_LABEL_INK := Color(0.04, 0.1, 0.2, 0.75)
+const SEA_DECO_MIN_ZOOM := 0.25
+const SEA_DECO_MAX_ZOOM := 2.2
+const SEA_DECO_FRAME_S := 0.55
+var _sea_grid := PackedByteArray()  # sea index + 1 per cell, 0 = land
+var _sea_w := 0
+var _sea_h := 0
+var _sea_cell := 8.0
+var _sea_ids: Array = []
+var _sea_area := {}  # sea id -> water area in map px²
+var _sea_bbox := {}  # sea id -> Rect2i in grid cells
+var _sea_borders: Array = []  # [sea a, sea b, PackedVector2Array]
+var _sea_border_segs := PackedVector2Array()  # all borders as segment pairs: one draw call
+var _sea_deco: Array = []  # [kind, world pos, sea id, phase]
+var _sea_deco_layer: Node2D
+var _sea_deco_frame := -1
+var _sea_sel_sprite: Sprite2D
+var selected_sea := ""
+var hover_sea := ""
+
 var _touches := {}
 var _pinch_dist := 0.0
 var _press_pos := Vector2.ZERO
@@ -149,11 +175,14 @@ func setup(g, map_data: Dictionary) -> void:
 		_add_layer("bg")
 		for pid in polys.size():
 			_prov_layers.append(_add_layer("prov", pid))
-		for k in ["terrain", "borders", "roads", "cities", "sea"]:
-			_add_layer(k)
+		for k in ["terrain", "borders", "roads", "cities", "sea", "seadeco"]:
+			var l := _add_layer(k)
+			if k == "seadeco":
+				_sea_deco_layer = l
 		if _fog_sprite != null:
 			_world.move_child(_fog_sprite, -1)
 	_setup_fog()
+	_setup_sea_map()
 	if not resized.is_connected(_sync_terrain):
 		resized.connect(_sync_terrain)
 	_sync_terrain()
@@ -319,7 +348,9 @@ func _layer_sig(l) -> Variant:
 			parts.append(game.lm_ver)
 			return hash(parts)
 		"sea":
-			return hash([zoom, game.player, game.sea_blocked.get(game.player, {})])
+			return hash([zoom, game.player, game.sea_blocked.get(game.player, {}), map_mode == MODE_WAR])
+		"seadeco":
+			return [map_mode == MODE_WAR, _sea_deco_frame, zoom, _fog_sig]
 	return 0  # "bg" never changes
 
 
@@ -530,6 +561,7 @@ func _draw() -> void:
 	_draw_badges()
 	_draw_labels()
 	_draw_colonies()
+	_draw_selected_sea()
 	_draw_seas()
 	_draw_voyages()
 	_draw_armies()
@@ -585,7 +617,10 @@ func _draw_layer(ci) -> void:
 		"cities":
 			_draw_cities(ci)
 		"sea":
+			_draw_sea_borders(ci)
 			_draw_sea_routes(ci)
+		"seadeco":
+			_draw_sea_deco(ci)
 
 
 ## Roads are drawn faintly, like pencil lines on an old map: they should hint at the network without
@@ -1086,7 +1121,9 @@ func _draw_seas() -> void:
 			continue
 		var us := Naval.side_power(game, ours, s.id) if me != "" else 0.0
 		var them := Naval.side_power(game, foes, s.id) if war else 0.0
-		if war or map_mode == MODE_WAR:
+		if not war and map_mode != MODE_WAR:
+			_draw_sea_label(s, sp)
+		elif war or map_mode == MODE_WAR:
 			var txt: String = "⚓ " + s.name
 			var col := Color(0.8, 0.9, 1.0, 0.85)
 			if war and (us > 0.0 or them > 0.0):
@@ -1246,6 +1283,9 @@ func _occupier_color(tag: String) -> Color:
 
 ## Small label next to the mouse pointer: province, owner flag and name, siege progress.
 func _draw_hover_tip() -> void:
+	if hover_pid < 0 and hover_sea != "" and game != null:
+		_draw_sea_tip(hover_sea)
+		return
 	if hover_pid < 0 or game == null:
 		return
 	var p = game.provinces[hover_pid]
@@ -1818,6 +1858,14 @@ func _now() -> float:
 func _process(delta: float) -> void:
 	if not _flashes.is_empty():
 		queue_redraw()
+	# sea-chart decorations flap, bob and spout: only their own small layer is redrawn, a few times a second
+	if _sea_deco_layer != null and not _sea_deco.is_empty() and zoom >= SEA_DECO_MIN_ZOOM and zoom <= SEA_DECO_MAX_ZOOM \
+			and map_mode != MODE_WAR and is_visible_in_tree():
+		var fr := int(_now() / SEA_DECO_FRAME_S)
+		if fr != _sea_deco_frame:
+			_sea_deco_frame = fr
+			_sea_deco_layer.sig = _layer_sig(_sea_deco_layer)
+			_sea_deco_layer.queue_redraw()
 	# long press: hold still on a province to open its info (even while an army is selected)
 	var holding: bool = (_touches.size() == 1 or _mouse_down) and not _moved and not _long_fired
 	if holding and _now() - _press_time >= LONG_PRESS_S:
@@ -1910,8 +1958,10 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and not _mouse_down and event.device != InputEvent.DEVICE_ID_EMULATION and not _touch_used:
 		_hover_pos = event.position
 		var pid := province_at(event.position)
-		if pid != hover_pid or pid >= 0:
+		var sea := sea_at(to_world(event.position)) if pid < 0 else ""
+		if pid != hover_pid or pid >= 0 or sea != hover_sea:
 			hover_pid = pid
+			hover_sea = sea
 			queue_redraw()
 	elif event is InputEventMouseMotion and _mouse_down and event.device != InputEvent.DEVICE_ID_EMULATION:
 		if _moved or event.position.distance_to(_press_pos) > 6.0:
@@ -1943,6 +1993,10 @@ func _tap(screen_pos: Vector2) -> void:
 	var pid := province_at(screen_pos)
 	if pid >= 0 and known(pid):
 		province_tapped.emit(pid)
+	elif pid < 0:
+		var sea := sea_at(to_world(screen_pos))
+		if sea != "" and knows_sea(sea):
+			sea_tapped.emit(sea)
 
 
 func province_at(screen_pos: Vector2) -> int:
@@ -2004,6 +2058,202 @@ func _draw_power_bar(a, r: Rect2) -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_MOUSE_EXIT and hover_pid >= 0:
+	if what == NOTIFICATION_MOUSE_EXIT and (hover_pid >= 0 or hover_sea != ""):
 		hover_pid = -1
+		hover_sea = ""
 		queue_redraw()
+
+
+# ---------------------------------------------------------------- sea regions
+
+func _setup_sea_map() -> void:
+	_sea_grid = PackedByteArray()
+	_sea_borders.clear()
+	_sea_border_segs = PackedVector2Array()
+	_sea_deco.clear()
+	_sea_bbox = {}
+	if not FileAccess.file_exists(SEA_MAP_PATH):
+		return
+	var d = JSON.parse_string(FileAccess.get_file_as_string(SEA_MAP_PATH))
+	if typeof(d) != TYPE_DICTIONARY:
+		return
+	_sea_w = int(d.w)
+	_sea_h = int(d.h)
+	_sea_cell = float(d.cell)
+	_sea_ids = d.ids
+	_sea_area = d.get("area", {})
+	_sea_grid.resize(_sea_w * _sea_h)
+	var lo := {}
+	var hi := {}
+	var y := 0
+	for row in d.rows:
+		var x := 0
+		for i in range(0, row.size(), 2):
+			var v := int(row[i])
+			var n := int(row[i + 1])
+			if v > 0:
+				for k in n:
+					_sea_grid[y * _sea_w + x + k] = v
+				if not lo.has(v):
+					lo[v] = Vector2i(x, y)
+					hi[v] = Vector2i(x + n - 1, y)
+				else:
+					lo[v] = Vector2i(mini(lo[v].x, x), lo[v].y)
+					hi[v] = Vector2i(maxi(hi[v].x, x + n - 1), y)
+			x += n
+		y += 1
+	for v in lo:
+		_sea_bbox[str(_sea_ids[v - 1])] = Rect2i(lo[v], hi[v] - lo[v] + Vector2i.ONE)
+	for b in d.get("borders", []):
+		var pts := PackedVector2Array()
+		var f: Array = b[2]
+		for i in range(0, f.size(), 2):
+			pts.append(Vector2(f[i], f[i + 1]))
+		_sea_borders.append([str(b[0]), str(b[1]), pts])
+		for k in range(pts.size() - 1):
+			_sea_border_segs.append(pts[k])
+			_sea_border_segs.append(pts[k + 1])
+	var i := 0
+	for e in d.get("deco", []):
+		_sea_deco.append([str(e[0]), Vector2(e[1], e[2]), str(e[3]), i * 0.37])
+		i += 1
+	if _sea_sel_sprite == null:
+		_sea_sel_sprite = Sprite2D.new()
+		_sea_sel_sprite.centered = false
+		_sea_sel_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		_sea_sel_sprite.visible = false
+		_world.add_child(_sea_sel_sprite)
+		_world.move_child(_sea_sel_sprite, _sea_deco_layer.get_index() if _sea_deco_layer != null else -1)
+
+
+## The sea at a world position ("" on land or off the map).
+func sea_at(w: Vector2) -> String:
+	if _sea_grid.is_empty():
+		return ""
+	var x := int(w.x / _sea_cell)
+	var y := int(w.y / _sea_cell)
+	if x < 0 or y < 0 or x >= _sea_w or y >= _sea_h:
+		return ""
+	var v := _sea_grid[y * _sea_w + x]
+	return "" if v == 0 else str(_sea_ids[v - 1])
+
+
+func knows_sea(sea: String) -> bool:
+	return game == null or game.player == "" or Colonial.knows_sea(game, game.player, sea)
+
+
+## Highlights a sea (gold tint over its water and its borders); "" clears it.
+func select_sea(sea: String) -> void:
+	if sea == selected_sea:
+		return
+	selected_sea = sea
+	if _sea_sel_sprite == null:
+		return
+	if sea == "" or not _sea_bbox.has(sea):
+		_sea_sel_sprite.visible = false
+		queue_redraw()
+		return
+	var bb: Rect2i = _sea_bbox[sea]
+	var v := _sea_ids.find(sea) + 1
+	var img := Image.create(bb.size.x + 2, bb.size.y + 2, false, Image.FORMAT_RGBA8)
+	var tint := Color(SELECT.r, SELECT.g, SELECT.b, 0.28)
+	for y in bb.size.y:
+		var row := (bb.position.y + y) * _sea_w + bb.position.x
+		for x in bb.size.x:
+			if _sea_grid[row + x] == v:
+				img.set_pixel(x + 1, y + 1, tint)
+	_sea_sel_sprite.texture = ImageTexture.create_from_image(img)
+	_sea_sel_sprite.scale = Vector2(_sea_cell, _sea_cell)
+	_sea_sel_sprite.position = Vector2(bb.position - Vector2i.ONE) * _sea_cell
+	_sea_sel_sprite.visible = true
+	queue_redraw()
+
+
+## Faint chart lines between neighbouring seas (world layer "sea"); the selected sea's borders in gold.
+func _draw_sea_borders(ci: CanvasItem) -> void:
+	if _sea_borders.is_empty() or map_mode == MODE_WAR and zoom < 0.3:
+		return
+	ci.draw_multiline(_sea_border_segs, SEA_BORDER, 1.4 / zoom)
+
+
+## Selected sea: its borders in gold on top (screen space, so they stay crisp).
+func _draw_selected_sea() -> void:
+	if selected_sea == "":
+		return
+	var xf := Transform2D(0.0, Vector2(zoom, zoom), 0.0, offset)
+	for b in _sea_borders:
+		if b[0] == selected_sea or b[1] == selected_sea:
+			var pts: PackedVector2Array = xf * b[2]
+			draw_polyline(pts, Color(0, 0, 0, 0.6), 4.0)
+			draw_polyline(pts, SELECT, 2.0)
+
+
+## How a sea reads on the map: oceans in spaced capitals, smaller seas in normal type, by water area.
+func _sea_tier(sea: String) -> int:
+	var a := float(_sea_area.get(sea, 0))
+	return 2 if a >= 1000000.0 else (1 if a >= 150000.0 else 0)
+
+
+## Sea name in peace, like on an old chart: big seas show from far out, small ones only closer in.
+func _draw_sea_label(s: Dictionary, sp: Vector2) -> void:
+	var tier := _sea_tier(s.id)
+	if zoom < 0.28 and tier < 2 or zoom < 0.5 and tier < 1:
+		return
+	var txt: String = s.name
+	var fs := int(round([13.0, 15.0, 18.0][tier] * label_scale))
+	if tier == 2:
+		txt = " ".join(txt.to_upper().split(""))
+	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	var col := SEA_LABEL
+	if s.id == selected_sea or s.id == hover_sea:
+		col = Color(1.0, 0.95, 0.75, 0.95)
+	draw_string_outline(font, sp - Vector2(w / 2, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, SEA_LABEL_INK)
+	draw_string(font, sp - Vector2(w / 2, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+
+
+## Sea-chart decorations (world layer "seadeco"): kraken, Poseidon, ships, boats, gulls, fish, whales.
+## Drawn in world space at a fixed size, so they belong to the map; two frames each for a little life.
+const SEA_DECO_SCALE := {"kraken": 3.2, "poseidon": 3.2, "ship": 2.6, "whale": 2.6, "boat": 2.0, "gulls": 2.0, "fish": 2.0}
+
+
+func _draw_sea_deco(ci: CanvasItem) -> void:
+	if _sea_deco.is_empty() or map_mode == MODE_WAR or zoom < SEA_DECO_MIN_ZOOM or zoom > SEA_DECO_MAX_ZOOM:
+		return
+	# fade in from far out, fade out close up where fleets and names need the room
+	var a := clampf((zoom - SEA_DECO_MIN_ZOOM) / 0.06, 0.0, 1.0) * clampf((SEA_DECO_MAX_ZOOM - zoom) / 0.6, 0.0, 1.0)
+	var tint := Color(1, 1, 1, 0.85 * a)
+	var t := _now()
+	for d in _sea_deco:
+		if not knows_sea(d[2]):
+			continue
+		var kind: String = d[0]
+		var frame := int(t / SEA_DECO_FRAME_S + d[3] * 3.0) % 2
+		var tex := Icons.texture("sea_%s_%d" % [kind, frame])
+		if tex == null:
+			continue
+		# whole screen pixels per art pixel (crisp), at least 2 so they stay readable when zoomed out
+		var px := maxf(2.0, roundf(float(SEA_DECO_SCALE.get(kind, 2.0)) * zoom))
+		var sz: Vector2 = tex.get_size() / 2.0 * px / zoom  # textures are exported x2
+		var pos: Vector2 = d[1] - sz / 2.0
+		pos = pos.round()
+		ci.draw_texture_rect(tex, Rect2(pos, sz), false, tint)
+
+
+## Hover tip over the open sea: name, kind and who sails there.
+func _draw_sea_tip(sea: String) -> void:
+	if not knows_sea(sea):
+		_draw_tip_box(["Unbekannte Gewässer", "Noch kein Schiff deines Reiches ist hier gesegelt."])
+		return
+	var s = game.sea_by_id.get(sea)
+	if s == null:
+		return
+	var kind: String = ["Randmeer", "Meer", "Ozean"][_sea_tier(sea)]
+	var line2 := "%s · %d Küstenprovinzen" % [kind, s.provinces.size()]
+	var ships := 0.0
+	for tag in game._fleet:
+		ships += float(game._fleet[tag].get(sea, 0.0))
+	if ships >= 0.5:
+		line2 += " · ⛵ %d Schiffe" % int(round(ships))
+	if game.player != "" and game.sea_blocked.get(game.player, {}).has(sea):
+		line2 += " · ⚓ vom Feind beherrscht"
+	_draw_tip_box(["⚓ " + str(s.name), line2])

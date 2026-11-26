@@ -85,6 +85,7 @@ const KEY_ACTIONS := [
 	["panel_advice", "Ratgeber", KEY_R], ["panel_mapmodes", "Kartenmodi + Legende", KEY_V],
 	["zoom_in", "Karte vergrößern", KEY_PAGEUP], ["zoom_out", "Karte verkleinern", KEY_PAGEDOWN],
 	["quick", "Schnellaktionen (Provinz unter der Maus)", KEY_Q], ["build", "Bauen (offene Provinz)", KEY_B], ["info", "Infos (offene Provinz)", KEY_I],
+	["confirm", "Bestätigen (Erforschen, Vormerken, Einstellen, Annehmen …)", KEY_C],
 	["army", "Nächste Armee", KEY_A], ["search", "Suchen", KEY_S], ["quicksave", "Schnellspeichern", KEY_F5], ["help", "Tastenkürzel", KEY_F1],
 ]
 const RESERVED_KEYS := [KEY_ESCAPE, KEY_F11, KEY_F12, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0,
@@ -170,6 +171,7 @@ func _ready() -> void:
 	map.army_tapped.connect(_on_army_tapped)
 	map.province_long_pressed.connect(_on_province_info)
 	map.province_context.connect(_on_province_context)
+	map.sea_tapped.connect(_on_sea_tapped)
 	map.label_scale = 1.2 if _big() else 1.0
 	hud = Control.new()
 	hud.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -586,6 +588,37 @@ func _btn(text: String, cb: Callable, tip: String = "", disabled: bool = false) 
 		_sfx("click", -14.0)
 		cb.call())
 	return b
+
+
+## Marks `b` as the answer of the "Bestätigen" key (default C): the first enabled marked button of the
+## open popup (else of the open side panel) is pressed. Used for the one obvious action of a popup;
+## choices between several options (events, reforms) stay manual. The key shows on desktop.
+func _primary(b: Button) -> Button:
+	b.set_meta("confirm", true)
+	if _is_desktop() and b.text != "" and not b.has_meta("confirm_hint"):
+		b.set_meta("confirm_hint", true)
+		b.text += "  [%s]" % OS.get_keycode_string(key_of("confirm"))
+	return b
+
+
+## Presses the first enabled confirm button; false when there is none.
+func _confirm() -> bool:
+	var root: Node = modal_box if modal.visible else (side_box if side_panel.visible else null)
+	var b: Button = _find_confirm(root) if root != null else null
+	if b == null:
+		return false
+	b.pressed.emit()
+	return true
+
+
+func _find_confirm(node: Node) -> Button:
+	if node is Button and node.has_meta("confirm") and not node.disabled and node.is_visible_in_tree():
+		return node
+	for c in node.get_children():
+		var r := _find_confirm(c)
+		if r != null:
+			return r
+	return null
 
 
 ## A wrapping button may shrink, but never below its longest word ("Ändern" must not become "Änd/ern").
@@ -1094,7 +1127,7 @@ func _show_intro() -> void:
 	modal_box.add_child(_lbl("%s, %s" % [nname(game.player), game.date_string()], 30))
 	modal_box.add_child(_lbl(n.idea, 18, Color(0.8, 0.85, 0.7)))
 	modal_box.add_child(_lbl("So spielst du:\n• Zeit läuft mit ▶/➕ oben rechts, ⏸ pausiert.\n• Tippe auf eine Provinz für Infos und Aktionen (Entwickeln, Rekrutieren, Krieg).\n• Tippe auf eine Armee (Kreis mit Zahl) und dann auf ein Ziel, um sie zu bewegen. 🤖 lässt sie automatisch kämpfen.\n• 📜 Admin, 🕊️ Diplomatie und ⚔️ Militär sammeln sich monatlich: für Technologie, Entwicklung, Bündnisse und Kriegsgründe.\n• 😠 Aggressive Expansion steigt bei Eroberungen. Ab %d bilden Nachbarn Koalitionen gegen dich.\n• ✊ Frisch eroberte Provinzen sind unruhig, Kriegsmüdigkeit verstärkt das. Garnisonen und Unterdrückung helfen.\n• Am PC: Leertaste = Pause, 1–3 = Tempo (½, normal, schnell), Esc = Panel schließen." % int(game.coalition_threshold(game.player)), 17))
-	modal_box.add_child(_btn("Los geht's ▶", func(): _close_modal()))
+	modal_box.add_child(_primary(_btn("Los geht's ▶", func(): _close_modal())))
 
 
 ## ScrollContainers that scroll by dragging anywhere on them, also when the finger starts on a button.
@@ -1458,7 +1491,7 @@ func _check_alerts() -> bool:
 			_sfx("war")
 			modal_box.add_child(_lbl("🔥 Krieg!", 28))
 			modal_box.add_child(_lbl("%s hat uns den Krieg erklärt (%s).\nGegner: %s" % [nname(w.attackers[0]), w.name, ", ".join(them)]))
-		modal_box.add_child(_btn("⚔️ Zu den Waffen", func(): _close_modal(); _open_panel("wars")))
+		modal_box.add_child(_primary(_btn("⚔️ Zu den Waffen", func(): _close_modal(); _open_panel("wars"))))
 		return true
 	var co: int = game.nations[me].coalition.size()
 	if co > known_coalition and co >= 2:
@@ -1467,7 +1500,7 @@ func _check_alerts() -> bool:
 		_open_modal()
 		modal_box.add_child(_lbl("⚠️ Koalition gegen uns!", 28))
 		modal_box.add_child(_lbl("%d Nationen haben sich wegen unserer aggressiven Expansion (😠 %d) gegen uns verbündet. Senke die AE (Zeit, Diplomatie-Technologie), sonst greifen sie an." % [co, int(game.nations[me].ae)]))
-		modal_box.add_child(_btn("Verstanden", _close_modal))
+		modal_box.add_child(_primary(_btn("Verstanden", _close_modal)))
 		return true
 	known_coalition = mini(known_coalition, co)
 	return _check_tips()
@@ -1744,7 +1777,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		act = "slower"
 	elif act == "" and k == KEY_H:
 		act = "help"
-	if act == "pause" and not modal.visible:
+	if act == "confirm":
+		if not _confirm():
+			return
+	elif act == "pause" and not modal.visible:
 		if speed == 0:
 			_set_speed(last_speed)
 		else:
@@ -1843,7 +1879,7 @@ func _show_menu() -> void:
 	_set_speed(0)
 	_open_modal()
 	modal_box.add_child(_lbl("☰ Menü", 30))
-	modal_box.add_child(_btn("▶ Weiter", _close_modal))
+	modal_box.add_child(_primary(_btn("▶ Weiter", _close_modal)))
 	var acts := [
 		_btn("💾 Speichern", _show_slots.bind(true), "Drei Speicherplätze; dazu speichert das Spiel jedes Jahr automatisch. Schnellspeichern: F5"),
 		_btn("📂 Laden", _show_slots.bind(false)),
@@ -2261,11 +2297,49 @@ func _show_event(event_id: String) -> void:
 	var pic := _event_picture(e)
 	if pic != null:
 		modal_box.add_child(pic)
-	modal_box.add_child(_lbl("📯 " + e.title, 28))
+	var kind: Array = event_kind(e)
+	if kind.is_empty():
+		modal_box.add_child(_lbl("📯 " + e.title, 28))
+	else:
+		modal_box.add_child(_lbl("%s %s" % [kind[0], e.title], 28))
+		var band := PanelContainer.new()
+		band.add_theme_stylebox_override("panel", UiTheme.card("", 6))
+		var bl := _lbl("%s  %s\n%s" % [kind[0], kind[1], kind[2]], 15, kind[3])
+		bl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		band.add_child(bl)
+		modal_box.add_child(band)
 	modal_box.add_child(_lbl(e.text, 18))
 	for i in e.options.size():
 		var o: Dictionary = e.options[i]
-		modal_box.add_child(_rich_btn(o.text, effects_bb(o.get("effects", {})), _choose_event.bind(event_id, i)))
+		var ob := _rich_btn(o.text, effects_bb(o.get("effects", {})), _choose_event.bind(event_id, i))
+		if e.options.size() == 1:  # one way out: the confirm key takes it (several options are a decision)
+			ob.get_child(0).set_meta("confirm", true)
+		modal_box.add_child(ob)
+
+
+## Event categories with their own icon and explanation line: [icon, name, what it means, colour], [] = plain event.
+## "kind" in events.json, age decisions (age_q_*) by id.
+func event_kind(e: Dictionary) -> Array:
+	var k: String = str(e.get("kind", ""))
+	if k == "" and str(e.get("id", "")).begins_with("age_q_"):
+		k = "decision"
+	match k:
+		"decision":
+			var q: Dictionary = game.age_q.get(str(e.id).substr(6), {})
+			var age := ""
+			for a in game.age_cfg.get("ages", []):
+				if a.id == q.get("age", ""):
+					age = "Zeitalter: %s · " % a.name
+			return ["⚖️", "Historische Entscheidung", "%sDie Antwort gilt für den Rest des Spiels und lässt sich unter Technologie ⚖ zweimal vertiefen." % age, UiTheme.GOLD]
+		"alliance":
+			return ["🤝", "Bündniswahl", "Einmalig zu Spielbeginn. Historische Partner sind markiert, jeder Nachbar ist möglich. Verbündete treten deinen Kriegen bei.", Color(0.7, 0.85, 1.0)]
+		"poison":
+			return ["☠️", "Wahl zwischen Übeln", "Jede Antwort kostet etwas. Wähle das kleinere Übel für dein Reich.", Color(0.95, 0.6, 0.55)]
+		"warning":
+			return ["⚠️", "Drohende Katastrophe", "Noch lässt sie sich abwenden. Wer jetzt spart, riskiert, dass sie in den nächsten Jahren ausbricht.", Color(1.0, 0.8, 0.4)]
+		"disaster":
+			return ["🔥", "Katastrophe", "Die Warnung kam zu spät oder wurde überhört. Jetzt geht es darum, den Schaden zu begrenzen.", Color(1.0, 0.5, 0.4)]
+	return []
 
 
 var _event_motifs = null
@@ -2319,7 +2393,7 @@ func _show_peace_offer(offer: Dictionary) -> void:
 	else:
 		txt = "%s bietet uns an: %s" % [who, ", ".join(names)]
 	modal_box.add_child(_lbl(txt + "\nKriegspunktestand (unsere Sicht): %+d" % int(ws), 18))
-	modal_box.add_child(_btn("✅ Annehmen", func(): game.answer_player_peace(offer, true); _close_modal(); map.refresh(); _update_top()))
+	modal_box.add_child(_primary(_btn("✅ Annehmen", func(): game.answer_player_peace(offer, true); _close_modal(); map.refresh(); _update_top())))
 	modal_box.add_child(_btn("❌ Ablehnen", func(): game.answer_player_peace(offer, false); _close_modal()))
 
 
@@ -2563,6 +2637,7 @@ func _open_panel(mode: String, arg = null, remember: bool = true) -> void:
 		map.selected_army = -1
 	if mode != "province":
 		map.selected_pid = -1
+	map.select_sea(str(arg) if mode == "sea" else "")
 	if mode == "peace":
 		peace_selection = {}
 	_refresh()
@@ -2590,6 +2665,7 @@ func _close_panel() -> void:
 	selected_army = -1
 	map.selected_army = -1
 	map.selected_pid = -1
+	map.select_sea("")
 	map.refresh()
 
 
@@ -2614,6 +2690,8 @@ func _refresh() -> void:
 			_panel_wars()
 		"navy":
 			_panel_navy()
+		"sea":
+			_panel_sea(panel_arg)
 		"peace":
 			_panel_peace(panel_arg)
 		"missions":
@@ -3707,7 +3785,7 @@ func _panel_nation() -> void:
 
 
 const MOD_SOURCES := {"": "Nationalgeist & Ereignisse", "goods": "Handelsgüter", "buildings": "Gebäude", "rank": "Rang",
-		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "landmarks": "Historische Bauwerke", "rivals": "Rivalen", "embargo": "Embargos", "blockade": "Blockaden", "escort": "Handelsschutz", "formed": "Reichsgründung", "ages": "Weichen der Zeitalter", "stability": "Stabilität"}
+		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "landmarks": "Historische Bauwerke", "rivals": "Rivalen", "embargo": "Embargos", "blockade": "Blockaden", "escort": "Handelsschutz", "formed": "Reichsgründung", "ages": "Weichen der Zeitalter", "stability": "Stabilität", "tmods": "Befristete Folgen von Ereignissen"}
 const MOD_GROUPS := [
 	["💰 Wirtschaft", ["income", "tax", "production", "trade", "merchants", "build_cost", "develop_cost"]],
 	["⚔️ Militär", ["combat", "army_power", "army_power_regen", "manpower", "force_limit", "maintenance", "siege", "naval"]],
@@ -4367,6 +4445,112 @@ func _panel_navy() -> void:
 		]))
 	if game.wars_of(me).is_empty():
 		side_box.add_child(_lbl("Im Frieden: Handelsschutz bringt etwas Handelseinkommen, sobald ein Viertel des Flottenlimits auf See ist.", 15, Color(0.75, 0.8, 0.88)))
+
+
+## A tap on open water: the sea region's panel (an own army selected for a sea order keeps waiting for a coast).
+func _on_sea_tapped(sea: String) -> void:
+	if game == null or not game.sea_by_id.has(sea):
+		return
+	if selected_army >= 0:
+		return
+	_open_panel("sea", sea)
+
+
+## Sea region: who sails and rules here, its coasts and straits, neighbouring seas, station the fleet.
+func _panel_sea(sea: String) -> void:
+	var s = game.sea_by_id[sea]
+	var me: String = game.player
+	var n = game.nations[me]
+	side_title.text = "⚓ " + str(s.name)
+	var kind: String = ["Randmeer", "Meer", "Ozean"][map._sea_tier(sea)]
+	side_box.add_child(_lbl("%s · %d Küstenprovinzen · %d Nachbarmeere" % [kind, s.provinces.size(), s.adj.size()], 15, Color(0.75, 0.8, 0.88)))
+	# fleets in this sea
+	var fleets := []
+	for tag in game._fleet:
+		var ships: float = float(game._fleet[tag].get(sea, 0.0))
+		if ships >= 0.5 and game.nations[tag].alive:
+			fleets.append([ships, tag])
+	fleets.sort_custom(func(a, b): return a[0] > b[0])
+	if _section("sea_fleets", "⛵ Flotten hier (%d)" % fleets.size(), true, "Schiffe kreuzen auf den Meeren an den Küsten ihres Reiches, verteilt nach Küstenentwicklung, oder gebündelt, wenn das Reich sie hier stationiert."):
+		if fleets.is_empty():
+			side_box.add_child(_lbl("Keine Kriegsflotte kreuzt hier.", 15, Color(0.7, 0.72, 0.76)))
+		var chips := []
+		for f in fleets.slice(0, 8):
+			var t: String = f[1]
+			var k := "good" if t == me else ("bad" if game.at_war(me, t) else "")
+			chips.append(_chip("%s %d" % [nname(t), int(round(f[0]))], "%s: %d Schiffe in %s (Kampfwert ×%.2f)." % [game.nations[t].name, int(round(f[0])), s.name, Naval.power_mult(game, t)], k))
+		if chips.size() % 2 == 1:
+			chips.append(Control.new())
+		if not chips.is_empty():
+			side_box.add_child(_grid(chips))
+	# the sea war
+	for w in game.wars_of(me):
+		var att: bool = game.is_attacker(w, me)
+		var us := Naval.side_power(game, game.side_tags(w, att), sea)
+		var them := Naval.side_power(game, game.side_tags(w, not att), sea)
+		var c := Naval.control(game, w, sea)
+		var ours: bool = c == ("att" if att else "def")
+		var txt := "beherrscht von uns" if ours else ("beherrscht vom Feind" if c != "" else "umkämpft / frei")
+		side_box.add_child(_chip("🔥 %s: %s (%s : %s)" % [w.name, txt, Naval.fmt(us), Naval.fmt(them)],
+				"Mit %.1f-facher Überzahl beherrscht eine Seite das Meer: Überfahrten sperren, Küsten blockieren." % float(game.bal.sea_control_ratio),
+				"good" if ours else ("bad" if c != "" else "")))
+	# station the own fleet here
+	var mine: bool = Naval.coast_weights(game, me).has(sea)
+	if Naval.limit(game, me) > 0.0:
+		var acts := []
+		if mine and n.fleet_sea != sea:
+			acts.append(_btn("📍 Flotte hier bündeln", func(): _act(Naval.station(game, me, sea), "📍 Die Flotte kreuzt jetzt in %s" % s.name),
+					"Alle Schiffe in %s zusammenziehen: hier stark, an deinen anderen Küsten fehlen sie." % s.name))
+		elif mine:
+			acts.append(_btn("📍 Flotte verteilen", func(): _act(Naval.station(game, me, ""), "📍 Die Flotte verteilt sich auf alle Küstenmeere"),
+					"Die Schiffe wieder über alle deine Küstenmeere verteilen."))
+		else:
+			acts.append(_btn("📍 Flotte hier bündeln", func(): pass, "", true))
+			acts[-1].tooltip_text = "Keine eigene Küste an %s: deine Flotte kann hier nicht stationiert werden." % s.name
+		acts.append(_btn("⚓ Marine", func(): _open_panel("navy"), "Flotte bauen, Auftrag und Station wählen."))
+		side_box.add_child(_grid(acts))
+	# coasts
+	var coast := []
+	for pid in s.provinces:
+		if map.known(pid):
+			coast.append(pid)
+	coast.sort_custom(func(a, b): return game.provinces[a].dev > game.provinces[b].dev)
+	if not coast.is_empty() and _section("sea_coast", "🏰 Küsten (%d)" % coast.size(), coast.size() <= 10, "Provinzen an diesem Meer, nach Entwicklung. Antippen öffnet die Provinz."):
+		var bs := []
+		for pid in coast.slice(0, 16):
+			var p = game.provinces[pid]
+			var mark := " ⚓" if Naval.is_blockaded(game, pid) else ""
+			var pp: int = pid
+			var b := _btn("%s %s%s" % [PixelEmoji.nation(p.owner, game.nations[p.owner].emoji), p.name, mark], func(): _open_province_info(pp),
+					"%s (%s), Entwicklung %d%s" % [p.name, game.nations[p.owner].name, p.dev, ", blockiert" if mark != "" else ""])
+			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			bs.append(b)
+		if bs.size() % 2 == 1:
+			bs.append(Control.new())
+		side_box.add_child(_grid(bs))
+		if coast.size() > 16:
+			side_box.add_child(_lbl("… und %d weitere" % (coast.size() - 16), 14, Color(0.7, 0.72, 0.76)))
+	# straits (army crossings) in this sea
+	var straits := []
+	for k in game.strait_sea:
+		if game.strait_sea[k] == sea:
+			var ka: int = int(k) / 10000
+			var kb: int = int(k) % 10000
+			if map.known(ka) and map.known(kb):
+				straits.append("%s ↔ %s" % [game.provinces[ka].name, game.provinces[kb].name])
+	if not straits.is_empty():
+		side_box.add_child(_lbl("⛵ Überfahrten: " + ", ".join(straits), 14, Color(0.75, 0.8, 0.88)))
+	# neighbouring seas
+	var adj := []
+	for o in s.adj:
+		if game.sea_by_id.has(o) and map.knows_sea(o):
+			var oid: String = o
+			adj.append(_btn(str(game.sea_by_id[o].name), func(): _open_panel("sea", oid), "Zum Nachbarmeer."))
+	if not adj.is_empty():
+		side_box.add_child(_lbl("🌍 Nachbarmeere", 16, Color(0.7, 0.8, 0.9)))
+		if adj.size() % 2 == 1:
+			adj.append(Control.new())
+		side_box.add_child(_grid(adj))
 
 
 func _panel_wars() -> void:
@@ -5244,6 +5428,10 @@ func effect_parts(e: Dictionary) -> Array:
 			else:
 				var val: float = game.tree.effect_value(game.govt.trait_effects(str(v)))
 				parts.append(["👑 %s wird %s" % [who, game.govt.trait_name(str(v))], 1 if val > 0.0 else -1])
+		elif k == "tmods":
+			var yrs: int = maxi(1, roundi(int(v.get("months", 60)) / 12.0))
+			for r in UiTheme.mod_rows(v.get("mods", {})):
+				parts.append(["%s %s (%d J.)" % [r[1], r[0], yrs], 1 if r[2] else -1])
 	return parts
 
 

@@ -21,6 +21,7 @@ const Trade = preload("res://scripts/core/trade.gd")
 const Landmarks = preload("res://scripts/core/landmarks.gd")
 const Council = preload("res://scripts/core/council.gd")
 const Regime = preload("res://scripts/core/regime.gd")
+const StartAlly = preload("res://scripts/core/start_ally.gd")
 const Stability = preload("res://scripts/core/stability.gd")
 const Subjects = preload("res://scripts/core/subjects.gd")
 
@@ -179,6 +180,7 @@ class Nation:
 	var religion: String = "catholic"  # state religion
 	var monuments := {}  # finished great works (Monuments)
 	var formed: String = ""  # id of the realm this nation proclaimed (Formables), "" = none
+	var tmods: Array = []  # timed event modifiers [{name, mods, until (month)}], summed into bonus["tmods"]
 	var age_picks := {}  # age decisions: question id -> [option id, level] (Ages)
 	var monument_build := {}  # {"id", "months"} while one is being built
 	var autobuild: bool = false  # player: build the best building whenever the treasury stays above the reserve
@@ -254,6 +256,7 @@ var lm_seen_ver := -1  # Landmarks.monthly: state of the last bonus refresh (not
 var lm_seen_owners := PackedStringArray()
 var formable_defs := {}
 var age_cfg := {}  # data/ages.json (Ages)
+var start_allies_cfg := {}  # data/start_allies.json (StartAlly)
 var age_q := {}  # question id -> question
 var age_opt := {}  # option id -> [question, option]
 var event_by_id := {}
@@ -472,6 +475,8 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 				var pid: int = key_to_pid.get(key, -1)
 				if pid >= 0 and provinces[pid].owner != tag:
 					nations[tag].claims[pid] = true
+	start_allies_cfg = data.get("start_allies", {}) if data.get("start_allies") != null else {}
+	StartAlly.start(self)
 
 
 func _apply_start_diplomacy(d: Dictionary) -> void:
@@ -1297,6 +1302,8 @@ func _yearly_nation(tag: String) -> void:
 	var n: Nation = nations[tag]
 	if not n.alive:
 		return
+	if not n.tmods.is_empty():
+		_expire_tmods(n)
 	n.ruler.years -= 1
 	if n.ruler.years <= 0:
 		govt.succession(self, n)
@@ -3199,6 +3206,11 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 						n.claims[pid] = true
 			"flag":
 				n.flags[v] = true
+			"clear_flag":
+				n.flags.erase(v)
+			# {"name": .., "months": .., "mods": {..}}: modifiers that run out (same name = renewed)
+			"tmods":
+				add_tmods(n, str(v.get("name", "")), v.get("mods", {}), int(v.get("months", 60)))
 			"mods":
 				for m in v:
 					n.mods[m] = n.mods.get(m, 0.0) + float(v[m])
@@ -3703,6 +3715,11 @@ func _check_events(n: Nation) -> void:
 		eligible.append(e)
 	if eligible.is_empty():
 		return
+	# a disaster that was not prevented (hardship_events.py, flag set by its warning) pushes ahead of the rest
+	for e in eligible:
+		if str(e.get("kind", "")) == "disaster" and rng.randf() < 0.5:
+			eligible = [e]
+			break
 	# nation specific events take priority over generic ones
 	var specific := eligible.filter(func(e): return e.get("tag", "*") != "*")
 	var chance := float(bal.event_chance)
@@ -3719,6 +3736,33 @@ func _check_events(n: Nation) -> void:
 		pending_events.append(e.id)
 	else:
 		apply_effects(n.tag, e.options[ai.pick_event_option(self, n, e)].get("effects", {}))
+
+
+## Timed modifiers from events (effect "tmods"): run out after `months`; one entry per name (renewed, not stacked).
+func add_tmods(n: Nation, name: String, mods: Dictionary, months: int) -> void:
+	for i in range(n.tmods.size() - 1, -1, -1):
+		if name != "" and str(n.tmods[i].name) == name:
+			n.tmods.remove_at(i)
+	n.tmods.append({"name": name, "mods": mods.duplicate(), "until": month + maxi(1, months)})
+	refresh_tmods(n)
+
+
+func refresh_tmods(n: Nation) -> void:
+	var b := {}
+	for t in n.tmods:
+		for k in t.mods:
+			b[k] = float(b.get(k, 0.0)) + float(t.mods[k])
+	if b.is_empty():
+		n.clear_bonus("tmods")
+	else:
+		n.set_bonus("tmods", b)
+
+
+func _expire_tmods(n: Nation) -> void:
+	var before := n.tmods.size()
+	n.tmods = n.tmods.filter(func(t): return int(t.until) > month)
+	if n.tmods.size() != before:
+		refresh_tmods(n)
 
 
 ## Context events fired by game code at a fixed moment (e.g. great works), once per realm.
@@ -3800,7 +3844,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "stability": n.stability, "rank": n.rank, "embargoes": n.embargoes, "templates": n.templates, "recruit_tmpl": n.recruit_tmpl, "religion": n.religion, "ships": snappedf(n.ships, 0.0001), "fleet_sea": n.fleet_sea, "fleet_mission": n.fleet_mission, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "stability": n.stability, "rank": n.rank, "embargoes": n.embargoes, "templates": n.templates, "recruit_tmpl": n.recruit_tmpl, "religion": n.religion, "ships": snappedf(n.ships, 0.0001), "fleet_sea": n.fleet_sea, "fleet_mission": n.fleet_mission, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed, "tmods": n.tmods,
 				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n), "colonial": Colonial.nation_save(n), "age_picks": Ages.to_save(n), "subject": Subjects.nation_save(self, n)}
 	d.nations = ns
 	var ar := []
@@ -3985,6 +4029,10 @@ func from_dict(d: Dictionary) -> void:
 		n.monument_build = {} if mb.is_empty() else {"id": str(mb.id), "months": int(mb.months)}
 		Monuments.refresh(self, n)
 		n.formed = str(e.get("formed", ""))
+		n.tmods = []
+		for t in e.get("tmods", []):
+			n.tmods.append({"name": str(t.get("name", "")), "mods": t.get("mods", {}), "until": int(t.get("until", 0))})
+		refresh_tmods(n)
 		n.templates = e.get("templates", [])
 		n.recruit_tmpl = int(e.get("recruit_tmpl", -1))
 		Formables.apply_identity(self, n)
@@ -4073,3 +4121,4 @@ func from_dict(d: Dictionary) -> void:
 	Subjects.refresh_bonus(self)
 	if not govt.council_cfg.is_empty():
 		Regime.after_load(self)
+	StartAlly.after_load(self)

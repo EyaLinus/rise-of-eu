@@ -71,6 +71,9 @@ func _run(fail: bool) -> void:
 	for p in ["nation", "diplomacy", "wars", "navy", "missions", "log", "mapmodes", "advice", "modifiers", "ranking", "hre"]:
 		m._open_panel(p)
 		await _check(m, p)
+	for sea in ["west_med", "north", "baltic"]:  # sea region panels (fleets, coasts, neighbours)
+		m._open_panel("sea", sea)
+		await _check(m, "sea/" + sea)
 	for t in ["overview", "trade", "goods"]:
 		m.econ_tab = t
 		m._open_panel("economy")

@@ -23,6 +23,7 @@ func _init() -> void:
 		"test_difficulty",
 		"test_march_time_and_terrain", "test_interception", "test_battle_rounds",
 		"test_naval",
+		"test_sea_map",
 		"test_ai_peace_spending",
 		"test_capitulation",
 		"test_coalition_softer_vs_player",
@@ -86,7 +87,7 @@ func _init() -> void:
 		"test_tribes",
 		"test_perf_caches",
 		"test_modifier_keys_known",
-		"test_old_save_tech_levels", "test_council", "test_elections", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
+		"test_old_save_tech_levels", "test_council", "test_council_traits", "test_start_alliance", "test_hardship_events", "test_elections", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		if not only.is_empty() and not only.has(t):
 			continue
@@ -107,6 +108,7 @@ func check(cond: bool, msg: String) -> void:
 func new_game(player := "FRA", seed_value := 7):
 	var g = Game.new()
 	g.setup(data, seed_value, player)
+	g.pending_events.erase("start_alliance")  # the start choice has its own test (test_start_alliance)
 	return g
 
 
@@ -192,6 +194,58 @@ func test_map_connected() -> void:
 					seen[a] = true
 					q.append(a)
 	check(seen.size() == g.provinces.size(), "all provinces connected (%d/%d)" % [seen.size(), g.provinces.size()])
+
+
+## Sea regions on the map (data/sea_map.json from tools/gen_seas.py): the same seas as seas.json, every
+## sea has water cells, each sea's label point lies in that sea or next to it, decorations sit in real seas.
+func test_sea_map() -> void:
+	var f := FileAccess.open("res://data/sea_map.json", FileAccess.READ)
+	check(f != null, "sea_map.json exists")
+	if f == null:
+		return
+	var d: Dictionary = JSON.parse_string(f.get_as_text())
+	var ids: Array = []
+	for s in data.seas.seas:
+		ids.append(s.id)
+	check(d.ids == ids, "sea_map ids match seas.json (%d)" % ids.size())
+	var w: int = d.w
+	var cells := PackedByteArray()
+	cells.resize(w * int(d.h))
+	var y := 0
+	for row in d.rows:
+		var x := 0
+		for i in range(0, row.size(), 2):
+			for k in int(row[i + 1]):
+				cells[y * w + x + k] = int(row[i])
+			x += int(row[i + 1])
+		check(x == w, "sea_map row %d has %d cells" % [y, w])
+		y += 1
+	var count := {}
+	for v in cells:
+		count[v] = count.get(v, 0) + 1
+	for i in ids.size():
+		check(count.get(i + 1, 0) > 0, "sea %s has water on the map" % ids[i])
+	var cell := float(d.cell)
+	var off := 0
+	for i in ids.size():
+		var c: Array = data.seas.seas[i].center
+		var cx := int(c[0] / cell)
+		var cy := int(c[1] / cell)
+		var near := false
+		for dy in range(-6, 7):
+			for dx in range(-6, 7):
+				var xx := clampi(cx + dx, 0, w - 1)
+				var yy := clampi(cy + dy, 0, int(d.h) - 1)
+				if cells[yy * w + xx] == i + 1:
+					near = true
+		if not near:
+			off += 1
+	check(off <= 3, "sea names sit in their sea (%d off)" % off)
+	for e in d.deco:
+		check(ids.has(e[3]), "decoration %s in a known sea id %s" % [e[0], e[3]])
+		check(ResourceLoader.exists("res://assets/art/icons/sea_%s_0.png" % e[0]), "decoration sprite sea_%s" % e[0])
+	for b in d.borders:
+		check(ids.has(b[0]) and ids.has(b[1]) and b[2].size() >= 4, "sea border %s-%s" % [b[0], b[1]])
 
 
 func test_events_shape() -> void:
@@ -3388,8 +3442,36 @@ func test_tech_queue() -> void:
 	var done: Array = tr.queue_tick(g, n)
 	check(n.techs.has(t.id) and n.techs.has(pre), "plan researched in order")
 	check(done.size() >= 2 and not n.tech_queue.has(t.id), "researched techs leave the plan")
-	# removing a planned prerequisite drops what builds on it; saves keep the plan
+	# a tech parked for its year must not block an affordable one behind it
 	n.tech_queue.clear()
+	g.month = (1475 - 1444) * 12  # 1506 techs are open (from 1471) but still before their window (1486)
+	var early: String = ""
+	var open_t: String = ""
+	var ecat := ""
+	for d in tr.defs:
+		if Tech.is_special(d) or n.techs.has(d.id) or tr.years_ahead(g, d.id) == 0 or g.year() < int(d.year) - tr.early_years - tr.ahead_years:
+			continue
+		for r in d.get("req", []):
+			n.techs[r] = 0  # grant the prerequisites so the tech is open but still ahead of its window
+		if tr.block_reason(g, "FRA", d.id) != "":
+			continue
+		early = d.id
+		ecat = d.cat
+		break
+	for d in tr.defs:
+		if early != "" and d.cat == ecat and not Tech.is_special(d) and not n.techs.has(d.id) and tr.years_ahead(g, d.id) == 0 \
+				and tr.block_reason(g, "FRA", d.id) == "":
+			open_t = d.id
+			break
+	check(early != "" and open_t != "", "found a parked and an open tech of one category")
+	if early != "" and open_t != "":
+		n.tech_queue.append(early)
+		n.tech_queue.append(open_t)
+		n.set(ecat, 900.0)
+		tr.queue_tick(g, n)
+		check(n.techs.has(open_t) and not n.techs.has(early), "affordable tech behind a year-parked one is researched")
+	n.tech_queue.clear()
+	# removing a planned prerequisite drops what builds on it; saves keep the plan
 	var u: Dictionary = {}
 	for d in tr.defs:
 		if not Tech.is_special(d) and d.cat == "dip" and not n.techs.has(d.id) and d.get("req", []).any(func(r): return not n.techs.has(r)):
@@ -4863,6 +4945,38 @@ func test_council() -> void:
 	check(C.member(n, "army").is_empty(), "dismiss")
 
 
+## Council candidates roll different personal traits, so two people on one seat give different bonuses.
+func test_council_traits() -> void:
+	var g = new_game("FRA", 5)
+	var C = g.Council
+	var n = g.nations.FRA
+	for s in C.seats(g):
+		check(s.get("traits", []).size() >= 3, "seat %s has at least three traits" % s.id)
+		var seen := {}
+		for c in C.pool(g, n, s.id):
+			check(not C.trait_def(g, s.id, str(c.get("trait", ""))).is_empty(), "candidate for %s has a trait" % s.id)
+			seen[c.trait] = true
+		check(seen.size() == C.pool(g, n, s.id).size(), "candidates of %s have distinct traits" % s.id)
+		var a: Dictionary = C.seat_effects(g, s.id, 2, str(s.traits[0].id))
+		var b: Dictionary = C.seat_effects(g, s.id, 2, str(s.traits[1].id))
+		check(a != b, "traits of %s give different effects" % s.id)
+	# trait effects grow with the level, and the seat's base effect stays
+	var lo: Dictionary = C.seat_effects(g, "coin", 1, "steuereintreiber")
+	var hi: Dictionary = C.seat_effects(g, "coin", 5, "steuereintreiber")
+	check(hi.tax > lo.tax and lo.tax > C.seat_effects(g, "coin", 1).tax, "trait adds to the seat bonus and scales with level")
+	check(C.seat_effects(g, "diplo", 1, "unterhaendler").get("diplo_cap", 0.0) == 1.0, "fixed trait effects do not scale")
+	# hire keeps the trait; save/load keeps it; unknown traits are dropped
+	n.gold = 2000.0
+	var tr: String = str(C.pool(g, n, "coin")[0].trait)
+	check(C.hire(g, "FRA", "coin", 0) == "", "hire coin councillor")
+	check(C.trait_of(n, "coin") == tr, "hired councillor keeps the trait")
+	var g2 = new_game("FRA", 5)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(C.trait_of(g2.nations.FRA, "coin") == tr, "trait survives save/load")
+	var d: Dictionary = {"council": {"coin": {"name": "X", "skill": 2, "trait": "nope"}}}
+	C.load_save(g, n, d)
+	check(C.trait_of(n, "coin") == "", "unknown trait from an old save is dropped")
+
 ## Government types: republics elect every term (player via event popup), theocracies at death, monarchies inherit.
 func test_elections() -> void:
 	var g = new_game("VEN", 3)
@@ -5039,3 +5153,89 @@ func test_perf_caches() -> void:
 		if g.rivaled_by(tag) != scan:
 			ok2 = false
 	check(ok2, "rivaled_by matches a scan of all rivals")
+
+
+## Start of the game: the player chooses an ally among historical partners and neighbours (StartAlly).
+func test_start_alliance() -> void:
+	var g = Game.new()
+	g.setup(data, 7, "HUN")
+	var SA = g.StartAlly
+	check(g.pending_events.has(SA.EVENT_ID), "new game opens with the alliance choice")
+	var e: Dictionary = g.event_by_id[SA.EVENT_ID]
+	check(e.kind == "alliance" and e.options.size() >= 3, "alliance event has several options (%d)" % e.options.size())
+	var hist := 0
+	var ahist := 0
+	for c in SA.candidates(g, "HUN"):
+		check(not g.nations.HUN.allies.has(c.tag) and c.tag != "HUN", "candidate %s is not allied yet" % c.tag)
+		if c.hist:
+			hist += 1
+		else:
+			ahist += 1
+	check(hist >= 1 and ahist >= 1, "historical and ahistorical partners offered (%d/%d)" % [hist, ahist])
+	var first: Dictionary = SA.candidates(g, "HUN")[0]
+	g.choose_event_option("HUN", SA.EVENT_ID, 0)
+	check(g.nations.HUN.allies.has(first.tag), "choosing a partner forms the alliance")
+	check(not g.pending_events.has(SA.EVENT_ID), "choice is answered")
+	# the last option keeps the realm alone and pays diplomacy
+	var g2 = Game.new()
+	g2.setup(data, 7, "FRA")
+	var allies_before: int = g2.nations.FRA.allies.size()
+	var dip: float = g2.nations.FRA.dip
+	var opts: Array = g2.event_by_id[SA.EVENT_ID].options
+	g2.choose_event_option("FRA", SA.EVENT_ID, opts.size() - 1)
+	check(g2.nations.FRA.allies.size() == allies_before and g2.nations.FRA.dip > dip, "staying alone gives diplomacy")
+	# an open choice survives save/load
+	var g3 = Game.new()
+	g3.setup(data, 7, "POL")
+	var d: Dictionary = JSON.parse_string(JSON.stringify(g3.to_dict()))
+	var g4 = Game.new()
+	g4.setup(data, 9, "POL")
+	g4.from_dict(d)
+	check(g4.pending_events.has(SA.EVENT_ID) and g4.event_by_id.has(SA.EVENT_ID), "open alliance choice is rebuilt after loading")
+	var g5 = Game.new()
+	g5.setup(data, 7, "")
+	check(not g5.pending_events.has(SA.EVENT_ID), "AI-only games get no choice")
+
+
+## Pick-your-poison and disaster events: timed modifiers, warning -> flag -> disaster -> flag cleared.
+func test_hardship_events() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	var by_id := {}
+	var pp := 0
+	for e in data.events:
+		by_id[e.id] = e
+		if e.id.begins_with("pp_"):
+			pp += 1
+			check(e.get("kind", "") == "poison", "%s is a poison event" % e.id)
+	check(pp >= 15, "pick-your-poison events present (%d)" % pp)
+	var tax0: float = g.mod(n, "tax")
+	g.apply_effects("FRA", {"tmods": {"name": "t1", "months": 24, "mods": {"tax": -0.1}}})
+	check(is_equal_approx(g.mod(n, "tax"), tax0 - 0.1), "timed modifier applies")
+	g.apply_effects("FRA", {"tmods": {"name": "t1", "months": 24, "mods": {"tax": -0.1}}})
+	check(is_equal_approx(g.mod(n, "tax"), tax0 - 0.1) and n.tmods.size() == 1, "same name renews, never stacks")
+	var d: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	var g2 = new_game("FRA")
+	g2.from_dict(d)
+	check(is_equal_approx(g2.mod(g2.nations.FRA, "tax"), tax0 - 0.1), "timed modifier survives save/load")
+	g.month += 25
+	g._expire_tmods(n)
+	check(is_equal_approx(g.mod(n, "tax"), tax0) and n.tmods.is_empty(), "timed modifier runs out")
+	var chains := 0
+	for id in by_id:
+		if not id.begins_with("dz_") or not id.ends_with("_warn"):
+			continue
+		chains += 1
+		var x: String = id.substr(3, id.length() - 8)
+		check(by_id.has("dz_" + x) and by_id["dz_" + x].trigger.get("flag", "") == "dz_" + x, "%s has its disaster" % id)
+		var w: Dictionary = by_id[id]
+		check(not w.options[0].effects.has("flag") and w.options[2].effects.get("flag", "") == "dz_" + x, "%s: first answers prevent, last one risks it" % id)
+		for o in by_id["dz_" + x].options:
+			check(o.effects.get("clear_flag", "") == "dz_" + x, "dz_%s: every answer ends the disaster" % x)
+	check(chains >= 6, "disaster chains present (%d)" % chains)
+	g.choose_event_option("FRA", "dz_famine_warn", 2)
+	check(n.flags.has("dz_famine") and g.check_conditions("FRA", by_id["dz_famine"].trigger), "ignoring the warning arms the disaster")
+	check(not g.check_conditions("FRA", by_id["dz_famine_warn"].trigger), "no second warning while it is armed")
+	g.choose_event_option("FRA", "dz_famine", 0)
+	check(not n.flags.has("dz_famine"), "the disaster clears its flag")
+
