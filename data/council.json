@@ -39,7 +39,50 @@
      "default": 2,
      "fmt": "pts"
     }
-   }
+   },
+   "traits": [
+    {
+     "id": "stratege",
+     "name": "Stratege",
+     "effects": {
+      "siege": 0.1,
+      "command": 0.05
+     },
+     "fixed": {},
+     "text": "Plant Feldzüge und Belagerungen bis ins Detail."
+    },
+    {
+     "id": "draufgaenger",
+     "name": "Draufgänger",
+     "effects": {
+      "combat": 0.04,
+      "manpower": -0.04
+     },
+     "fixed": {},
+     "text": "Greift immer an, auch wenn es Männer kostet."
+    },
+    {
+     "id": "ausbilder",
+     "name": "Ausbilder",
+     "effects": {
+      "army_power_regen": 0.12,
+      "army_power": 0.03
+     },
+     "fixed": {},
+     "text": "Schleift die Truppen, bis jeder Handgriff sitzt."
+    },
+    {
+     "id": "feldherr",
+     "name": "Alter Feldherr",
+     "effects": {
+      "defense": 0.06
+     },
+     "fixed": {
+      "general_start": 1
+     },
+     "text": "Bringt eigene Offiziere mit an den Hof."
+    }
+   ]
   },
   {
    "id": "diplo",
@@ -84,7 +127,46 @@
      "default": 2,
      "fmt": "pts"
     }
-   }
+   },
+   "traits": [
+    {
+     "id": "unterhaendler",
+     "name": "Unterhändler",
+     "effects": {},
+     "fixed": {
+      "diplo_cap": 1
+     },
+     "text": "Kennt an jedem Hof jemanden."
+    },
+    {
+     "id": "hoefling",
+     "name": "Höfling",
+     "effects": {
+      "prestige": 0.4
+     },
+     "fixed": {},
+     "text": "Glänzt auf Festen und Krönungen."
+    },
+    {
+     "id": "schlichter",
+     "name": "Schlichter",
+     "effects": {
+      "ae_gen": -0.08
+     },
+     "fixed": {},
+     "text": "Findet für jede Eroberung eine gute Begründung."
+    },
+    {
+     "id": "intrigant",
+     "name": "Intrigant",
+     "effects": {
+      "ae_decay": 0.1,
+      "unrest": 0.2
+     },
+     "fixed": {},
+     "text": "Spinnt Fäden in alle Richtungen, nicht nur nach außen."
+    }
+   ]
   },
   {
    "id": "trade",
@@ -127,7 +209,47 @@
      "default": 2,
      "fmt": "gold"
     }
-   }
+   },
+   "traits": [
+    {
+     "id": "kaufmann",
+     "name": "Großkaufmann",
+     "effects": {},
+     "fixed": {
+      "merchants": 1
+     },
+     "text": "Bringt sein eigenes Handelshaus mit."
+    },
+    {
+     "id": "zollmeister",
+     "name": "Zollmeister",
+     "effects": {
+      "tax": 0.03
+     },
+     "fixed": {},
+     "text": "Kein Wagen passiert die Grenze ohne Abgabe."
+    },
+    {
+     "id": "seefahrer",
+     "name": "Seefahrer",
+     "effects": {
+      "trade": 0.03,
+      "naval": 0.02
+     },
+     "fixed": {},
+     "text": "Kennt die Seewege und ihre Gefahren."
+    },
+    {
+     "id": "monopolist",
+     "name": "Monopolist",
+     "effects": {
+      "production": 0.05,
+      "unrest": 0.3
+     },
+     "fixed": {},
+     "text": "Kauft ganze Ernten auf, sehr zum Ärger der Bauern."
+    }
+   ]
   },
   {
    "id": "construction",
@@ -161,7 +283,46 @@
      "default": 2,
      "fmt": "gold"
     }
-   }
+   },
+   "traits": [
+    {
+     "id": "festungsbauer",
+     "name": "Festungsbauer",
+     "effects": {
+      "defense": 0.08
+     },
+     "fixed": {},
+     "text": "Baut Mauern, an denen Heere zerschellen."
+    },
+    {
+     "id": "sparsam",
+     "name": "Sparsamer Planer",
+     "effects": {
+      "build_cost": -0.04
+     },
+     "fixed": {},
+     "text": "Kein Stein zu viel, kein Taler verschwendet."
+    },
+    {
+     "id": "prachtbauer",
+     "name": "Prachtbaumeister",
+     "effects": {
+      "prestige": 0.5,
+      "build_cost": 0.02
+     },
+     "fixed": {},
+     "text": "Baut für die Ewigkeit, und das kostet."
+    },
+    {
+     "id": "strassenbauer",
+     "name": "Landvermesser",
+     "effects": {
+      "coring": -0.1
+     },
+     "fixed": {},
+     "text": "Vermisst neues Land und bindet es mit Straßen an."
+    }
+   ]
   },
   {
    "id": "coin",
@@ -213,7 +374,47 @@
      "default": 2,
      "fmt": "gold"
     }
-   }
+   },
+   "traits": [
+    {
+     "id": "steuereintreiber",
+     "name": "Steuereintreiber",
+     "effects": {
+      "tax": 0.05,
+      "unrest": 0.3
+     },
+     "fixed": {},
+     "text": "Holt jeden Pfennig, auch gegen Widerstand."
+    },
+    {
+     "id": "bankier",
+     "name": "Bankier",
+     "effects": {
+      "income": 0.02
+     },
+     "fixed": {},
+     "text": "Hat Kredit bei allen großen Häusern."
+    },
+    {
+     "id": "sparfuchs",
+     "name": "Sparfuchs",
+     "effects": {
+      "maintenance": -0.05
+     },
+     "fixed": {},
+     "text": "Streicht jeden unnötigen Sold."
+    },
+    {
+     "id": "muenzmeister",
+     "name": "Münzmeister",
+     "effects": {
+      "production": 0.03,
+      "trade": 0.02
+     },
+     "fixed": {},
+     "text": "Gutes Geld macht gute Märkte."
+    }
+   ]
   },
   {
    "id": "navy",
@@ -259,7 +460,47 @@
      "default": 2,
      "fmt": "gold"
     }
-   }
+   },
+   "traits": [
+    {
+     "id": "entdecker",
+     "name": "Entdecker",
+     "effects": {
+      "colony_cost": -0.1,
+      "col_exhaust_decay": 0.08
+     },
+     "fixed": {},
+     "text": "Will wissen, was hinter dem Horizont liegt."
+    },
+    {
+     "id": "kaperer",
+     "name": "Kaperfahrer",
+     "effects": {
+      "naval": 0.05,
+      "ae_gen": 0.03
+     },
+     "fixed": {},
+     "text": "Kämpft hart und nicht immer nach den Regeln."
+    },
+    {
+     "id": "werftmeister",
+     "name": "Werftmeister",
+     "effects": {
+      "ship_cost": -0.08
+     },
+     "fixed": {},
+     "text": "Hat die Werften im Griff."
+    },
+    {
+     "id": "hafenkapitaen",
+     "name": "Hafenkapitän",
+     "effects": {
+      "trade": 0.03
+     },
+     "fixed": {},
+     "text": "Hält die Häfen sicher und voll."
+    }
+   ]
   },
   {
    "id": "army",
@@ -315,7 +556,47 @@
      "default": 0,
      "fmt": "bool"
     }
-   }
+   },
+   "traits": [
+    {
+     "id": "werber",
+     "name": "Werber",
+     "effects": {
+      "manpower": 0.06
+     },
+     "fixed": {},
+     "text": "Findet in jedem Dorf noch Rekruten."
+    },
+    {
+     "id": "kommandant",
+     "name": "Festungskommandant",
+     "effects": {
+      "defense": 0.07
+     },
+     "fixed": {},
+     "text": "Hält das eigene Land, egal was kommt."
+    },
+    {
+     "id": "quartiermeister",
+     "name": "Quartiermeister",
+     "effects": {
+      "maintenance": -0.04,
+      "army_power_regen": 0.05
+     },
+     "fixed": {},
+     "text": "Volle Magazine, satte Soldaten."
+    },
+    {
+     "id": "soeldnerfuehrer",
+     "name": "Söldnerführer",
+     "effects": {
+      "recruit_cost": -0.08,
+      "unrest": 0.2
+     },
+     "fixed": {},
+     "text": "Billige Männer, aber nicht die frömmsten."
+    }
+   ]
   },
   {
    "id": "development",
@@ -359,7 +640,46 @@
      "default": 0,
      "fmt": "pct_cap"
     }
-   }
+   },
+   "traits": [
+    {
+     "id": "siedlungsplaner",
+     "name": "Siedlungsplaner",
+     "effects": {
+      "develop_cost": -0.04
+     },
+     "fixed": {},
+     "text": "Weiß, wo das nächste Dorf entstehen muss."
+    },
+    {
+     "id": "agrarreformer",
+     "name": "Agrarreformer",
+     "effects": {
+      "production": 0.04
+     },
+     "fixed": {},
+     "text": "Neue Fruchtfolgen, mehr Ernte."
+    },
+    {
+     "id": "stadtvater",
+     "name": "Stadtvater",
+     "effects": {
+      "unrest": -0.4
+     },
+     "fixed": {},
+     "text": "Hört den Leuten zu, bevor sie zu den Waffen greifen."
+    },
+    {
+     "id": "kolonisator",
+     "name": "Kolonisator",
+     "effects": {
+      "colony_cost": -0.08,
+      "coring": -0.05
+     },
+     "fixed": {},
+     "text": "Macht aus fernem Land eigenes Land."
+    }
+   ]
   },
   {
    "id": "education",
@@ -402,7 +722,48 @@
      "default": 2,
      "fmt": "pct_cap"
     }
-   }
+   },
+   "traits": [
+    {
+     "id": "gelehrter",
+     "name": "Gelehrter",
+     "effects": {
+      "tech_cost": -0.03
+     },
+     "fixed": {},
+     "text": "Liest alles, was aus Italien kommt."
+    },
+    {
+     "id": "theologe",
+     "name": "Theologe",
+     "effects": {
+      "conversion": 0.15,
+      "religious_unrest": -0.1
+     },
+     "fixed": {},
+     "text": "Predigt in jeder Kirche des Landes."
+    },
+    {
+     "id": "humanist",
+     "name": "Humanist",
+     "effects": {
+      "prestige": 0.3,
+      "tech_cost": -0.01
+     },
+     "fixed": {},
+     "text": "Schreibt Briefe an alle Gelehrten Europas."
+    },
+    {
+     "id": "rechenmeister",
+     "name": "Rechenmeister",
+     "effects": {
+      "income": 0.01,
+      "develop_cost": -0.02
+     },
+     "fixed": {},
+     "text": "Bringt Beamten das Rechnen bei."
+    }
+   ]
   }
  ],
  "mode_labels": {
@@ -422,6 +783,8 @@
  "promote_power": 40,
  "experience_years": 6,
  "pool_size": 3,
+ "trait_base": 0.6,
+ "trait_step": 0.2,
  "pool_months": 12,
  "family_cost": {
   "monarchie": 1.0,

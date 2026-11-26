@@ -49,6 +49,66 @@ SEATS = [
      ["Erziehung", "Unterrichtet den Erben oder Nachfolger einmal im Jahr in der gewählten Fähigkeit, sobald die Punkte die gewählte Schwelle erreichen."]),
 ]
 
+# Personal traits of candidates: every candidate of a seat rolls one trait, so two councillors on the same seat
+# give different bonuses (and some a drawback). seat -> [(id, name, scaled effects, fixed effects, text)].
+# Scaled effects grow with the skill level: x (0.6 + 0.2 * level), i.e. x0.8 at level 1 and x1.6 at level 5.
+TRAITS = {
+    "war": [
+        ("stratege", "Stratege", {"siege": 0.10, "command": 0.05}, {}, "Plant Feldzüge und Belagerungen bis ins Detail."),
+        ("draufgaenger", "Draufgänger", {"combat": 0.04, "manpower": -0.04}, {}, "Greift immer an, auch wenn es Männer kostet."),
+        ("ausbilder", "Ausbilder", {"army_power_regen": 0.12, "army_power": 0.03}, {}, "Schleift die Truppen, bis jeder Handgriff sitzt."),
+        ("feldherr", "Alter Feldherr", {"defense": 0.06}, {"general_start": 1}, "Bringt eigene Offiziere mit an den Hof."),
+    ],
+    "diplo": [
+        ("unterhaendler", "Unterhändler", {}, {"diplo_cap": 1}, "Kennt an jedem Hof jemanden."),
+        ("hoefling", "Höfling", {"prestige": 0.4}, {}, "Glänzt auf Festen und Krönungen."),
+        ("schlichter", "Schlichter", {"ae_gen": -0.08}, {}, "Findet für jede Eroberung eine gute Begründung."),
+        ("intrigant", "Intrigant", {"ae_decay": 0.10, "unrest": 0.2}, {}, "Spinnt Fäden in alle Richtungen, nicht nur nach außen."),
+    ],
+    "trade": [
+        ("kaufmann", "Großkaufmann", {}, {"merchants": 1}, "Bringt sein eigenes Handelshaus mit."),
+        ("zollmeister", "Zollmeister", {"tax": 0.03}, {}, "Kein Wagen passiert die Grenze ohne Abgabe."),
+        ("seefahrer", "Seefahrer", {"trade": 0.03, "naval": 0.02}, {}, "Kennt die Seewege und ihre Gefahren."),
+        ("monopolist", "Monopolist", {"production": 0.05, "unrest": 0.3}, {}, "Kauft ganze Ernten auf, sehr zum Ärger der Bauern."),
+    ],
+    "construction": [
+        ("festungsbauer", "Festungsbauer", {"defense": 0.08}, {}, "Baut Mauern, an denen Heere zerschellen."),
+        ("sparsam", "Sparsamer Planer", {"build_cost": -0.04}, {}, "Kein Stein zu viel, kein Taler verschwendet."),
+        ("prachtbauer", "Prachtbaumeister", {"prestige": 0.5, "build_cost": 0.02}, {}, "Baut für die Ewigkeit, und das kostet."),
+        ("strassenbauer", "Landvermesser", {"coring": -0.10}, {}, "Vermisst neues Land und bindet es mit Straßen an."),
+    ],
+    "coin": [
+        ("steuereintreiber", "Steuereintreiber", {"tax": 0.05, "unrest": 0.3}, {}, "Holt jeden Pfennig, auch gegen Widerstand."),
+        ("bankier", "Bankier", {"income": 0.02}, {}, "Hat Kredit bei allen großen Häusern."),
+        ("sparfuchs", "Sparfuchs", {"maintenance": -0.05}, {}, "Streicht jeden unnötigen Sold."),
+        ("muenzmeister", "Münzmeister", {"production": 0.03, "trade": 0.02}, {}, "Gutes Geld macht gute Märkte."),
+    ],
+    "navy": [
+        ("entdecker", "Entdecker", {"colony_cost": -0.10, "col_exhaust_decay": 0.08}, {}, "Will wissen, was hinter dem Horizont liegt."),
+        ("kaperer", "Kaperfahrer", {"naval": 0.05, "ae_gen": 0.03}, {}, "Kämpft hart und nicht immer nach den Regeln."),
+        ("werftmeister", "Werftmeister", {"ship_cost": -0.08}, {}, "Hat die Werften im Griff."),
+        ("hafenkapitaen", "Hafenkapitän", {"trade": 0.03}, {}, "Hält die Häfen sicher und voll."),
+    ],
+    "army": [
+        ("werber", "Werber", {"manpower": 0.06}, {}, "Findet in jedem Dorf noch Rekruten."),
+        ("kommandant", "Festungskommandant", {"defense": 0.07}, {}, "Hält das eigene Land, egal was kommt."),
+        ("quartiermeister", "Quartiermeister", {"maintenance": -0.04, "army_power_regen": 0.05}, {}, "Volle Magazine, satte Soldaten."),
+        ("soeldnerfuehrer", "Söldnerführer", {"recruit_cost": -0.08, "unrest": 0.2}, {}, "Billige Männer, aber nicht die frömmsten."),
+    ],
+    "development": [
+        ("siedlungsplaner", "Siedlungsplaner", {"develop_cost": -0.04}, {}, "Weiß, wo das nächste Dorf entstehen muss."),
+        ("agrarreformer", "Agrarreformer", {"production": 0.04}, {}, "Neue Fruchtfolgen, mehr Ernte."),
+        ("stadtvater", "Stadtvater", {"unrest": -0.4}, {}, "Hört den Leuten zu, bevor sie zu den Waffen greifen."),
+        ("kolonisator", "Kolonisator", {"colony_cost": -0.08, "coring": -0.05}, {}, "Macht aus fernem Land eigenes Land."),
+    ],
+    "education": [
+        ("gelehrter", "Gelehrter", {"tech_cost": -0.03}, {}, "Liest alles, was aus Italien kommt."),
+        ("theologe", "Theologe", {"conversion": 0.15, "religious_unrest": -0.10}, {}, "Predigt in jeder Kirche des Landes."),
+        ("humanist", "Humanist", {"prestige": 0.3, "tech_cost": -0.01}, {}, "Schreibt Briefe an alle Gelehrten Europas."),
+        ("rechenmeister", "Rechenmeister", {"income": 0.01, "develop_cost": -0.02}, {}, "Bringt Beamten das Rechnen bei."),
+    ],
+}
+
 # Automation options: key -> [label, [values], default index, value format]
 OPTIONS = {
     "war": {"reserve": ["Militär-Reserve", [0, 50, 100, 200, 400], 2, "pts"]},
@@ -104,7 +164,8 @@ cfg = {
     "council_name": COUNCIL_NAME,
     "seats": [{"id": s[0], "icon": s[1], "power": s[2], "per_level": s[3],
                "names": dict(zip(FAMILIES, s[4])), "text": s[5], "auto": {"title": s[6][0], "text": s[6][1]},
-               "options": {k: {"label": v[0], "values": v[1], "default": v[2], "fmt": v[3]} for k, v in OPTIONS[s[0]].items()}}
+               "options": {k: {"label": v[0], "values": v[1], "default": v[2], "fmt": v[3]} for k, v in OPTIONS[s[0]].items()},
+               "traits": [{"id": t[0], "name": t[1], "effects": t[2], "fixed": t[3], "text": t[4]} for t in TRAITS[s[0]]]}
               for s in SEATS],
     "mode_labels": MODE_LABELS,
     "max_skill": 5,
@@ -113,6 +174,8 @@ cfg = {
     "promote_power": 40,      # power per current level to promote
     "experience_years": 6,    # years of service at one level before a free level-up
     "pool_size": 3,
+    "trait_base": 0.6,        # trait effects x (trait_base + trait_step * level)
+    "trait_step": 0.2,
     "pool_months": 12,        # candidates are replaced after this many months
     "family_cost": {"monarchie": 1.0, "republik": 0.8, "kirche": 0.9, "stamm": 0.75},
     "ai_seats_per_100_dev": 1.0,

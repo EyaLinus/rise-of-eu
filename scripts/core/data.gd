@@ -35,4 +35,5 @@ static func load_all() -> Dictionary:
 		"seas": load_json("res://data/seas.json"),
 		"units": load_json("res://data/units.json"),
 		"council": load_json("res://data/council.json"),
+		"start_allies": load_json("res://data/start_allies.json"),
 	}
