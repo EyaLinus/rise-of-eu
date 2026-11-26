@@ -73,6 +73,7 @@ static func setup(g, data: Dictionary) -> void:
 		for a in g.armies.duplicate():
 			if a.owner == NATIVE:
 				g.armies.erase(a)
+				g.armies_dirty()
 	for p in g.provinces:
 		if p.owner == NATIVE:
 			p.natives = float(p.dev) * float(g.bal.natives_per_dev) + float(g.rng.randi_range(0, 2))

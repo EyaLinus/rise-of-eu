@@ -17,7 +17,9 @@ func think(g, n) -> void:
 	g._pmark("ai.gold")
 	var slot: int = (g.month + n.capital) % 6
 	if slot == 0:
+		g.nir_memo_begin()  # diplomacy asks for the neighbourhood up to 6 times and changes no borders
 		_diplomacy(g, n)
+		g.nir_memo_end()
 	elif slot == 3 and not g.is_at_war(n.tag):
 		_consider_war(g, n)
 	if (g.month + n.capital) % 3 == 0:
@@ -618,12 +620,11 @@ func control_armies(g, tag: String) -> void:
 	var enemies: Array = g.enemies_of(tag)
 	var mine: Array = []
 	var at_cap := 0  # all own armies in the capital (merge_armies joins them, auto or not)
-	for a in g.armies:
-		if a.owner == tag:
-			if a.auto:
-				mine.append(a)
-			if a.pid == n.capital:
-				at_cap += 1
+	for a in g.own_armies(tag):
+		if a.auto:
+			mine.append(a)
+		if a.pid == n.capital:
+			at_cap += 1
 	if mine.is_empty():
 		return
 	if enemies.is_empty():

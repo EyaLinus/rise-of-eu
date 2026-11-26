@@ -54,6 +54,7 @@ static func setup(g, data: Dictionary) -> void:
 		for a in g.armies.duplicate():
 			if a.owner == tag:
 				g.armies.erase(a)
+				g.armies_dirty()
 		var cap = g.provinces[n.capital]
 		if cap.owner != tag and g.nations[cap.owner].capital != cap.id:
 			cap.fort = 0

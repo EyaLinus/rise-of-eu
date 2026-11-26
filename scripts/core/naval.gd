@@ -490,6 +490,7 @@ static func transport(g, a, to: int) -> String:
 	var months := transport_months(g, a.pid, to, route)
 	g.nations[a.owner].gold -= transport_cost(g, a)
 	g.armies.erase(a)
+	g.armies_dirty()
 	a.target = -1
 	a.path = []
 	a.move = 0.0
@@ -541,6 +542,7 @@ static func voyages_tick(g) -> void:
 		a.landing = at == int(v.to)
 		a.power = maxf(0.0, a.power * (1.0 - float(g.bal.transport_power_loss)))
 		g.armies.append(a)
+		g.armies_dirty()
 		if a.owner == g.player:
 			g.log_msg("⚓ Deine Armee landet in %s." % g.provinces[at].name, [a.owner])
 

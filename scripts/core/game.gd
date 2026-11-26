@@ -573,19 +573,43 @@ func force_room(tag: String) -> int:
 	return maxi(0, force_cap(tag) - regs_counted(tag))
 
 
+## Armies of `tag` in `armies` order (a copy: callers may sort it).
 func armies_of(tag: String) -> Array:
-	var r := []
-	for a in armies:
-		if a.owner == tag:
-			r.append(a)
-	return r
+	return _army_index().get(tag, []).duplicate()
+
+
+## Owner -> its armies, in `armies` order. Rebuilt after armies_dirty() (every add, removal or owner change
+## must call it) or when the list size changed (tests that append directly).
+var _army_idx = null
+var _army_idx_n := -1
+
+
+func _army_index() -> Dictionary:
+	if _army_idx == null or _army_idx_n != armies.size():
+		var idx := {}
+		for a in armies:
+			if idx.has(a.owner):
+				idx[a.owner].append(a)
+			else:
+				idx[a.owner] = [a]
+		_army_idx = idx
+		_army_idx_n = armies.size()
+	return _army_idx
+
+
+func armies_dirty() -> void:
+	_army_idx = null
+
+
+## Read-only view of armies_of (no copy) for hot loops that neither sort nor change armies while iterating.
+func own_armies(tag: String) -> Array:
+	return _army_index().get(tag, [])
 
 
 func army_regs(tag: String) -> float:
 	var s := 0.0
-	for a in armies:
-		if a.owner == tag:
-			s += a.regs
+	for a in own_armies(tag):
+		s += a.regs
 	for v in voyages:  # armies at sea still count against the force limit
 		if v.army.owner == tag:
 			s += v.army.regs
@@ -702,7 +726,28 @@ func neighbors_of(tag: String) -> Array:
 
 
 ## Nations whose territory is within `hops` provinces of tag's territory.
+## (Inside nir_memo_begin/end the answers are memoised: only for code that changes no borders meanwhile.)
 func nations_in_range(tag: String, hops: int) -> Array:
+	if _nir_memo != null:
+		var key := "%s:%d" % [tag, hops]
+		if not _nir_memo.has(key):
+			_nir_memo[key] = _nations_in_range(tag, hops)
+		return _nir_memo[key]
+	return _nations_in_range(tag, hops)
+
+
+var _nir_memo = null
+
+
+func nir_memo_begin() -> void:
+	_nir_memo = {}
+
+
+func nir_memo_end() -> void:
+	_nir_memo = null
+
+
+func _nations_in_range(tag: String, hops: int) -> Array:
 	var seen := {}
 	var frontier: Array = provinces_of(tag).duplicate()
 	for pid in frontier:
@@ -967,7 +1012,9 @@ func _t_month() -> void:
 		_steps.append(_yearly_prices)
 		for tag in order:
 			_steps.append(_yearly_merchants.bind(tag))
-		_steps += [_yearly_systems, _yearly_systems2, _yearly_diplo]
+		_steps.append(_yearly_systems)
+		_steps += _yearly_systems2_steps()
+		_steps.append(_yearly_diplo)
 	_steps.append(_t_end)
 
 
@@ -1090,6 +1137,7 @@ func _economy(n: Nation) -> void:
 			arms[0].full = maxf(arms[0].regs, arms[0].full - 1.0)
 			if arms[0].regs < 0.5:
 				armies.erase(arms[0])
+				armies_dirty()
 			if n.tag == player:
 				log_msg("💸 Bankrott! Truppen desertieren. Ein Kredit (💰 Wirtschaft) kann die Kasse retten.")
 		if n.gold < -100.0:
@@ -1272,15 +1320,53 @@ func _yearly_systems() -> void:
 
 
 func _yearly_systems2() -> void:
+	for s in _yearly_systems2_steps():
+		s.call()
+
+
+## _yearly_systems2 as separate steps (each world system alone was up to 15 ms; together 40-60 ms in one frame).
+func _yearly_systems2_steps() -> Array:
+	return [_y_religion, _y_colonial, _y_subjects, _y_tribes, _y_trade, _y_formables, _y_subjects_ai, _y_subjects_bonus]
+
+
+func _y_religion() -> void:
 	Religion.yearly(self)
+	_pmark("y.religion")
+
+
+func _y_colonial() -> void:
 	Colonial.yearly(self)
+	_pmark("y.colonial")
+
+
+func _y_subjects() -> void:
 	Subjects.yearly(self)
+	_pmark("y.subjects")
+
+
+func _y_tribes() -> void:
 	Tribes.ai_yearly(self)
+	_pmark("y.tribes")
+
+
+func _y_trade() -> void:
 	Trade.yearly(self)
+	_pmark("y.trade")
+
+
+func _y_formables() -> void:
 	Formables.ai_yearly(self)
+	_pmark("y.formables")
+
+
+func _y_subjects_ai() -> void:
 	Subjects.ai_yearly(self)
+	_pmark("y.subjects_ai")
+
+
+func _y_subjects_bonus() -> void:
 	Subjects.refresh_bonus(self)
-	_pmark("y.systems2")
+	_pmark("y.subjects_bonus")
 
 
 func _yearly_diplo() -> void:
@@ -1437,6 +1523,7 @@ func spawn_army(tag: String, pid: int, regs: float) -> Army:
 	if tag == player and nations[tag].army_stance != "":
 		a.stance = nations[tag].army_stance
 	armies.append(a)
+	armies_dirty()
 	return a
 
 
@@ -1541,6 +1628,7 @@ func _battle(war: War, att: Array, def: Array, pid: int) -> void:
 func _retreat(a: Army) -> void:
 	if a.regs < 0.5:
 		armies.erase(a)
+		armies_dirty()
 		return
 	var best := -1
 	for nb in provinces[a.pid].adj:
@@ -1558,6 +1646,7 @@ func _retreat(a: Army) -> void:
 	a.move = 0.0
 	if best < 0:
 		armies.erase(a)
+		armies_dirty()
 		log_msg("💀 Eine Armee von %s wurde aufgerieben." % nations[a.owner].name, [a.owner])
 		return
 	a.pid = best
@@ -2113,6 +2202,7 @@ func annex_vassal(lord: String, tag: String) -> String:
 	for a in armies:
 		if a.owner == tag:
 			a.owner = lord
+			armies_dirty()
 			a.auto = true
 	log_msg("📜 %s wird diplomatisch von %s annektiert." % [v.name, l.name], [lord, tag])
 	stats.annexed = stats.get("annexed", 0) + 1
@@ -2132,6 +2222,7 @@ func _check_alive(tag: String) -> void:
 	for a in armies.duplicate():
 		if a.owner == tag:
 			armies.erase(a)
+			armies_dirty()
 	for t in n.marriages:
 		nations[t].marriages.erase(tag)
 	n.marriages.clear()
@@ -2614,6 +2705,7 @@ func disband(army: Army, count: float) -> void:
 	army.full = maxf(army.regs, army.full - count)
 	if army.regs < 0.5:
 		armies.erase(army)
+		armies_dirty()
 
 
 func merge_armies(tag: String, pid: int) -> void:
@@ -2631,6 +2723,7 @@ func merge_armies(tag: String, pid: int) -> void:
 		here[0].full += here[i].full
 		here[0].general = maxi(here[0].general, here[i].general)
 		armies.erase(here[i])
+		armies_dirty()
 
 
 func split_army(army: Army) -> Army:
@@ -3190,6 +3283,7 @@ func _inherit(heir: String, tag: String) -> void:
 	for a in armies:
 		if a.owner == tag:
 			a.owner = heir
+			armies_dirty()
 			a.auto = heir != player
 	_rebuild_owned()
 	log_msg("👑 %s erbt die Länder von %s!" % [nations[heir].name, nations[tag].name])
@@ -3851,6 +3945,7 @@ func from_dict(d: Dictionary) -> void:
 	armies.clear()
 	for e in d.armies:
 		armies.append(_army_load(e))
+	armies_dirty()
 	voyages.clear()
 	for e in d.get("voyages", []):
 		voyages.append({"army": _army_load(e.army), "from": int(e.from), "to": int(e.to), "left": int(e.left), "total": int(e.total),

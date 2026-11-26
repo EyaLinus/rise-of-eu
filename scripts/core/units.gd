@@ -151,9 +151,8 @@ static func cost_mult(g, tag: String, m: Dictionary) -> float:
 ## Regiments weighted by their cost (upkeep): equals the plain count when all armies use the standard mix.
 static func upkeep_regs(g, tag: String) -> float:
 	var s := 0.0
-	for a in g.armies:
-		if a.owner == tag:
-			s += a.regs * cost_mult(g, tag, a.mix)
+	for a in g.own_armies(tag):
+		s += a.regs * cost_mult(g, tag, a.mix)
 	for v in g.voyages:
 		if v.army.owner == tag:
 			s += v.army.regs * cost_mult(g, tag, v.army.mix)
