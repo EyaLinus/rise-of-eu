@@ -190,6 +190,24 @@ L = [
     ("chichen_itza", "yucatan", "Chichén Itzá", "temple", 1, "", None, 1.0, {}, "Die Pyramide des Kukulcán."),
     ("cahokia", "cahokia", "Monks Mound", "temple", 1, "", None, 1.0, {}, "Der größte Erdhügel Nordamerikas."),
     ("el_morro", "havana", "Castillo del Morro", "fortress", 0, "", ["mil", 6], 1.0, {"naval": 0.02}, "Schützt die Silberflotte in Havanna."),
+    ("coricancha", "cusco", "Coricancha", "temple", 2, "INC", None, 1.0, {"prestige": 0.1}, "Der Sonnentempel von Cusco, die Wände mit Gold verkleidet."),
+    ("sacsayhuaman", "cusco", "Sacsayhuamán", "fortress", 0, "INC", ["mil", 2], 1.2, {}, "Mauern aus tonnenschweren Steinen über der Hauptstadt."),
+    ("machu_picchu", "antisuyu", "Machu Picchu", "palace", 0, "INC", ["adm", 2], 1.0, {}, "Das Landgut Pachacútecs hoch über dem Urubamba."),
+    ("chan_chan", "chan_chan", "Chan Chan", "palace", 1, "", None, 1.0, {}, "Die größte Lehmziegelstadt Amerikas."),
+    # East Asia, Steppe, Malacca (playable since v1.1.2)
+    ("forbidden_city", "beijing", "Verbotene Stadt", "palace", 2, "MNG", None, 1.2, {"prestige": 0.1}, "Der Kaiserpalast mit 980 Gebäuden."),
+    ("great_wall_badaling", "xuanfu", "Große Mauer bei Badaling", "fortress", 1, "MNG", None, 1.2, {"force_limit": 0.5}, "Die Steinmauer vor den Pässen nördlich Pekings."),
+    ("porcelain_tower", "nanjing", "Porzellanpagode von Nanjing", "temple", 1, "", None, 1.0, {}, "Neun Stockwerke aus glasierten Ziegeln."),
+    ("hanlin", "beijing", "Hanlin-Akademie", "school", 1, "", None, 1.0, {}, "Die Gelehrten des Kaisers schreiben Geschichte und prüfen Beamte."),
+    ("kinkakuji", "kyoto", "Goldener Pavillon", "temple", 2, "ASH", None, 1.0, {"prestige": 0.1}, "Der Pavillon Ashikaga Yoshimitsus am Spiegelteich."),
+    ("ginkakuji", "kyoto", "Silberner Pavillon", "temple", 0, "ASH", ["adm", 3], 1.0, {}, "Teehaus und Sandgarten am Fuß der Ostberge."),
+    ("himeji", "harima", "Burg Himeji", "fortress", 0, "", ["mil", 7], 1.0, {}, "Die Burg des Weißen Reihers."),
+    ("erdene_zuu", "karakorum", "Kloster Erdene Zuu", "temple", 0, "MGL", ["adm", 5], 1.0, {}, "Das erste buddhistische Kloster der Mongolei, aus den Steinen Karakorums."),
+    ("karakorum_ruins", "karakorum", "Ruinen von Karakorum", "palace", 1, "MGL", None, 1.0, {"prestige": 0.1}, "Hier stand der Palast der Großkhane."),
+    ("potala", "lhasa", "Potala", "palace", 1, "", None, 1.0, {}, "Burg und Palast über Lhasa."),
+    ("malacca_port", "malacca", "Hafen von Malakka", "port", 2, "MLC", None, 1.0, {"trade": 0.02}, "Hundert Sprachen am Kai der Meerenge."),
+    ("malacca_palace", "malacca", "Istana des Sultans", "palace", 0, "MLC", ["adm", 2], 1.0, {}, "Ein Holzpalast mit siebenstufigem Dach."),
+    ("niani_palace", "niani", "Hof des Mansa", "palace", 1, "MAL", None, 1.0, {"prestige": 0.1}, "Thronsaal mit Kuppel, gebaut von einem Baumeister aus Andalusien."),
 ]
 
 

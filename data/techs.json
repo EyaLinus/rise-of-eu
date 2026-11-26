@@ -2042,6 +2042,360 @@
    "text": "Christliche Verbündete aus Europa bringen Feuerwaffen ins Hochland."
   },
   {
+   "id": "mng_examination",
+   "tag": "MNG",
+   "cat": "adm",
+   "name": "Kaiserliche Beamtenprüfung",
+   "year": 1444,
+   "req": [
+    "adm_kanzlei"
+   ],
+   "effects": {
+    "adm": 1,
+    "coring": -0.1
+   },
+   "text": "Beamte werden nach Prüfungen in den Klassikern ausgewählt, nicht nach Geburt."
+  },
+  {
+   "id": "mng_grand_canal",
+   "tag": "MNG",
+   "cat": "dip",
+   "name": "Der Kaiserkanal",
+   "year": 1450,
+   "req": [
+    "dip_messen"
+   ],
+   "effects": {
+    "trade": 0.08,
+    "production": 0.04
+   },
+   "text": "Reis aus dem Süden fährt auf dem Kanal nach Peking."
+  },
+  {
+   "id": "mng_wall",
+   "tag": "MNG",
+   "cat": "mil",
+   "name": "Die Ming-Mauer",
+   "year": 1474,
+   "req": [
+    "mil_bombarden"
+   ],
+   "effects": {
+    "army_power": 0.1,
+    "manpower": 0.05
+   },
+   "text": "Ziegel, Wachtürme und Kanonen an der Nordgrenze."
+  },
+  {
+   "id": "ash_bushido",
+   "tag": "ASH",
+   "cat": "mil",
+   "name": "Der Weg des Kriegers",
+   "year": 1444,
+   "req": [
+    "mil_lehnsaufgebot"
+   ],
+   "effects": {
+    "combat": 0.05,
+    "army_power": 0.05
+   },
+   "text": "Samurai dienen ihrem Herrn bis in den Tod."
+  },
+  {
+   "id": "ash_sakai",
+   "tag": "ASH",
+   "cat": "dip",
+   "name": "Die Kaufleute von Sakai",
+   "year": 1460,
+   "req": [
+    "dip_messen"
+   ],
+   "effects": {
+    "trade": 0.1
+   },
+   "text": "Eine freie Hafenstadt, regiert von Kaufleuten, mit Gräben statt Mauern."
+  },
+  {
+   "id": "ash_tanegashima",
+   "tag": "ASH",
+   "cat": "mil",
+   "name": "Tanegashima-Musketen",
+   "year": 1543,
+   "req": [
+    "mil_arkebusiere"
+   ],
+   "effects": {
+    "combat": 0.06
+   },
+   "text": "Japanische Schmiede bauen die Feuerrohre der Portugiesen in großer Zahl nach."
+  },
+  {
+   "id": "inc_qhapaq_nan",
+   "tag": "INC",
+   "cat": "adm",
+   "name": "Qhapaq Ñan",
+   "year": 1444,
+   "req": [
+    "adm_kanzlei"
+   ],
+   "effects": {
+    "coring": -0.15,
+    "army_power_regen": 0.1
+   },
+   "text": "Ein Straßennetz von 30 000 Kilometern mit Rasthäusern und Vorratsspeichern."
+  },
+  {
+   "id": "inc_mita",
+   "tag": "INC",
+   "cat": "mil",
+   "name": "Mit'a-Dienst",
+   "year": 1444,
+   "req": [
+    "mil_lehnsaufgebot"
+   ],
+   "effects": {
+    "manpower": 0.15
+   },
+   "text": "Jede Familie schuldet dem Inka Arbeit: auf den Feldern, im Bergwerk oder im Heer."
+  },
+  {
+   "id": "inc_terraces",
+   "tag": "INC",
+   "cat": "adm",
+   "name": "Terrassen und Speicher",
+   "year": 1460,
+   "req": [
+    "adm_kataster"
+   ],
+   "effects": {
+    "production": 0.08,
+    "develop_cost": -0.05
+   },
+   "text": "Andenes an den Berghängen und Qullqas voller Mais und Chuño."
+  },
+  {
+   "id": "lit_statute",
+   "tag": "LIT",
+   "cat": "adm",
+   "name": "Litauisches Statut",
+   "year": 1529,
+   "req": [
+    "adm_kataster"
+   ],
+   "effects": {
+    "unrest": -0.5,
+    "tax": 0.04
+   },
+   "text": "Ein Gesetzbuch für das ganze Großfürstentum."
+  },
+  {
+   "id": "lit_hetman",
+   "tag": "LIT",
+   "cat": "mil",
+   "name": "Die Hetmane",
+   "year": 1450,
+   "req": [
+    "mil_lehnsaufgebot"
+   ],
+   "effects": {
+    "combat": 0.04,
+    "manpower": 0.05
+   },
+   "text": "Feldherren auf Lebenszeit führen das Heer des Großfürstentums."
+  },
+  {
+   "id": "lit_tolerance",
+   "tag": "LIT",
+   "cat": "dip",
+   "name": "Glaubensfreiheit des Adels",
+   "year": 1500,
+   "req": [
+    "dip_staende"
+   ],
+   "effects": {
+    "religious_unrest": -0.5,
+    "dip": 1
+   },
+   "text": "Katholiken, Orthodoxe und Calvinisten sitzen im selben Rat."
+  },
+  {
+   "id": "mgl_tumen",
+   "tag": "MGL",
+   "cat": "mil",
+   "name": "Die sechs Tümen",
+   "year": 1444,
+   "req": [
+    "mil_lehnsaufgebot"
+   ],
+   "effects": {
+    "manpower": 0.1,
+    "army_power_regen": 0.15
+   },
+   "text": "Dayan Khans Ordnung der Stämme in sechs Heere."
+  },
+  {
+   "id": "mgl_horse_archers",
+   "tag": "MGL",
+   "cat": "mil",
+   "name": "Berittene Bogenschützen",
+   "year": 1444,
+   "req": [
+    "mil_pikenhaufen"
+   ],
+   "effects": {
+    "combat": 0.06
+   },
+   "text": "Kein Fußvolk der Welt holt sie ein."
+  },
+  {
+   "id": "mgl_yam",
+   "tag": "MGL",
+   "cat": "adm",
+   "name": "Das Yam-Poststationen",
+   "year": 1460,
+   "req": [
+    "adm_kanzlei"
+   ],
+   "effects": {
+    "coring": -0.1,
+    "trade": 0.05
+   },
+   "text": "Pferdestationen quer durch die Steppe, wie zur Zeit Dschingis Khans."
+  },
+  {
+   "id": "azt_chinampas",
+   "tag": "AZT",
+   "cat": "adm",
+   "name": "Chinampas",
+   "year": 1444,
+   "req": [
+    "adm_kataster"
+   ],
+   "effects": {
+    "production": 0.08,
+    "develop_cost": -0.05
+   },
+   "text": "Schwimmende Gärten auf dem See von Texcoco."
+  },
+  {
+   "id": "azt_eagle_jaguar",
+   "tag": "AZT",
+   "cat": "mil",
+   "name": "Adler- und Jaguarkrieger",
+   "year": 1444,
+   "req": [
+    "mil_lehnsaufgebot"
+   ],
+   "effects": {
+    "combat": 0.06
+   },
+   "text": "Die Kriegerorden Tenochtitlans."
+  },
+  {
+   "id": "azt_pochteca",
+   "tag": "AZT",
+   "cat": "dip",
+   "name": "Die Pochteca",
+   "year": 1460,
+   "req": [
+    "dip_messen"
+   ],
+   "effects": {
+    "trade": 0.1
+   },
+   "text": "Fernhändler, Kundschafter und Diplomaten zugleich."
+  },
+  {
+   "id": "mlc_undang_laut",
+   "tag": "MLC",
+   "cat": "dip",
+   "name": "Undang-Undang Laut",
+   "year": 1450,
+   "req": [
+    "dip_messen"
+   ],
+   "effects": {
+    "trade": 0.1,
+    "naval": 0.05
+   },
+   "text": "Das Seerecht von Malakka regelt Zölle, Schiffe und Streit im Hafen."
+  },
+  {
+   "id": "mlc_bendahara",
+   "tag": "MLC",
+   "cat": "adm",
+   "name": "Das Amt des Bendahara",
+   "year": 1456,
+   "req": [
+    "adm_kanzlei"
+   ],
+   "effects": {
+    "adm": 1,
+    "unrest": -0.25
+   },
+   "text": "Ein Großwesir regiert für den Sultan."
+  },
+  {
+   "id": "mlc_lancaran",
+   "tag": "MLC",
+   "cat": "mil",
+   "name": "Lancaran und Ghurab",
+   "year": 1470,
+   "req": [
+    "mil_bombarden"
+   ],
+   "effects": {
+    "naval": 0.1,
+    "combat": 0.02
+   },
+   "text": "Schnelle Ruderschiffe mit Bronzegeschützen."
+  },
+  {
+   "id": "mal_kouroukan",
+   "tag": "MAL",
+   "cat": "adm",
+   "name": "Kouroukan Fouga",
+   "year": 1444,
+   "req": [
+    "adm_kanzlei"
+   ],
+   "effects": {
+    "unrest": -0.5,
+    "prestige": 0.25
+   },
+   "text": "Die Verfassung Sundiatas regelt die Rechte der Clans."
+  },
+  {
+   "id": "mal_gold_salt",
+   "tag": "MAL",
+   "cat": "dip",
+   "name": "Gold gegen Salz",
+   "year": 1444,
+   "req": [
+    "dip_messen"
+   ],
+   "effects": {
+    "trade": 0.08,
+    "income": 0.04
+   },
+   "text": "Der Handel durch die Sahara macht den Mansa zum reichsten Mann der Welt."
+  },
+  {
+   "id": "mal_cavalry",
+   "tag": "MAL",
+   "cat": "mil",
+   "name": "Die Reiterei des Mansa",
+   "year": 1460,
+   "req": [
+    "mil_pikenhaufen"
+   ],
+   "effects": {
+    "combat": 0.05,
+    "manpower": 0.05
+   },
+   "text": "Gepanzerte Reiter auf Pferden aus dem Norden."
+  },
+  {
    "id": "ned_fluyt",
    "tag": "NED",
    "cat": "dip",
