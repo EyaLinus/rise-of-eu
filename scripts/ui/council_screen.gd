@@ -185,6 +185,7 @@ func _pick(id: String) -> void:
 			m._close_modal()
 			m._act(e, "%s %s tritt in den Rat ein" % [s.icon, p.name]))
 		b.disabled = err != ""
+		b.set_meta("confirm", true)  # the confirm key hires the first candidate you can afford
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		h.add_child(b)
 		m.modal_box.add_child(pc)

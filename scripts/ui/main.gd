@@ -85,6 +85,7 @@ const KEY_ACTIONS := [
 	["panel_advice", "Ratgeber", KEY_R], ["panel_mapmodes", "Kartenmodi + Legende", KEY_V],
 	["zoom_in", "Karte vergrößern", KEY_PAGEUP], ["zoom_out", "Karte verkleinern", KEY_PAGEDOWN],
 	["quick", "Schnellaktionen (Provinz unter der Maus)", KEY_Q], ["build", "Bauen (offene Provinz)", KEY_B], ["info", "Infos (offene Provinz)", KEY_I],
+	["confirm", "Bestätigen (Erforschen, Vormerken, Einstellen, Annehmen …)", KEY_C],
 	["army", "Nächste Armee", KEY_A], ["search", "Suchen", KEY_S], ["quicksave", "Schnellspeichern", KEY_F5], ["help", "Tastenkürzel", KEY_F1],
 ]
 const RESERVED_KEYS := [KEY_ESCAPE, KEY_F11, KEY_F12, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0,
@@ -588,6 +589,37 @@ func _btn(text: String, cb: Callable, tip: String = "", disabled: bool = false) 
 	return b
 
 
+## Marks `b` as the answer of the "Bestätigen" key (default C): the first enabled marked button of the
+## open popup (else of the open side panel) is pressed. Used for the one obvious action of a popup;
+## choices between several options (events, reforms) stay manual. The key shows on desktop.
+func _primary(b: Button) -> Button:
+	b.set_meta("confirm", true)
+	if _is_desktop() and b.text != "" and not b.has_meta("confirm_hint"):
+		b.set_meta("confirm_hint", true)
+		b.text += "  [%s]" % OS.get_keycode_string(key_of("confirm"))
+	return b
+
+
+## Presses the first enabled confirm button; false when there is none.
+func _confirm() -> bool:
+	var root: Node = modal_box if modal.visible else (side_box if side_panel.visible else null)
+	var b: Button = _find_confirm(root) if root != null else null
+	if b == null:
+		return false
+	b.pressed.emit()
+	return true
+
+
+func _find_confirm(node: Node) -> Button:
+	if node is Button and node.has_meta("confirm") and not node.disabled and node.is_visible_in_tree():
+		return node
+	for c in node.get_children():
+		var r := _find_confirm(c)
+		if r != null:
+			return r
+	return null
+
+
 ## A wrapping button may shrink, but never below its longest word ("Ändern" must not become "Änd/ern").
 static func _word_floor(b: Button) -> void:
 	if b.autowrap_mode == TextServer.AUTOWRAP_OFF or b.clip_text or b.text == "":
@@ -1067,7 +1099,7 @@ func _show_intro() -> void:
 	modal_box.add_child(_lbl("%s, %s" % [nname(game.player), game.date_string()], 30))
 	modal_box.add_child(_lbl(n.idea, 18, Color(0.8, 0.85, 0.7)))
 	modal_box.add_child(_lbl("So spielst du:\n• Zeit läuft mit ▶/➕ oben rechts, ⏸ pausiert.\n• Tippe auf eine Provinz für Infos und Aktionen (Entwickeln, Rekrutieren, Krieg).\n• Tippe auf eine Armee (Kreis mit Zahl) und dann auf ein Ziel, um sie zu bewegen. 🤖 lässt sie automatisch kämpfen.\n• 📜 Admin, 🕊️ Diplomatie und ⚔️ Militär sammeln sich monatlich: für Technologie, Entwicklung, Bündnisse und Kriegsgründe.\n• 😠 Aggressive Expansion steigt bei Eroberungen. Ab %d bilden Nachbarn Koalitionen gegen dich.\n• ✊ Frisch eroberte Provinzen sind unruhig, Kriegsmüdigkeit verstärkt das. Garnisonen und Unterdrückung helfen.\n• Am PC: Leertaste = Pause, 1–3 = Tempo (½, normal, schnell), Esc = Panel schließen." % int(game.coalition_threshold(game.player)), 17))
-	modal_box.add_child(_btn("Los geht's ▶", func(): _close_modal()))
+	modal_box.add_child(_primary(_btn("Los geht's ▶", func(): _close_modal())))
 
 
 ## ScrollContainers that scroll by dragging anywhere on them, also when the finger starts on a button.
@@ -1431,7 +1463,7 @@ func _check_alerts() -> bool:
 			_sfx("war")
 			modal_box.add_child(_lbl("🔥 Krieg!", 28))
 			modal_box.add_child(_lbl("%s hat uns den Krieg erklärt (%s).\nGegner: %s" % [nname(w.attackers[0]), w.name, ", ".join(them)]))
-		modal_box.add_child(_btn("⚔️ Zu den Waffen", func(): _close_modal(); _open_panel("wars")))
+		modal_box.add_child(_primary(_btn("⚔️ Zu den Waffen", func(): _close_modal(); _open_panel("wars"))))
 		return true
 	var co: int = game.nations[me].coalition.size()
 	if co > known_coalition and co >= 2:
@@ -1440,7 +1472,7 @@ func _check_alerts() -> bool:
 		_open_modal()
 		modal_box.add_child(_lbl("⚠️ Koalition gegen uns!", 28))
 		modal_box.add_child(_lbl("%d Nationen haben sich wegen unserer aggressiven Expansion (😠 %d) gegen uns verbündet. Senke die AE (Zeit, Diplomatie-Technologie), sonst greifen sie an." % [co, int(game.nations[me].ae)]))
-		modal_box.add_child(_btn("Verstanden", _close_modal))
+		modal_box.add_child(_primary(_btn("Verstanden", _close_modal)))
 		return true
 	known_coalition = mini(known_coalition, co)
 	return _check_tips()
@@ -1717,7 +1749,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		act = "slower"
 	elif act == "" and k == KEY_H:
 		act = "help"
-	if act == "pause" and not modal.visible:
+	if act == "confirm":
+		if not _confirm():
+			return
+	elif act == "pause" and not modal.visible:
 		if speed == 0:
 			_set_speed(last_speed)
 		else:
@@ -1815,7 +1850,7 @@ func _show_menu() -> void:
 	_set_speed(0)
 	_open_modal()
 	modal_box.add_child(_lbl("☰ Menü", 30))
-	modal_box.add_child(_btn("▶ Weiter", _close_modal))
+	modal_box.add_child(_primary(_btn("▶ Weiter", _close_modal)))
 	var acts := [
 		_btn("💾 Speichern", _show_slots.bind(true), "Drei Speicherplätze; dazu speichert das Spiel jedes Jahr automatisch. Schnellspeichern: F5"),
 		_btn("📂 Laden", _show_slots.bind(false)),
@@ -2237,7 +2272,10 @@ func _show_event(event_id: String) -> void:
 	modal_box.add_child(_lbl(e.text, 18))
 	for i in e.options.size():
 		var o: Dictionary = e.options[i]
-		modal_box.add_child(_rich_btn(o.text, effects_bb(o.get("effects", {})), _choose_event.bind(event_id, i)))
+		var ob := _rich_btn(o.text, effects_bb(o.get("effects", {})), _choose_event.bind(event_id, i))
+		if e.options.size() == 1:  # one way out: the confirm key takes it (several options are a decision)
+			ob.get_child(0).set_meta("confirm", true)
+		modal_box.add_child(ob)
 
 
 var _event_motifs = null
@@ -2291,7 +2329,7 @@ func _show_peace_offer(offer: Dictionary) -> void:
 	else:
 		txt = "%s bietet uns an: %s" % [who, ", ".join(names)]
 	modal_box.add_child(_lbl(txt + "\nKriegspunktestand (unsere Sicht): %+d" % int(ws), 18))
-	modal_box.add_child(_btn("✅ Annehmen", func(): game.answer_player_peace(offer, true); _close_modal(); map.refresh(); _update_top()))
+	modal_box.add_child(_primary(_btn("✅ Annehmen", func(): game.answer_player_peace(offer, true); _close_modal(); map.refresh(); _update_top())))
 	modal_box.add_child(_btn("❌ Ablehnen", func(): game.answer_player_peace(offer, false); _close_modal()))
 
 

@@ -337,9 +337,14 @@ func queue_wait(g, tag: String, id: String) -> String:
 	var c := cost(g, tag, id)
 	if n.get(t.cat) < c:
 		return "wartet auf Punkte (%d/%d)" % [n.get(t.cat), c]
-	if years_ahead(g, id) > 0 and n.get(t.cat) < float(g.bal.power_cap):
+	if _date_wait(g, n, id):
 		return "wartet bis %d (ohne Frühaufschlag)" % (int(t.year) - early_years)
 	return ""
+
+
+## True when `id` is still before its regular window and the points are not at the cap (so it waits for the year).
+func _date_wait(g, n, id: String) -> bool:
+	return years_ahead(g, id) > 0 and n.get(by_id[id].cat) < float(g.bal.power_cap)
 
 
 ## Monthly: researches what the plan allows. Returns the names researched.
@@ -350,13 +355,20 @@ func queue_tick(g, n) -> Array:
 			n.tech_queue.erase(q)
 	for cat in g.POWERS:
 		while true:
-			var lst := queue_of(n, cat)
-			if lst.is_empty() or queue_wait(g, n.tag, lst[0]) != "":
+			# the first entry that is not just waiting for its year: a tech parked for a later window
+			# must not block the affordable ones behind it ("Vormerken wird nicht ausgewählt")
+			var pick := ""
+			for q in queue_of(n, cat):
+				var w := queue_wait(g, n.tag, q)
+				if w == "":
+					pick = q
+					break
+				if not (block_reason(g, n.tag, q) == "" and _date_wait(g, n, q)):
+					break
+			if pick == "" or research(g, n.tag, pick) != "":
 				break
-			if research(g, n.tag, lst[0]) != "":
-				break
-			n.tech_queue.erase(lst[0])
-			done.append(by_id[lst[0]].name)
+			n.tech_queue.erase(pick)
+			done.append(by_id[pick].name)
 	return done
 
 
