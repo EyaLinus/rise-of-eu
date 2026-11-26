@@ -204,6 +204,7 @@ static func _activate(g, t: String, lord: String, pids: Array, kind_: String, nm
 	n.missions_done = {}
 	n.coalition = []
 	n.rivals = []
+	g.rivals_dirty()
 	n.embargoes = []
 	n.marriages = []
 	n.access = {}

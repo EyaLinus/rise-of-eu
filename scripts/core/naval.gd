@@ -214,6 +214,18 @@ static func control(g, w, sea: String) -> String:
 	return ""
 
 
+## Seas where at least one living nation of `tags` has ships (side_power > 0 exactly there).
+static func _seas_with_ships(g, tags: Array) -> Dictionary:
+	var r := {}
+	for t in tags:
+		if g.nations[t].alive:
+			var f: Dictionary = g._fleet.get(t, {})
+			for sea in f:
+				if float(f[sea]) > 0.0:
+					r[sea] = true
+	return r
+
+
 ## Recomputes fleet positions, sea control, blocked seas and blockades. Call after ships change.
 static func refresh(g) -> void:
 	g._fleet = {}
@@ -223,7 +235,13 @@ static func refresh(g) -> void:
 	g.sea_blocked = {}
 	g.blockaded = {}
 	for w in g.wars:
+		var present := _seas_with_ships(g, w.attackers)
+		present.merge(_seas_with_ships(g, w.defenders))
+		if present.is_empty():
+			continue
 		for s in g.seas:
+			if not present.has(s.id):
+				continue  # nobody of this war sails here: control() would be ""
 			var c := control(g, w, s.id)
 			if c == "":
 				continue
@@ -306,12 +324,20 @@ static func monthly(g) -> void:
 	g.sea_fights = []  # this month's sea battles (map animation)
 	refresh(g)
 	for w in g.wars.duplicate():
+		var sa := _seas_with_ships(g, w.attackers)
+		var sd := _seas_with_ships(g, w.defenders)
+		if sa.is_empty() or sd.is_empty():
+			continue  # side_power would be 0 in every sea: no battle (and no dice roll)
 		for s in g.seas:
+			if not (sa.has(s.id) and sd.has(s.id)):
+				continue
 			var pa := side_power(g, w.attackers, s.id)
 			var pd := side_power(g, w.defenders, s.id)
 			if pa <= 0.0 or pd <= 0.0 or g.rng.randf() >= float(g.bal.naval_battle_chance):
 				continue
 			_fleet_battle(g, w, s, pa * g.rng.randf_range(0.8, 1.2), pd * g.rng.randf_range(0.8, 1.2))
+			sa = _seas_with_ships(g, w.attackers)  # the battle moved fleets (g._fleet rebuilt)
+			sd = _seas_with_ships(g, w.defenders)
 	if not g.sea_fights.is_empty():  # only battles change the fleets since the refresh above
 		refresh(g)
 

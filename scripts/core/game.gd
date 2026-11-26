@@ -452,6 +452,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		Stability.refresh_bonus(self, nations[tag])
 	event_defs = data.get("events", [])
 	_ev_index = {}
+	_ev_year = [-1, []]
 	for e in event_defs:
 		event_by_id[e.id] = e
 	# estate crises are fired by the government module, not drawn from the yearly event pool
@@ -2233,8 +2234,10 @@ func _check_alive(tag: String) -> void:
 		o.guarantees.erase(tag)
 		if o.rivals.has(tag):
 			o.rivals.erase(tag)
+			rivals_dirty()
 			add_power_proj(o.tag, float(bal.pp_humbled))
 	n.rivals.clear()
+	rivals_dirty()
 	for ally in n.allies:
 		nations[ally].allies.erase(tag)
 	n.allies.clear()
@@ -2877,6 +2880,7 @@ func set_rival(tag: String, target: String) -> String:
 	if r != "":
 		return r
 	nations[tag].rivals.append(target)
+	rivals_dirty()
 	add_rel(tag, target, -float(bal.rival_rel))
 	log_msg("🎯 %s erklärt %s zum Rivalen." % [nations[tag].name, nations[target].name], [tag, target])
 	fire_event(target, "dip_rivaled")
@@ -2889,6 +2893,7 @@ func end_rival(tag: String, target: String, free: bool = false) -> void:
 	if not n.rivals.has(target):
 		return
 	n.rivals.erase(target)
+	rivals_dirty()
 	if not free:
 		n.prestige -= float(bal.rival_end_prestige)
 		n.flags["rival_cd_" + target] = month + int(bal.rival_cooldown_months)
@@ -2910,10 +2915,31 @@ func add_power_proj(tag: String, v: float) -> void:
 ## Rivals who see us as a rival, for the UI.
 func rivaled_by(tag: String) -> Array:
 	var r := []
-	for t in order:
-		if nations[t].alive and nations[t].rivals.has(tag):
+	for t in _rival_index().get(tag, []):
+		if nations[t].alive:
 			r.append(t)
 	return r
+
+
+## Target -> nations that list it as rival, in `order` order. Every change of a rivals list must call
+## rivals_dirty() (yearly events asked rivaled_by for every realm: a scan of all realms each time).
+var _rival_idx = null
+
+
+func _rival_index() -> Dictionary:
+	if _rival_idx == null:
+		_rival_idx = {}
+		for t in order:
+			for r in nations[t].rivals:
+				if _rival_idx.has(r):
+					_rival_idx[r].append(t)
+				else:
+					_rival_idx[r] = [t]
+	return _rival_idx
+
+
+func rivals_dirty() -> void:
+	_rival_idx = null
 
 
 func embargo_block_reason(tag: String, target: String) -> String:
@@ -3303,10 +3329,99 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"year_max":
 				if y > int(v):
 					return false
+			"alive":
+				if not nations.has(v) or not nations[v].alive:
+					return false
+			"is_player":
+				# flavor that would only dilute the AI's event pool (and cost it gold, see court_events.py)
+				if (tag == player) != bool(v):
+					return false
+			"at_peace":
+				if is_at_war(tag):
+					return false
+			"age_pick":
+				if not Ages.has_pick(self, n, str(v)):
+					return false
+			"flag":
+				if not n.flags.has(v):
+					return false
+			"coastal":
+				var any_coast := false
+				for pid in provinces_of(tag):
+					if provinces[pid].coastal:
+						any_coast = true
+						break
+				if any_coast != bool(v):
+					return false
 			"owns":
 				for key in v:
 					if provinces[key_to_pid[key]].owner != tag:
 						return false
+			"produces":
+				# same as Economy.goods_output(...).has(v), without pricing every province
+				var makes := false
+				for pid in provinces_of(tag):
+					if provinces[pid].good == v:
+						makes = true
+						break
+				if not makes:
+					return false
+			"at_war":
+				if is_at_war(tag) != bool(v):
+					return false
+			"colony_free":
+				# one of these provinces (map keys) is still free native land
+				if Colonial.free_target(self, v if v is Array else [v]) < 0:
+					return false
+			"building":
+				for bid in v:
+					if Economy.building_total(self, tag, bid) < int(v[bid]):
+						return false
+			"law":
+				for l in v:
+					if n.gov.laws.get(l, "") != v[l]:
+						return false
+			"religion":
+				if n.religion != str(v):
+					return false
+			"colonies_min":
+				if Colonial.colonies_owned(self, tag) < int(v):
+					return false
+			"hre":
+				if hre.has(tag) != bool(v):
+					return false
+			"major":
+				if n.major != bool(v):
+					return false
+			"ruler_trait", "heir_trait", "heir_skill_max", "heir_skill_min", "reign_years_max", "regency", "heir_age_min", "heir_age_max":
+				if not govt.court_condition(self, n, k, v):
+					return false
+			"knows_sea":
+				# any of these seas is known
+				var known := false
+				for sea in (v if v is Array else [v]):
+					if n.known_seas.has(sea):
+						known = true
+				if not known:
+					return false
+			"min_dev":
+				if n.dev_total < int(v):
+					return false
+			"ships_min":
+				if n.ships < float(v):
+					return false
+			"monument":
+				if not n.monuments.has(v):
+					return false
+			"cities_min":
+				if Urban.count_of(self, tag) < int(v):
+					return false
+			"stability_max":
+				if n.stability > float(v):
+					return false
+			"has_tech":
+				if not n.techs.has(v):
+					return false
 			"owns_any":
 				var any := false
 				for key in v:
@@ -3318,12 +3433,6 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 				for key in v:
 					if provinces[key_to_pid[key]].owner == tag:
 						return false
-			"at_war":
-				if is_at_war(tag) != bool(v):
-					return false
-			"flag":
-				if not n.flags.has(v):
-					return false
 			"not_flag":
 				if n.flags.has(v):
 					return false
@@ -3332,12 +3441,6 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 				for t in v:
 					if not nations.has(t) or not nations[t].flags.has(v[t]):
 						return false
-			"min_dev":
-				if n.dev_total < int(v):
-					return false
-			"alive":
-				if not nations.has(v) or not nations[v].alive:
-					return false
 			"not_alive":
 				if nations.has(v) and nations[v].alive:
 					return false
@@ -3354,9 +3457,6 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 				for t in v:
 					if n.tech[t] < int(v[t]):
 						return false
-			"has_tech":
-				if not n.techs.has(v):
-					return false
 			"estate_min":
 				for es in v:
 					if n.gov.estates.get(es, 50.0) < float(v[es]):
@@ -3365,27 +3465,14 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 				for es in v:
 					if n.gov.estates.get(es, 50.0) > float(v[es]):
 						return false
-			"law":
-				for l in v:
-					if n.gov.laws.get(l, "") != v[l]:
-						return false
 			"regs":
 				if army_regs(tag) < float(v):
 					return false
 			"allies":
 				if n.allies.size() < int(v):
 					return false
-			"at_peace":
-				if is_at_war(tag):
-					return false
-			"major":
-				if n.major != bool(v):
-					return false
 			"we_min":
 				if n.we < float(v):
-					return false
-			"hre":
-				if hre.has(tag) != bool(v):
 					return false
 			"emperor":
 				if (emperor == tag) != bool(v):
@@ -3396,21 +3483,11 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"has_vassal":
 				if vassals_of(tag).is_empty() == bool(v):
 					return false
-			"building":
-				for bid in v:
-					if Economy.building_total(self, tag, bid) < int(v[bid]):
-						return false
 			"no_building":
 				if Economy.building_total(self, tag, v) > 0:
 					return false
-			"cities_min":
-				if Urban.count_of(self, tag) < int(v):
-					return false
 			"cities_max":
 				if Urban.count_of(self, tag) > int(v):
-					return false
-			"colonies_min":
-				if Colonial.colonies_owned(self, tag) < int(v):
 					return false
 			"region_colonies":
 				# {"oceania": 1}: at least this many finished colonies in each named region
@@ -3422,35 +3499,6 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 					return false
 			"col_exhaust_max":
 				if n.col_exhaust > float(v):
-					return false
-			"knows_sea":
-				# any of these seas is known
-				var known := false
-				for sea in (v if v is Array else [v]):
-					if n.known_seas.has(sea):
-						known = true
-				if not known:
-					return false
-			"colony_free":
-				# one of these provinces (map keys) is still free native land
-				if Colonial.free_target(self, v if v is Array else [v]) < 0:
-					return false
-			"coastal":
-				var any_coast := false
-				for pid in provinces_of(tag):
-					if provinces[pid].coastal:
-						any_coast = true
-						break
-				if any_coast != bool(v):
-					return false
-			"produces":
-				# same as Economy.goods_output(...).has(v), without pricing every province
-				var makes := false
-				for pid in provinces_of(tag):
-					if provinces[pid].good == v:
-						makes = true
-						break
-				if not makes:
 					return false
 			"goods_leader":
 				var leads := false
@@ -3501,9 +3549,6 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"gold_max":
 				if n.gold > float(v):
 					return false
-			"monument":
-				if not n.monuments.has(v):
-					return false
 			"monuments_min":
 				if n.monuments.size() < int(v):
 					return false
@@ -3512,9 +3557,6 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 					return false
 			"landmark_levels_min":
 				if Landmarks.count_levels(self, tag) < int(v):
-					return false
-			"ships_min":
-				if n.ships < float(v):
 					return false
 			"blockaded":
 				var any := false
@@ -3527,13 +3569,6 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"feast_recent":
 				if month - int(n.flags.get("feast_month", -9999)) > int(v):
 					return false
-			"age_pick":
-				if not Ages.has_pick(self, n, str(v)):
-					return false
-			"is_player":
-				# flavor that would only dilute the AI's event pool (and cost it gold, see court_events.py)
-				if (tag == player) != bool(v):
-					return false
 			"rivals_min":
 				if n.rivals.size() < int(v):
 					return false
@@ -3545,9 +3580,6 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 					return false
 			"stability_min":
 				if n.stability < float(v):
-					return false
-			"stability_max":
-				if n.stability > float(v):
 					return false
 			"rank_min":
 				if n.rank < int(v):
@@ -3577,12 +3609,6 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 						break
 				if not found:
 					return false
-			"religion":
-				if n.religion != str(v):
-					return false
-			"ruler_trait", "heir_trait", "heir_skill_max", "heir_skill_min", "reign_years_max", "regency", "heir_age_min", "heir_age_max":
-				if not govt.court_condition(self, n, k, v):
-					return false
 			"unrest_min":
 				# some province at or above v (unrest_bound skips the calm ones cheaply)
 				if float(v) > 0.0:
@@ -3597,22 +3623,37 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 	return true
 
 
-var _ev_index := {}  # tag -> [[event, year_min, year_max, flag key]] of the events it may draw (_check_events)
+var _ev_index := {}  # "*" (generic) or tag (its own) -> [[event, year_min, year_max, flag key, trigger without year bounds, def index]]
+var _ev_year := [-1, []]  # [year, generic entries within their year bounds that year]
 
 
-## Random events a realm may draw, in event_defs order: generic ones and its own, never manual ones.
+## Random events of one owner ("*" = generic) that may be drawn, in event_defs order, never manual ones.
 func _events_for(tag: String) -> Array:
 	if _ev_index.has(tag):
 		return _ev_index[tag]
 	var r := []
-	for e in event_defs:
-		var t: String = e.get("tag", "*")
-		if (t != "*" and t != tag) or e.get("manual", false):
+	for i in event_defs.size():
+		var e: Dictionary = event_defs[i]
+		if e.get("tag", "*") != tag or e.get("manual", false):
 			continue
 		var tr: Dictionary = e.get("trigger", {})
-		r.append([e, int(tr.get("year_min", -100000)), int(tr.get("year_max", 100000)), "ev_" + e.id])
+		var rest := tr.duplicate()  # the trigger without the year bounds (checked from the index already)
+		rest.erase("year_min")
+		rest.erase("year_max")
+		r.append([e, int(tr.get("year_min", -100000)), int(tr.get("year_max", 100000)), "ev_" + e.id, rest, i])
 	_ev_index[tag] = r
 	return r
+
+
+## Generic events whose year bounds include year `y` (shared by all realms of that year).
+func _generic_events_in(y: int) -> Array:
+	if _ev_year[0] != y:
+		var r := []
+		for c in _events_for("*"):
+			if y >= c[1] and y <= c[2]:
+				r.append(c)
+		_ev_year = [y, r]
+	return _ev_year[1]
 
 
 func _check_events(n: Nation) -> void:
@@ -3620,14 +3661,26 @@ func _check_events(n: Nation) -> void:
 		return
 	var eligible := []
 	var y := year()
-	for c in _events_for(n.tag):
-		if y < c[1] or y > c[2]:
-			continue  # year bounds checked here already, the cheapest and most common trigger
+	var gen: Array = _generic_events_in(y)
+	var own: Array = _events_for(n.tag)
+	var gi := 0
+	var oi := 0
+	# both lists are in event_defs order: merge them, so the pool keeps that order
+	while gi < gen.size() or oi < own.size():
+		var c: Array
+		if oi >= own.size() or (gi < gen.size() and gen[gi][5] < own[oi][5]):
+			c = gen[gi]
+			gi += 1
+		else:
+			c = own[oi]
+			oi += 1
+			if y < c[1] or y > c[2]:
+				continue
 		var e: Dictionary = c[0]
 		if n.flags.has(c[3]):
 			if e.get("once", true) or month - int(n.flags[c[3]]) < 120:
 				continue
-		if not check_conditions(n.tag, e.get("trigger", {})):
+		if not c[4].is_empty() and not check_conditions(n.tag, c[4]):
 			continue
 		eligible.append(e)
 	if eligible.is_empty():
@@ -3921,8 +3974,10 @@ func from_dict(d: Dictionary) -> void:
 		for t in e.get("guarantees", []):
 			n.guarantees[str(t)] = true
 		n.rivals = []
+		rivals_dirty()
 		for t in e.get("rivals", []):
 			n.rivals.append(str(t))
+			rivals_dirty()
 		n.power_proj = float(e.get("power_proj", 0.0))
 		n.stability = float(e.get("stability", bal.stab_start))
 		n.rank = int(e.get("rank", -1))
