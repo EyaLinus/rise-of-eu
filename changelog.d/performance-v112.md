@@ -1,2 +1,0 @@
-- **Leistung:** Ein Monat auf der ganzen Weltkarte ist rund 30 % schneller berechnet (216 → ~146 ms auf der Test-CPU), und kein einzelner Rechenschritt dauert mehr länger als ~17 ms (bisher bis 58 ms). Damit verschwindet der kleine Ruckler zum Jahreswechsel. Die KI entscheidet dabei genau wie vorher, der Spielverlauf ist bitgenau gleich.
-- **Autosave ohne Ruckler:** Der jährliche Autosave schreibt die Datei jetzt im Hintergrund. Das Spiel friert dafür nur noch einen kurzen Moment statt rund eine Zehntelsekunde (auf dem Handy bisher ~0,3 s) ein.
