@@ -84,6 +84,7 @@ func _init() -> void:
 		"test_landmarks", "test_daily_gain",
 		"test_world_playables",
 		"test_tribes",
+		"test_modifier_keys_known",
 		"test_old_save_tech_levels", "test_council", "test_elections", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		if not only.is_empty() and not only.has(t):
@@ -4782,3 +4783,32 @@ func test_tribes() -> void:
 	check(ai.provinces_of("INC").size() == 4, "the AI Inca take in one tribe a year")
 	check(ai.provinces_of("MAY").size() == may0, "non-playable natives do not")
 
+
+## Every modifier key in the data is one the game knows (Uesugi's "defense" did nothing until v1.1.2).
+func test_modifier_keys_known() -> void:
+	var bad := []
+	for t in data.nations:
+		for k in data.nations[t].get("bonus", {}).keys() + data.nations[t].get("player_bonus", {}).keys():
+			if not Tech.LABELS.has(k):
+				bad.append("%s:%s" % [t, k])
+	for e in data.events:
+		for o in e.options:
+			for k in o.effects.get("mods", {}):
+				if not Tech.LABELS.has(k):
+					bad.append("%s:%s" % [e.id, k])
+	for t in data.missions:
+		for x in data.missions[t]:
+			for k in x.reward.get("mods", {}):
+				if not Tech.LABELS.has(k):
+					bad.append("%s:%s" % [x.id, k])
+	check(bad.is_empty(), "unknown modifier keys: %s" % ", ".join(bad.slice(0, 10)))
+	# "defense" (Uesugi +10 %) adds to the strength of armies fighting on their own land
+	var g = new_game("FRA", 3)
+	var mine: Array = g.armies.filter(func(x): return x.owner == "UES")
+	check(not mine.is_empty(), "Uesugi has an army")
+	if not mine.is_empty():
+		var home: int = g.nations.UES.capital
+		var d: float = g.mod(g.nations.UES, "defense")
+		var p1: float = g._side_power([mine[0]], home)
+		g.nations.UES.bonus["test"] = {"defense": -d}
+		check(d > 0.05 and g._side_power([mine[0]], home) < p1, "defense bonus counts at home")

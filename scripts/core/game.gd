@@ -1486,7 +1486,7 @@ func _side_power(arms: Array, pid: int) -> float:
 	for a in arms:
 		var m := combat_mult(a.owner)
 		if provinces[pid].owner == a.owner:
-			m += float(bal.home_defense)
+			m += float(bal.home_defense) + mod(nations[a.owner], "defense")  # "defense": fighting on own land
 		m += float(bal.general_bonus) * a.general
 		s += command_regs(a) * m * power_factor(a)
 	return s
