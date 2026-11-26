@@ -1011,7 +1011,11 @@ def main(land_path, lakes_path):
             cell = box(col - TILE_MARGIN, row - TILE_MARGIN, col + TILE + TILE_MARGIN, row + TILE + TILE_MARGIN)
             if full_land.intersects(cell):
                 tiles.append(["terrain_%d_%d.png" % (col // TILE, row // TILE), col, row, min(TILE, W - col), min(TILE, H - row)])
-    out = {"size": [W, H], "terrain_tiles": tiles, "provinces": provinces, "background": bg}
+    # art pass: one clean coverage with soft, rounded inland borders (coasts, centres, adjacency stay)
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "art"))
+    import smooth_borders
+    smooth_borders.smooth(provinces)
+    out = {"size": [W, H], "terrain_tiles": tiles, "provinces": provinces, "background": bg, "smooth": smooth_borders.ITER}
     with open("data/map.json", "w") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
     # sea crossings: slower marches, need sea control in war (scripts/core/warfare.gd)
