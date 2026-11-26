@@ -1,34 +1,538 @@
 {
-  "ITA": {"name": "Italien", "color": "#2f9e57", "text": "Die Halbinsel unter einer Krone: Rom, Florenz, Mailand, Venedig und Neapel vereint.",
-    "from": ["NAP", "PAP", "TUS", "MLO", "GEN", "VEN", "SAV"],
-    "provinces": ["rome", "florence", "milan", "venice", "napoli", "genoa", "bologna"], "need": 5,
-    "bonus": {"trade": 0.1, "production": 0.05, "prestige": 0.5}},
-  "GER": {"name": "Deutsches Reich", "color": "#5b5b66", "text": "Aus vielen Fürstentümern wird ein Reich der Deutschen.",
-    "from": ["BAV", "SAX", "BRA", "KOL", "PAL", "WUR", "NUR", "HES", "LUN", "HSA", "POM", "HAB"],
-    "provinces": ["berlin", "munich", "dresden", "cologne", "hamburg", "swabia", "nuremberg", "hesse", "palatinate", "brunswick"], "need": 6,
-    "bonus": {"manpower": 0.15, "force_limit": 0.1, "prestige": 0.5}},
-  "GBR": {"name": "Großbritannien", "color": "#b52d3a", "text": "England und Schottland unter einer Krone.",
-    "from": ["ENG", "SCO"],
-    "provinces": ["london", "york", "lothian", "highlands", "wales"], "need": 5,
-    "bonus": {"naval": 0.15, "trade": 0.05, "prestige": 0.5}},
-  "PLC": {"name": "Polen-Litauen", "color": "#c8475e", "text": "Die Krone Polens und das Großfürstentum Litauen werden eine Republik beider Völker.",
-    "from": ["POL", "LIT"],
-    "provinces": ["krakow", "warsaw", "poznan", "vilnius", "minsk", "lwow"], "need": 6,
-    "bonus": {"manpower": 0.1, "unrest": -0.5, "prestige": 0.5}},
-  "IBE": {"name": "Iberische Krone", "color": "#d9a62e", "text": "Kastilien, Aragón und Portugal unter einem Herrscher.",
-    "from": ["SPA", "ARA", "POR"],
-    "provinces": ["toledo", "lisbon", "zaragoza", "barcelona", "granada", "sevilla", "porto"], "need": 6,
-    "bonus": {"naval": 0.1, "income": 0.05, "prestige": 0.5}},
-  "ROM": {"name": "Römisches Reich", "color": "#7a2a8c", "text": "Rom und Konstantinopel in einer Hand: das Reich der Caesaren ersteht neu.",
-    "from": ["BYZ", "TUR", "PAP", "NAP"],
-    "provinces": ["constantinople", "rome", "edirne", "napoli", "thessaly", "morea", "bursa", "venice"], "need": 6,
-    "bonus": {"combat": 0.05, "coring": 0.15, "prestige": 1.0}},
-  "PER": {"name": "Persisches Reich", "color": "#2e8f8a", "text": "Die Länder zwischen Kaukasus, Zweistromland und Persischem Golf unter einem Schah.",
-    "from": ["QAR", "AKK", "SHI", "TIM", "SAF", "MAZ"],
-    "provinces": ["tabriz", "diyarbakir", "shamakhi", "van", "mosul", "yerevan", "erzurum", "baghdad", "hamadan", "isfahan", "fars", "rey"], "need": 9,
-    "bonus": {"tax": 0.1, "manpower": 0.1, "prestige": 0.5}},
-  "MAG": {"name": "Maghreb", "color": "#a8743a", "text": "Von Fès bis Tunis vereint ein Sultan den Westen der islamischen Welt.",
-    "from": ["MOR", "TLE", "TUN"],
-    "provinces": ["fez", "tlemcen", "tunis", "algiers", "oran", "constantine", "marrakesh"], "need": 5,
-    "bonus": {"trade": 0.1, "manpower": 0.1, "prestige": 0.5}}
+  "ITA": {
+    "name": "Italien",
+    "color": "#2f9e57",
+    "text": "Die Halbinsel unter einer Krone: Rom, Florenz, Mailand, Venedig und Neapel vereint.",
+    "from": [
+      "NAP",
+      "PAP",
+      "TUS",
+      "MLO",
+      "GEN",
+      "VEN",
+      "SAV"
+    ],
+    "provinces": [
+      "rome",
+      "florence",
+      "milan",
+      "venice",
+      "napoli",
+      "genoa",
+      "bologna"
+    ],
+    "need": 5,
+    "bonus": {
+      "trade": 0.1,
+      "production": 0.05,
+      "prestige": 0.5
+    },
+    "rank_to": 3
+  },
+  "GER": {
+    "name": "Deutsches Reich",
+    "color": "#5b5b66",
+    "text": "Aus vielen Fürstentümern wird ein Reich der Deutschen.",
+    "from": [
+      "BAV",
+      "SAX",
+      "BRA",
+      "KOL",
+      "PAL",
+      "WUR",
+      "NUR",
+      "HES",
+      "LUN",
+      "HSA",
+      "POM",
+      "HAB"
+    ],
+    "provinces": [
+      "berlin",
+      "munich",
+      "dresden",
+      "cologne",
+      "hamburg",
+      "swabia",
+      "nuremberg",
+      "hesse",
+      "palatinate",
+      "brunswick"
+    ],
+    "need": 6,
+    "bonus": {
+      "manpower": 0.15,
+      "force_limit": 0.1,
+      "prestige": 0.5
+    },
+    "rank_to": 3
+  },
+  "GBR": {
+    "name": "Großbritannien",
+    "color": "#b52d3a",
+    "text": "England und Schottland unter einer Krone.",
+    "from": [
+      "ENG",
+      "SCO"
+    ],
+    "provinces": [
+      "london",
+      "york",
+      "lothian",
+      "highlands",
+      "wales"
+    ],
+    "need": 5,
+    "bonus": {
+      "naval": 0.15,
+      "trade": 0.05,
+      "prestige": 0.5
+    },
+    "rank_to": 3
+  },
+  "PLC": {
+    "name": "Polen-Litauen",
+    "color": "#c8475e",
+    "text": "Die Krone Polens und das Großfürstentum Litauen werden eine Republik beider Völker.",
+    "from": [
+      "POL",
+      "LIT"
+    ],
+    "provinces": [
+      "krakow",
+      "warsaw",
+      "poznan",
+      "vilnius",
+      "minsk",
+      "lwow"
+    ],
+    "need": 6,
+    "bonus": {
+      "manpower": 0.1,
+      "unrest": -0.5,
+      "prestige": 0.5
+    },
+    "rank_to": 3
+  },
+  "IBE": {
+    "name": "Iberische Krone",
+    "color": "#d9a62e",
+    "text": "Kastilien, Aragón und Portugal unter einem Herrscher.",
+    "from": [
+      "SPA",
+      "ARA",
+      "POR"
+    ],
+    "provinces": [
+      "toledo",
+      "lisbon",
+      "zaragoza",
+      "barcelona",
+      "granada",
+      "sevilla",
+      "porto"
+    ],
+    "need": 6,
+    "bonus": {
+      "naval": 0.1,
+      "income": 0.05,
+      "prestige": 0.5
+    },
+    "rank_to": 3
+  },
+  "ROM": {
+    "name": "Römisches Reich",
+    "color": "#7a2a8c",
+    "text": "Rom und Konstantinopel in einer Hand: das Reich der Caesaren ersteht neu.",
+    "from": [
+      "BYZ",
+      "TUR",
+      "PAP",
+      "NAP"
+    ],
+    "provinces": [
+      "constantinople",
+      "rome",
+      "edirne",
+      "napoli",
+      "thessaly",
+      "morea",
+      "bursa",
+      "venice"
+    ],
+    "need": 6,
+    "bonus": {
+      "combat": 0.05,
+      "coring": -0.15,
+      "prestige": 1.0
+    },
+    "rank_to": 4
+  },
+  "PER": {
+    "name": "Persisches Reich",
+    "color": "#2e8f8a",
+    "text": "Die Länder zwischen Kaukasus, Zweistromland und Persischem Golf unter einem Schah.",
+    "from": [
+      "QAR",
+      "AKK",
+      "SHI",
+      "TIM",
+      "SAF",
+      "MAZ"
+    ],
+    "provinces": [
+      "tabriz",
+      "diyarbakir",
+      "shamakhi",
+      "van",
+      "mosul",
+      "yerevan",
+      "erzurum",
+      "baghdad",
+      "hamadan",
+      "isfahan",
+      "fars",
+      "rey"
+    ],
+    "need": 9,
+    "bonus": {
+      "tax": 0.1,
+      "manpower": 0.1,
+      "prestige": 0.5
+    },
+    "rank_to": 4
+  },
+  "MGB": {
+    "name": "Maghreb",
+    "color": "#a8743a",
+    "text": "Von Fès bis Tunis vereint ein Sultan den Westen der islamischen Welt.",
+    "from": [
+      "MOR",
+      "TLE",
+      "TUN"
+    ],
+    "provinces": [
+      "fez",
+      "tlemcen",
+      "tunis",
+      "algiers",
+      "oran",
+      "constantine",
+      "marrakesh"
+    ],
+    "need": 5,
+    "bonus": {
+      "trade": 0.1,
+      "manpower": 0.1,
+      "prestige": 0.5
+    },
+    "rank_to": 3
+  },
+  "JPN": {
+    "name": "Japan",
+    "color": "#c23b3b",
+    "text": "Die Kriegsfürsten beugen sich einem Herrn: Vom Norden Honshūs bis Kyūshū gilt ein Gesetz.",
+    "from": [
+      "ASH",
+      "HSK",
+      "HTK",
+      "YMN",
+      "OUC",
+      "SBA",
+      "TKD",
+      "IMG",
+      "UES",
+      "DTE",
+      "AND",
+      "SHO",
+      "OTO",
+      "SHZ"
+    ],
+    "provinces": [
+      "kyoto",
+      "sanuki",
+      "kii",
+      "harima",
+      "nagato",
+      "owari",
+      "kai",
+      "suruga",
+      "sagami",
+      "musashi",
+      "mutsu",
+      "echigo",
+      "echizen",
+      "bungo",
+      "hizen",
+      "satsuma"
+    ],
+    "need": 11,
+    "rank_to": 3,
+    "bonus": {
+      "combat": 0.05,
+      "manpower": 0.1,
+      "unrest": -0.5
+    }
+  },
+  "HIN": {
+    "name": "Hindustan",
+    "color": "#3d8a4a",
+    "text": "Von Lahore bis Bengalen und zum Dekkan: die Reiche Nordindiens unter einem Thron.",
+    "from": [
+      "DLH",
+      "JNP",
+      "BNG",
+      "MLW",
+      "GUJ",
+      "BAH",
+      "KHD",
+      "MEW",
+      "MAW",
+      "AMB",
+      "GWA",
+      "TIM"
+    ],
+    "provinces": [
+      "delhi",
+      "agra",
+      "lahore",
+      "jaunpur",
+      "awadh",
+      "bihar",
+      "gaur",
+      "mandu",
+      "ahmedabad",
+      "bidar",
+      "daulatabad",
+      "golconda"
+    ],
+    "need": 8,
+    "rank_to": 4,
+    "bonus": {
+      "tax": 0.1,
+      "production": 0.05,
+      "prestige": 0.5
+    }
+  },
+  "ARB": {
+    "name": "Arabien",
+    "color": "#3f7d4f",
+    "text": "Die heiligen Städte, der Jemen und die Küsten des Golfs gehorchen einem Herrscher.",
+    "from": [
+      "HJZ",
+      "YEM",
+      "HOR"
+    ],
+    "provinces": [
+      "mecca",
+      "medina",
+      "asir",
+      "tihama",
+      "sanaa",
+      "aden",
+      "hadramaut",
+      "dhofar",
+      "hasa",
+      "tabuk"
+    ],
+    "need": 7,
+    "rank_to": 3,
+    "bonus": {
+      "trade": 0.1,
+      "unrest": -0.5,
+      "prestige": 0.5
+    }
+  },
+  "USA": {
+    "name": "Vereinigte Staaten",
+    "color": "#3b5ba5",
+    "text": "Die Siedlungen an der Ostküste der Neuen Welt sagen sich von Europa los und bilden eine Union freier Staaten.",
+    "from": [
+      "*"
+    ],
+    "no_native": true,
+    "capital_in": [
+      "massachusett",
+      "wampanoag",
+      "pequot",
+      "mahican",
+      "munsee",
+      "lenape",
+      "susquehannock",
+      "nanticoke",
+      "powhatan",
+      "secotan",
+      "tuscarora",
+      "cofitachequi",
+      "guale",
+      "abenaki",
+      "penobscot",
+      "onondaga",
+      "seneca",
+      "erie",
+      "shawnee",
+      "cherokee",
+      "coosa",
+      "timucua",
+      "hochelaga",
+      "wendake",
+      "stadacona",
+      "miami",
+      "illinois",
+      "chickasaw",
+      "mikmaq"
+    ],
+    "capital_name": "Nordamerikas Osten",
+    "groups": [
+      {
+        "name": "Dreizehn Kolonien",
+        "provinces": [
+          "massachusett",
+          "wampanoag",
+          "pequot",
+          "mahican",
+          "munsee",
+          "lenape",
+          "susquehannock",
+          "nanticoke",
+          "powhatan",
+          "secotan",
+          "tuscarora",
+          "cofitachequi",
+          "guale"
+        ],
+        "need": 9
+      }
+    ],
+    "rank_to": 3,
+    "cost_adm": 150,
+    "prestige": 40,
+    "bonus": {
+      "income": 0.1,
+      "manpower": 0.1,
+      "stability": 0.05
+    }
+  },
+  "TTA": {
+    "name": "Tartarei",
+    "color": "#8c6a2e",
+    "text": "Die Länder der Steppe von der Krim bis zur Mongolei unter einem Khagan: das Reich, das die Kartographen Europas Tartaria nennen.",
+    "from": [
+      "GHO",
+      "NOG",
+      "KAZ",
+      "CRI",
+      "SIB",
+      "SHY",
+      "MOG",
+      "MGL",
+      "OIR",
+      "TIM",
+      "TKM",
+      "SEL",
+      "RUS"
+    ],
+    "tier": 2,
+    "rank_min": 3,
+    "rank_to": 4,
+    "cost_adm": 250,
+    "prestige": 100,
+    "groups": [
+      {
+        "name": "Wolga & Krim",
+        "provinces": [
+          "sarai",
+          "astrakhan",
+          "kazan",
+          "saraychik",
+          "crimea",
+          "samara"
+        ],
+        "need": 4
+      },
+      {
+        "name": "Sibirien",
+        "provinces": [
+          "isker",
+          "tyumen",
+          "tara",
+          "baraba",
+          "tomsk"
+        ],
+        "need": 3
+      },
+      {
+        "name": "Steppe & Transoxanien",
+        "provinces": [
+          "turkestan",
+          "semey",
+          "saryarka",
+          "samarkand",
+          "bukhara",
+          "tashkent",
+          "almaty"
+        ],
+        "need": 4
+      },
+      {
+        "name": "Mongolei",
+        "provinces": [
+          "karakorum",
+          "khovd",
+          "selenge",
+          "dzungaria"
+        ],
+        "need": 2
+      }
+    ],
+    "bonus": {
+      "manpower": 0.2,
+      "combat": 0.1,
+      "coring": -0.15,
+      "prestige": 1.0
+    }
+  },
+  "EUR": {
+    "name": "Imperium Europa",
+    "color": "#2b3f8f",
+    "text": "Ein Herrscher über die Hauptstädte des Abendlandes: zum ersten Mal seit Rom ist Europa ein Reich.",
+    "from": [
+      "*"
+    ],
+    "tier": 2,
+    "rank_min": 4,
+    "rank_to": 5,
+    "year_min": 1500,
+    "cost_adm": 300,
+    "prestige": 150,
+    "groups": [
+      {
+        "name": "Hauptstädte Europas",
+        "provinces": [
+          "london",
+          "paris",
+          "toledo",
+          "lisbon",
+          "wien",
+          "prague",
+          "buda",
+          "krakow",
+          "moscow",
+          "rome",
+          "napoli",
+          "berlin",
+          "copenhagen",
+          "edirne"
+        ],
+        "need": 9
+      }
+    ],
+    "bonus": {
+      "tax": 0.1,
+      "trade": 0.1,
+      "ae_decay": 0.25,
+      "diplo_cap": 2.0,
+      "prestige": 1.0
+    }
+  }
 }
