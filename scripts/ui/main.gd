@@ -15,6 +15,7 @@ const Monuments = preload("res://scripts/core/monuments.gd")
 const Landmarks = preload("res://scripts/core/landmarks.gd")
 const Ages = preload("res://scripts/core/ages.gd")
 const Formables = preload("res://scripts/core/formables.gd")
+const Subjects = preload("res://scripts/core/subjects.gd")
 const Warfare = preload("res://scripts/core/warfare.gd")
 const Naval = preload("res://scripts/core/naval.gd")
 const FirstSteps = preload("res://scripts/core/first_steps.gd")
@@ -2895,6 +2896,11 @@ func _panel_province(pid: int) -> void:
 					(("Baut die Provinz in %d Monaten zur Stadt aus (je mehr Entwicklung, desto schneller): mehr Steuern, Handel und ein Bauplatz, weniger Mannschaften, etwas Unruhe. Lohnt sich bei Stadtgütern und am Markt. Ab Entwicklung %d wird Land von selbst zur Stadt, 🤖 Autobau gründet Städte automatisch." % [Urb.change_months(game, true, p), int(game.bal.urban_auto_dev)]) if to_city
 					else ("Macht die Stadt in %d Monaten wieder zu Land: mehr Mannschaften und Ruhe, weniger Steuern und Handel." % int(game.bal.rural_months)))
 					+ (("\n❌ " + ub) if ub != "" else ""), ub != ""))
+		if pid != n.capital and p.core_months == 0 and game.provinces_of(me).size() >= int(game.bal.sub_appanage_min_provinces):
+			var apr: String = Subjects.appanage_block_reason(game, me, pid)
+			acts.append(_btn("🏰 Apanage %d⭐" % int(game.bal.sub_appanage_prestige), func(): _act(Subjects.create_appanage(game, me, pid), "🏰 Eine Nebenlinie deines Hauses herrscht nun in %s" % p.name); map.refresh(),
+					"Gibt %s und bis zu %d Nachbarprovinzen (%s) an eine Nebenlinie deines Hauses. +%d Stabilität. %s%s" % [
+					p.name, int(game.bal.sub_appanage_provinces) - 1, ", ".join(Subjects.appanage_lands(game, me, pid).map(func(q): return game.provinces[q].name)), int(game.bal.sub_appanage_stability), _subject_help("appanage"), ("\n❌ " + apr) if apr != "" else ""], apr != ""))
 		side_box.add_child(_grid(devs, 3))
 		# pairs side by side, an odd last button gets the full width (no clipped price)
 		var last_act = acts.pop_back() if acts.size() % 2 == 1 else null
@@ -3667,7 +3673,7 @@ func _panel_nation() -> void:
 	var vs: Array = game.vassals_of(me)
 	if not vs.is_empty() and _section("nat_vassals", Icons.prefix("vassal") + "Vasallen: %d (Tribut %+.1f 💰)" % [vs.size(), game.tribute_income(me)]):
 		for v in vs:
-			side_box.add_child(_nation_btn(v, "  🏘️%d" % game.nations[v].dev_total, _open_panel.bind("other", v)))
+			side_box.add_child(_nation_btn(v, "  %s🏘️%d" % [Subjects.icon(game, v), game.nations[v].dev_total], _open_panel.bind("other", v)))
 	if game.history.size() >= 2 and _section("nat_history", "📈 Verlauf (Platz %d)" % game.rank_of(me), false):
 		side_box.add_child(_history_chart(180))
 
@@ -3859,8 +3865,15 @@ func _sync_flags() -> void:
 	for t in game.order:
 		if game.nations[t].formed != "":
 			a[t] = game.nations[t].formed
+	# colonial nations and appanages (pool nations) fly the flag of the realm that founded them
+	for t in game.order:
+		var lord: String = str(game.nations[t].flags.get("flag_of", ""))
+		if lord != "" and game.nations[t].alive and game.nations.has(lord):
+			a[t] = ("app:" if Subjects.is_pool(game, t) and game.subject_pool.appanage.has(t) else "col:") + str(a.get(lord, lord)).trim_prefix("col:").trim_prefix("app:")
 	if a != Icons.flag_alias:
 		Icons.flag_alias = a
+		for t in a:
+			PixelEmoji.nation(t)  # register new flag glyphs now, not while text is drawn
 		map.refresh()
 
 
@@ -4051,6 +4064,26 @@ func _panel_diplomacy() -> void:
 			side_box.add_child(_nation_btn(tag, txt, _open_panel.bind("other", tag)))
 
 
+## Rules of a subject kind in one sentence block (tooltips of the diplomacy panel and province actions).
+func _subject_help(kind: String) -> String:
+	var b: Dictionary = game.bal
+	match kind:
+		"colony":
+			return "Entsteht von selbst aus mindestens %d zusammenhängenden Überseeprovinzen. Besiedelt selbst weiter, zahlt %d %% Kolonialzoll und bringt dir +%d %% Handel. Belegt keinen diplomatischen Platz, kann nicht annektiert werden und strebt mit den Jahrzehnten nach Unabhängigkeit." % [
+					int(b.sub_colony_min), int(float(b.sub_colony_tribute) * 100), int(float(b.sub_colony_lord_trade) * 100)]
+		"dominion":
+			return "Selbstverwaltete Kolonie oder Übersee-Vasall ab %d Entwicklung: zahlt nur %d %% Tribut, ist sehr treu, hat selbst +%d %% Einkommen und Mannschaften und gibt dir +%d %% Mannschaften. Belegt einen diplomatischen Platz, kann nicht annektiert werden. England zahlt die Hälfte." % [
+					int(b.sub_dominion_min_dev), int(float(b.sub_dominion_tribute) * 100), int(float(b.sub_dominion_income) * 100), int(float(b.sub_dominion_lord_manpower) * 100)]
+		"appanage":
+			return "Land für eine Nebenlinie deines Hauses: zahlt %d %% Tribut, ist treu, senkt die Unruhe in deinem Reich und belegt keinen diplomatischen Platz. Kehrt nach %d Jahren zum halben Preis an die Krone zurück. Höchstens %d Apanagen (Frankreich %d)." % [
+					int(float(b.sub_appanage_tribute) * 100), int(b.sub_appanage_annex_years), int(b.sub_appanage_max), int(b.sub_appanage_max) + 2]
+	return "Zahlt %d %% Tribut, kämpft in deinen Kriegen, belegt einen diplomatischen Platz und kann nach %d Jahren annektiert werden." % [int(float(b.vassal_tribute) * 100), int(b.vassal_annex_years)]
+
+
+func _subject_text(tag: String) -> String:
+	return _subject_help(Subjects.kind(game, tag))
+
+
 func _panel_other(tag: String) -> void:
 	var me: String = game.player
 	var o = game.nations[tag]
@@ -4073,7 +4106,7 @@ func _panel_other(tag: String) -> void:
 	if game.has_claim_on(me, tag):
 		chips.append(_chip("🎯 Anspruch", "Du hast Ansprüche auf sein Land: ein Kriegsgrund.", "gold"))
 	if o.overlord != "":
-		chips.append(_chip("⛓️ Vasall", "Vasall von %s." % game.nations[o.overlord].name))
+		chips.append(_chip("%s %s" % [Subjects.icon(game, tag), Subjects.type_name(game, tag)], "%s von %s. %s" % [Subjects.type_name(game, tag), game.nations[o.overlord].name, _subject_text(tag)]))
 	var ovs := []
 	for v in game.vassals_of(tag):
 		ovs.append(game.nations[v].name)
@@ -4139,9 +4172,17 @@ func _panel_other(tag: String) -> void:
 				"Rivalen (höchstens %d, ähnlich stark, in der Nähe): −%d Beziehung. Kriege gegen Rivalen brauchen keinen Anspruch und kosten keine Extra-AE. Gewonnene Schlachten (+%d), eroberte Provinzen (+%d) und seine Unterwerfung (+%d) bringen Machtprojektion: bis +%.1f ⚔️ im Monat, Prestige und schnelleren AE-Abbau. Sie zerfällt um %d im Jahr.%s" % [
 				int(b.max_rivals), int(b.rival_rel), int(b.pp_battle), int(b.pp_province), int(b.pp_humbled), float(b.pp_mil), int(b.pp_decay_per_year), ("\n❌ " + rr) if rr != "" else ""], rr != ""))
 	if o.overlord == me:
-		var left: int = game.annex_months_left(tag)
-		acts.append(_btn("📜 Annektieren %d🕊️ %d📜" % [int(game.annex_cost(tag)), int(game.annex_adm_cost(tag))], func(): _act(game.annex_vassal(me, tag), "📜 %s annektiert!" % o.name),
-				("Möglich ab %s. " % game.date_string(game.month + left) if left > 0 else "") + "Vasallen zahlen %d%% ihres Einkommens als Tribut und kämpfen in deinen Kriegen." % int(float(b.vassal_tribute) * 100), left > 0))
+		if Subjects.can_annex(game, tag):
+			var left: int = game.annex_months_left(tag)
+			acts.append(_btn("📜 Annektieren %d🕊️ %d📜" % [int(game.annex_cost(tag)), int(game.annex_adm_cost(tag))], func(): _act(game.annex_vassal(me, tag), "📜 %s annektiert!" % o.name),
+					("Möglich ab %s. " % game.date_string(game.month + left) if left > 0 else "") + _subject_text(tag), left > 0))
+		for to in ["dominion", "appanage"]:
+			if Subjects.kind(game, tag) == to or (to == "appanage" and Subjects.kind(game, tag) != ""):
+				continue
+			var cr: String = Subjects.convert_block_reason(game, me, tag, to)
+			var tt: Dictionary = Subjects.TYPES[to]
+			acts.append(_btn("%s %s %d🕊️" % [tt.icon, tt.name, int(Subjects.convert_cost(game, me, to))], func(): _act(Subjects.convert_subject(game, me, tag, to), "%s %s ist jetzt %s" % [tt.icon, o.name, tt.name]),
+					"Zum %s machen: %s%s" % [tt.name, _subject_help(to), ("\n❌ " + cr) if cr != "" else ""], cr != ""))
 	else:
 		if game.is_allied(me, tag):
 			acts.append(_btn("💔 Bündnis lösen", func(): game.break_alliance(me, tag); _act("", "💔 Bündnis aufgelöst"), "Bündnis auflösen: −30 Beziehung."))

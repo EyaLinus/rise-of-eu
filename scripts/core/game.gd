@@ -22,6 +22,7 @@ const Landmarks = preload("res://scripts/core/landmarks.gd")
 const Council = preload("res://scripts/core/council.gd")
 const Regime = preload("res://scripts/core/regime.gd")
 const Stability = preload("res://scripts/core/stability.gd")
+const Subjects = preload("res://scripts/core/subjects.gd")
 
 const POWERS := ["adm", "dip", "mil"]
 const MONTH_NAMES := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
@@ -141,6 +142,10 @@ class Nation:
 		set(v):
 			overlord = v
 			links_ver += 1
+			if v == "":
+				subject = ""
+	var subject: String = ""  # kind of subject while overlord != "": "" vassal, "colony", "dominion", "appanage" (Subjects)
+	var sub_name: String = ""  # pool nations (Subjects): the name they were given
 	var vassal_since: int = 0
 	var we: float = 0.0  # war exhaustion 0..we_max
 	var techs := {}  # researched tech id -> month (scripts/core/tech.gd)
@@ -302,6 +307,7 @@ var found := {}  # first discovery month: "s:<sea>" or "<pid>" -> month (knowled
 var atlantic_tags: Array = []  # realms that may explore and colonize
 var nation_data_native := {}  # tags of the native realms (nations.json "native")
 var colonial_drive := {}  # AI colonial ambition per tag (nations.json "colonial", default balance ai_colonial_drive)
+var subject_pool := {}  # Subjects: "colony"/"appanage" -> dormant pool tags (nations.json "dormant")
 var urban_start: Array = []  # [rural, urban] province counts at the start (demand baseline, Urban)
 var market_cache := {}
 var market_tags := {}  # tag -> markets with its trade power (built with market_cache)
@@ -439,6 +445,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		if data.nations[tag].has("colonial"):
 			colonial_drive[tag] = float(data.nations[tag].colonial)
 	Colonial.setup(self, data)
+	Subjects.setup(self, data)
 	Progression.start_ranks(self)
 	for tag in order:
 		nations[tag].stability = float(bal.stab_start)
@@ -1040,7 +1047,7 @@ func _economy(n: Nation) -> void:
 	n.expenses = maint + Naval.upkeep(self, n) + Trade.upkeep(self, n) + Economy.upkeep(self, n.tag) + Economy.interest(self, n) + govt.budget_cost(self, n) \
 			+ Economy.realm_cost(self, n)
 	if n.overlord != "":
-		var tribute: float = maxf(0.0, n.income * float(bal.vassal_tribute))
+		var tribute: float = maxf(0.0, n.income * Subjects.tribute_share(self, n.tag))
 		n.expenses += tribute
 		nations[n.overlord].gold += tribute
 	n.gold += n.income - n.expenses
@@ -1267,9 +1274,12 @@ func _yearly_systems() -> void:
 func _yearly_systems2() -> void:
 	Religion.yearly(self)
 	Colonial.yearly(self)
+	Subjects.yearly(self)
 	Tribes.ai_yearly(self)
 	Trade.yearly(self)
 	Formables.ai_yearly(self)
+	Subjects.ai_yearly(self)
+	Subjects.refresh_bonus(self)
 	_pmark("y.systems2")
 
 
@@ -1394,7 +1404,7 @@ func liberty(tag: String) -> float:
 	l += float(v.dev_total) / maxf(float(nations[v.overlord].dev_total), 1.0)
 	if get_rel(tag, v.overlord) < 0.0:
 		l += 0.3
-	return l
+	return l - Subjects.loyalty(self, tag)
 
 
 func _liberty_yearly() -> void:
@@ -1404,10 +1414,12 @@ func _liberty_yearly() -> void:
 			continue
 		if liberty(tag) >= float(bal.vassal_liberty_threshold) and rng.randf() < 0.25:
 			var lord: String = v.overlord
+			var was: String = Subjects.type_name(self, tag)
+			Subjects.released(self, tag)
 			v.overlord = ""
 			add_rel(tag, lord, -40.0)
 			stats.independence += 1
-			log_msg("🗽 %s sagt sich von %s los und ist wieder unabhängig!" % [v.name, nations[lord].name], [tag, lord])
+			log_msg("🗽 %s (%s) sagt sich von %s los und ist wieder unabhängig!" % [v.name, was, nations[lord].name], [tag, lord])
 
 
 # ---------------------------------------------------------------- armies
@@ -2030,6 +2042,7 @@ func _vassalize(lord: String, tag: String, reduced_ae: bool) -> void:
 	l.ae += ae * ae_mult(lord)
 	l.prestige += v.dev_total * float(bal.prestige_per_dev_taken) * 0.5
 	v.overlord = lord
+	v.subject = ""
 	v.vassal_since = month
 	v.coalition.clear()
 	for ally in v.allies.duplicate():
@@ -2049,21 +2062,23 @@ func _vassalize(lord: String, tag: String, reduced_ae: bool) -> void:
 func tribute_income(tag: String) -> float:
 	var s := 0.0
 	for v in vassals_of(tag):
-		s += maxf(0.0, nations[v].income * float(bal.vassal_tribute))
+		s += maxf(0.0, nations[v].income * Subjects.tribute_share(self, v))
 	return s
 
 
 func annex_cost(tag: String) -> float:
-	return nations[tag].dev_total * float(bal.annex_dip_per_dev)
+	return nations[tag].dev_total * float(bal.annex_dip_per_dev) * Subjects.annex_mult(self, tag)
 
 
 ## Annexed land must be integrated like conquered land (admin power).
 func annex_adm_cost(tag: String) -> float:
-	return nations[tag].dev_total * float(bal.core_cost_per_dev) * float(bal.annex_adm_mult)
+	return nations[tag].dev_total * float(bal.core_cost_per_dev) * float(bal.annex_adm_mult) * Subjects.annex_mult(self, tag)
 
 
 func annex_months_left(tag: String) -> int:
-	return maxi(0, nations[tag].vassal_since + int(bal.vassal_annex_years) * 12 - month)
+	if not Subjects.can_annex(self, tag):
+		return 999999
+	return maxi(0, nations[tag].vassal_since + Subjects.annex_years(self, tag) * 12 - month)
 
 
 ## Diplomatic annexation of a vassal after `vassal_annex_years`: all land moves to the overlord.
@@ -2072,6 +2087,8 @@ func annex_vassal(lord: String, tag: String) -> String:
 	var l: Nation = nations[lord]
 	if v.overlord != lord or not v.alive:
 		return "%s ist nicht dein Vasall." % v.name
+	if not Subjects.can_annex(self, tag):
+		return "%s kann nicht annektiert werden." % Subjects.type_name(self, tag)
 	if annex_months_left(tag) > 0:
 		return "Erst in %d Monaten möglich." % annex_months_left(tag)
 	if is_at_war(lord) or is_at_war(tag):
@@ -2138,6 +2155,7 @@ func _check_alive(tag: String) -> void:
 	for t in order:
 		nations[t].coalition.erase(tag)
 		if nations[t].overlord == tag:
+			Subjects.released(self, t)
 			nations[t].overlord = ""
 			log_msg("🗽 %s ist wieder unabhängig." % nations[t].name, [t])
 	n.overlord = ""
@@ -2916,7 +2934,10 @@ func _marriage_succession(n: Nation) -> void:
 
 ## Diplomatic capacity: alliances and vassals each take one slot. More slots with diplomatic technology.
 func diplo_used(tag: String) -> int:
-	return nations[tag].allies.size() + vassals_of(tag).size()
+	var c: int = nations[tag].allies.size()
+	for v in vassals_of(tag):
+		c += Subjects.diplo_slots(self, v)
+	return c
 
 
 func diplo_cap(tag: String) -> int:
@@ -3615,7 +3636,7 @@ func to_dict() -> Dictionary:
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
 				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "rivals": n.rivals, "power_proj": n.power_proj, "stability": n.stability, "rank": n.rank, "embargoes": n.embargoes, "templates": n.templates, "recruit_tmpl": n.recruit_tmpl, "religion": n.religion, "ships": snappedf(n.ships, 0.0001), "fleet_sea": n.fleet_sea, "fleet_mission": n.fleet_mission, "monuments": n.monuments.keys(), "monument_build": n.monument_build, "formed": n.formed,
-				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n), "colonial": Colonial.nation_save(n), "age_picks": Ages.to_save(n)}
+				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n), "colonial": Colonial.nation_save(n), "age_picks": Ages.to_save(n), "subject": Subjects.nation_save(self, n)}
 	d.nations = ns
 	var ar := []
 	for a in armies:
@@ -3774,6 +3795,7 @@ func from_dict(d: Dictionary) -> void:
 		n.coalition = e.coalition
 		n.overlord = e.get("overlord", "")
 		n.vassal_since = int(e.get("vassal_since", 0))
+		Subjects.nation_load(self, n, e.get("subject", {}))
 		n.we = float(e.get("we", 0.0))
 		n.merchants = []
 		for m in e.get("merchants", []):
@@ -3880,5 +3902,6 @@ func from_dict(d: Dictionary) -> void:
 	for t in order:
 		Economy.refresh_pact_bonus(self, nations[t])
 	Landmarks.refresh_bonus(self)
+	Subjects.refresh_bonus(self)
 	if not govt.council_cfg.is_empty():
 		Regime.after_load(self)
