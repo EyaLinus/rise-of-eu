@@ -185,6 +185,7 @@ def main():
         f.write('{"seas": [\n' + ",\n".join(json.dumps(s, ensure_ascii=False) for s in out) + '\n],\n"straits": '
                 + json.dumps(strait_sea, ensure_ascii=False, indent=0) + "}\n")
     write_fog(m, label, water)
+    write_sea_map(label, water, [s["center"] for s in out])
     for s in out:
         print(s["id"], len(s["provinces"]), s["provinces"][:12])
     print(strait_sea)
@@ -252,6 +253,174 @@ def write_fog(m, label, water):
     with open(os.path.join(ROOT, "data", "fog.json"), "w") as f:
         json.dump({"cell": FOG_CELL, "w": gw, "h": gh, "ids": ids, "rows": rows}, f, separators=(",", ":"))
     print("fog grid", gw, "x", gh, "regions", len(ids))
+
+
+SEA_CELL = 8
+# old sea-chart decorations (tools/art/sea_icons.py): monsters only far out in the open oceans
+OCEANS = {"ocean", "atlantic", "south_atlantic", "indian", "east_indian", "pacific", "east_pacific", "west_pacific", "south_pacific",
+          "humboldt", "norwegian", "sargasso", "arabian", "philippine"}
+POSEIDON = {"east_med": 1, "ocean": 1, "aegean": 0}
+
+
+def _chains(edges):
+    """Joins unit lattice edges ((x0, y0), (x1, y1)) into polylines; junctions end a chain."""
+    nb = {}
+    for a, b in edges:
+        nb.setdefault(a, []).append(b)
+        nb.setdefault(b, []).append(a)
+    seen = set()
+    out = []
+    starts = [v for v in nb if len(nb[v]) != 2] + list(nb)
+    for v0 in starts:
+        for v1 in nb[v0]:
+            if (v0, v1) in seen:
+                continue
+            line = [v0, v1]
+            seen.add((v0, v1))
+            seen.add((v1, v0))
+            while len(nb[line[-1]]) == 2 and line[-1] != v0:
+                nxt = [w for w in nb[line[-1]] if (line[-1], w) not in seen]
+                if not nxt:
+                    break
+                seen.add((line[-1], nxt[0]))
+                seen.add((nxt[0], line[-1]))
+                line.append(nxt[0])
+            out.append(line)
+    return out
+
+
+def _rdp(pts, tol):
+    """Douglas-Peucker: the cell staircase becomes a few straight runs before smoothing."""
+    if len(pts) < 3:
+        return pts
+    (x0, y0), (x1, y1) = pts[0], pts[-1]
+    dx, dy = x1 - x0, y1 - y0
+    ln = math.hypot(dx, dy)
+    best, bi = -1.0, 0
+    for i in range(1, len(pts) - 1):
+        px, py = pts[i]
+        d = abs(dy * (px - x0) - dx * (py - y0)) / ln if ln > 0 else math.hypot(px - x0, py - y0)
+        if d > best:
+            best, bi = d, i
+    if best <= tol:
+        return [pts[0], pts[-1]]
+    return _rdp(pts[:bi + 1], tol)[:-1] + _rdp(pts[bi:], tol)
+
+
+def _smooth(pts, rounds=3):
+    """Chaikin corner cutting (end points stay) turns the cell staircase into soft chart lines."""
+    pts = _rdp(pts, SEA_CELL * 1.2)
+    for _ in range(rounds):
+        if len(pts) < 3:
+            return pts
+        closed = pts[0] == pts[-1]
+        q = [pts[0]]
+        for a, b in zip(pts, pts[1:]):
+            q.append((0.75 * a[0] + 0.25 * b[0], 0.75 * a[1] + 0.25 * b[1]))
+            q.append((0.25 * a[0] + 0.75 * b[0], 0.25 * a[1] + 0.75 * b[1]))
+        q.append(pts[-1])
+        if closed:
+            q[0] = q[-1] = ((q[1][0] + q[-2][0]) / 2, (q[1][1] + q[-2][1]) / 2)
+        pts = q
+    # drop points that add nothing (nearly straight runs)
+    keep = [pts[0]]
+    for i in range(1, len(pts) - 1):
+        a, b, c = keep[-1], pts[i], pts[i + 1]
+        cross = abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]))
+        if cross > 6.0 or math.dist(a, b) > 60:
+            keep.append(b)
+    keep.append(pts[-1])
+    return keep
+
+
+def write_sea_map(label, water, centers):
+    """data/sea_map.json for the map view: a SEA_CELL grid naming the sea of every water cell (hover, tap,
+    selection), the borders between neighbouring seas as smoothed polylines, each sea's size, and the
+    spots of the sea-chart decorations. Rows are run-length encoded like fog.json."""
+    H, W = label.shape
+    gh, gw = H // SEA_CELL, W // SEA_CELL
+    c = SEA_CELL // 2
+    grid = label[c:gh * SEA_CELL:SEA_CELL, c:gw * SEA_CELL:SEA_CELL][:gh, :gw].astype(np.int32) + 1  # 0 = land
+    rows = []
+    for gy in range(gh):
+        rle = []
+        for v in grid[gy].tolist():
+            if rle and rle[-2] == v:
+                rle[-1] += 1
+            else:
+                rle += [v, 1]
+        rows.append(rle)
+    # borders between two seas: lattice edges between cells of different seas, chained per pair
+    pairs = {}
+    a, b = grid[:, :-1], grid[:, 1:]
+    ys, xs = np.nonzero((a > 0) & (b > 0) & (a != b))
+    for y, x in zip(ys.tolist(), xs.tolist()):
+        k = tuple(sorted((int(a[y, x]), int(b[y, x]))))
+        pairs.setdefault(k, []).append(((x + 1, y), (x + 1, y + 1)))
+    a, b = grid[:-1, :], grid[1:, :]
+    ys, xs = np.nonzero((a > 0) & (b > 0) & (a != b))
+    for y, x in zip(ys.tolist(), xs.tolist()):
+        k = tuple(sorted((int(a[y, x]), int(b[y, x]))))
+        pairs.setdefault(k, []).append(((x, y + 1), (x + 1, y + 1)))
+    borders = []
+    for (sa, sb), edges in sorted(pairs.items()):
+        for line in _chains(edges):
+            if len(line) < 4:
+                continue  # specks where two seas brush along a coast
+            pts = _smooth([(x * SEA_CELL, y * SEA_CELL) for x, y in line])
+            flat = []
+            for x, y in pts:
+                flat += [round(x, 1), round(y, 1)]
+            borders.append([SEAS[sa - 1][0], SEAS[sb - 1][0], flat])
+    area = np.bincount(grid.ravel(), minlength=len(SEAS) + 1)[1:] * SEA_CELL * SEA_CELL
+    # decorations: open water far from any coast and from the sea's name
+    wgrid = grid > 0
+    dist = ndimage.distance_transform_edt(wgrid) * SEA_CELL
+    rng = np.random.default_rng(1492)
+    deco = []
+    taken = []
+    for i, s in enumerate(SEAS):
+        sid = s[0]
+        if sid in INLAND or area[i] < 50000:
+            continue
+        cx, cy = centers[i]
+        n_spots = int(min(6, 1 + area[i] // 500000))
+        cand_y, cand_x = np.nonzero((grid == i + 1) & (dist >= 48))
+        if cand_x.size == 0:
+            continue
+        order = rng.permutation(cand_x.size)
+        picked = []
+        for j in order:
+            x, y = (cand_x[j] + 0.5) * SEA_CELL, (cand_y[j] + 0.5) * SEA_CELL
+            if math.dist((x, y), (cx, cy)) < 260:
+                continue
+            if any(math.dist((x, y), q) < 420 for q in taken):
+                continue
+            picked.append((x, y, float(dist[cand_y[j], cand_x[j]])))
+            taken.append((x, y))
+            if len(picked) >= n_spots:
+                break
+        picked.sort(key=lambda q: -q[2])  # deepest water first: the monsters live there
+        for k, (x, y, d) in enumerate(picked):
+            if k == 0 and POSEIDON.get(sid):
+                kind = "poseidon"
+            elif k == 0 and sid in OCEANS and d >= 400:
+                kind = "kraken" if (i % 3) != 1 else "whale"
+            elif d >= 300:
+                kind = ["ship", "whale", "ship", "fish"][(i + k) % 4]
+            elif d >= 150:
+                kind = ["ship", "fish", "boat", "gulls"][(i + k) % 4]
+            else:
+                kind = ["boat", "gulls", "fish"][(i + k) % 3]
+            deco.append([kind, round(x), round(y), sid])
+    with open(os.path.join(ROOT, "data", "sea_map.json"), "w") as f:
+        json.dump({"cell": SEA_CELL, "w": gw, "h": gh, "ids": [s[0] for s in SEAS],
+                   "area": {SEAS[i][0]: int(area[i]) for i in range(len(SEAS))}, "rows": rows,
+                   "borders": borders, "deco": deco}, f, separators=(",", ":"))
+    kinds = {}
+    for d in deco:
+        kinds[d[0]] = kinds.get(d[0], 0) + 1
+    print("sea map grid", gw, "x", gh, "borders", len(borders), "deco", kinds)
 
 
 if __name__ == "__main__":

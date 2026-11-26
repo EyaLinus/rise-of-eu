@@ -1,0 +1,3 @@
+- ⚓ Meeresregionen wie Provinzen: alle 78 Meere haben jetzt sichtbare Grenzen auf der Karte, zeigen beim Überfahren Namen, Art (Randmeer/Meer/Ozean), Küsten und Schiffe und lassen sich antippen. Das neue Meeres-Fenster zeigt die Flotten vor Ort, wer das Meer im Krieg beherrscht, blockierte Küsten, Überfahrten und Nachbarmeere; die eigene Flotte lässt sich direkt dort bündeln.
+- 🐙 Seekarten-Deko in Pixel-Art: Poseidon, Kraken, Koggen, Fischerboote, Möwen, springende Fische und Wale (mit kleiner Animation) in den offenen Meeren, unentdeckte Gewässer bleiben leer.
+- 🧭 Meeresnamen auch im Frieden: Ozeane in Sperrschrift schon von weit weg, kleinere Meere beim Hineinzoomen.

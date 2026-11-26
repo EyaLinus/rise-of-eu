@@ -23,6 +23,7 @@ func _init() -> void:
 		"test_difficulty",
 		"test_march_time_and_terrain", "test_interception", "test_battle_rounds",
 		"test_naval",
+		"test_sea_map",
 		"test_ai_peace_spending",
 		"test_capitulation",
 		"test_coalition_softer_vs_player",
@@ -191,6 +192,58 @@ func test_map_connected() -> void:
 					seen[a] = true
 					q.append(a)
 	check(seen.size() == g.provinces.size(), "all provinces connected (%d/%d)" % [seen.size(), g.provinces.size()])
+
+
+## Sea regions on the map (data/sea_map.json from tools/gen_seas.py): the same seas as seas.json, every
+## sea has water cells, each sea's label point lies in that sea or next to it, decorations sit in real seas.
+func test_sea_map() -> void:
+	var f := FileAccess.open("res://data/sea_map.json", FileAccess.READ)
+	check(f != null, "sea_map.json exists")
+	if f == null:
+		return
+	var d: Dictionary = JSON.parse_string(f.get_as_text())
+	var ids: Array = []
+	for s in data.seas.seas:
+		ids.append(s.id)
+	check(d.ids == ids, "sea_map ids match seas.json (%d)" % ids.size())
+	var w: int = d.w
+	var cells := PackedByteArray()
+	cells.resize(w * int(d.h))
+	var y := 0
+	for row in d.rows:
+		var x := 0
+		for i in range(0, row.size(), 2):
+			for k in int(row[i + 1]):
+				cells[y * w + x + k] = int(row[i])
+			x += int(row[i + 1])
+		check(x == w, "sea_map row %d has %d cells" % [y, w])
+		y += 1
+	var count := {}
+	for v in cells:
+		count[v] = count.get(v, 0) + 1
+	for i in ids.size():
+		check(count.get(i + 1, 0) > 0, "sea %s has water on the map" % ids[i])
+	var cell := float(d.cell)
+	var off := 0
+	for i in ids.size():
+		var c: Array = data.seas.seas[i].center
+		var cx := int(c[0] / cell)
+		var cy := int(c[1] / cell)
+		var near := false
+		for dy in range(-6, 7):
+			for dx in range(-6, 7):
+				var xx := clampi(cx + dx, 0, w - 1)
+				var yy := clampi(cy + dy, 0, int(d.h) - 1)
+				if cells[yy * w + xx] == i + 1:
+					near = true
+		if not near:
+			off += 1
+	check(off <= 3, "sea names sit in their sea (%d off)" % off)
+	for e in d.deco:
+		check(ids.has(e[3]), "decoration %s in a known sea id %s" % [e[0], e[3]])
+		check(ResourceLoader.exists("res://assets/art/icons/sea_%s_0.png" % e[0]), "decoration sprite sea_%s" % e[0])
+	for b in d.borders:
+		check(ids.has(b[0]) and ids.has(b[1]) and b[2].size() >= 4, "sea border %s-%s" % [b[0], b[1]])
 
 
 func test_events_shape() -> void:
