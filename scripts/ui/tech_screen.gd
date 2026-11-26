@@ -403,6 +403,7 @@ func _detail(id: String) -> void:
 		m._close_modal()
 		m._act(err, "🔬 %s erforscht!" % t.name)
 	var research: Button = m._btn("🔬 Erforschen (%d)" % cost, go, "", reason != "" or n.get(t.cat) < cost)
+	m._primary(research)
 	research.clip_text = false
 	research.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	var row := [research]
@@ -414,9 +415,15 @@ func _detail(id: String) -> void:
 			else:
 				g.tree.queue_add(g, me, id)
 			m._close_modal()
-		row.append(m._btn("✖ Aus dem Plan" if planned else "📜 Vormerken", toggle,
+		var qb: Button = m._btn("✖ Aus dem Plan" if planned else "📜 Vormerken", toggle,
 				"Aus dem Forschungsplan nehmen (auch was darauf aufbaut)" if planned else
-				"In den Forschungsplan: wird automatisch erforscht, sobald die Punkte reichen (fehlende Vorgänger kommen mit)"))
+				"In den Forschungsplan: wird automatisch erforscht, sobald die Punkte reichen (fehlende Vorgänger kommen mit)")
+		if not planned:  # confirm key: research now when affordable, else plan it
+			if research.disabled:
+				m._primary(qb)
+			else:
+				qb.set_meta("confirm", true)
+		row.append(qb)
 		if planned:
 			box.add_child(m._lbl("📜 Im Forschungsplan: %s" % _wait_text(g, me, id), 15, Color(0.8, 0.85, 1.0)))
 	row.append(m._btn("Schließen", m._close_modal))
@@ -425,7 +432,8 @@ func _detail(id: String) -> void:
 
 func _wait_text(g, me: String, id: String) -> String:
 	var n = g.nations[me]
-	var lst: Array = g.tree.queue_of(n, g.tree.by_id[id].cat)
+	var lst: Array = g.tree.queue_of(n, g.tree.by_id[id].cat).filter(
+			func(q): return q == id or not g.tree._date_wait(g, n, q))  # parked-for-its-year techs do not hold the line
 	var i: int = lst.find(id)
 	if i > 0:
 		return "Platz %d, nach %s" % [i + 1, g.tree.by_id[lst[i - 1]].name]

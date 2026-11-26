@@ -3387,8 +3387,36 @@ func test_tech_queue() -> void:
 	var done: Array = tr.queue_tick(g, n)
 	check(n.techs.has(t.id) and n.techs.has(pre), "plan researched in order")
 	check(done.size() >= 2 and not n.tech_queue.has(t.id), "researched techs leave the plan")
-	# removing a planned prerequisite drops what builds on it; saves keep the plan
+	# a tech parked for its year must not block an affordable one behind it
 	n.tech_queue.clear()
+	g.month = (1475 - 1444) * 12  # 1506 techs are open (from 1471) but still before their window (1486)
+	var early: String = ""
+	var open_t: String = ""
+	var ecat := ""
+	for d in tr.defs:
+		if Tech.is_special(d) or n.techs.has(d.id) or tr.years_ahead(g, d.id) == 0 or g.year() < int(d.year) - tr.early_years - tr.ahead_years:
+			continue
+		for r in d.get("req", []):
+			n.techs[r] = 0  # grant the prerequisites so the tech is open but still ahead of its window
+		if tr.block_reason(g, "FRA", d.id) != "":
+			continue
+		early = d.id
+		ecat = d.cat
+		break
+	for d in tr.defs:
+		if early != "" and d.cat == ecat and not Tech.is_special(d) and not n.techs.has(d.id) and tr.years_ahead(g, d.id) == 0 \
+				and tr.block_reason(g, "FRA", d.id) == "":
+			open_t = d.id
+			break
+	check(early != "" and open_t != "", "found a parked and an open tech of one category")
+	if early != "" and open_t != "":
+		n.tech_queue.append(early)
+		n.tech_queue.append(open_t)
+		n.set(ecat, 900.0)
+		tr.queue_tick(g, n)
+		check(n.techs.has(open_t) and not n.techs.has(early), "affordable tech behind a year-parked one is researched")
+	n.tech_queue.clear()
+	# removing a planned prerequisite drops what builds on it; saves keep the plan
 	var u: Dictionary = {}
 	for d in tr.defs:
 		if not Tech.is_special(d) and d.cat == "dip" and not n.techs.has(d.id) and d.get("req", []).any(func(r): return not n.techs.has(r)):

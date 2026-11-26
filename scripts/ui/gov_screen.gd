@@ -462,6 +462,7 @@ func _advisor(id: String) -> void:
 			m._close_modal()
 			m._act(e, "⭐ %s auf Stufe %d gefördert" % [a.name, lvl + 1]))
 		go.disabled = err != ""
+		m._primary(go)
 	if err != "":
 		box.add_child(m._lbl(err, 14, Color(0.95, 0.6, 0.55)))
 	var row := [m._btn("Entlassen", func():
@@ -635,6 +636,7 @@ func _invest(id: String) -> void:
 			var err: String = gv.invest(g, me, id, int(slider.value))
 			m._close_modal()
 			m._act(err, "🏦 %s auf Stufe %d ausgebaut" % [c.name, int(slider.value)]))
+		go.set_meta("confirm", true)
 		var upd := func(v: float) -> void:
 			_invest_preview(preview, go, id, cur, int(v))
 		slider.value_changed.connect(upd)
