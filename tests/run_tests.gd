@@ -4412,7 +4412,7 @@ func test_playable_flavour() -> void:
 	var g = new_game("POR", 5)
 	var per := {}
 	for e in g.event_defs:
-		per[e.tag] = int(per.get(e.tag, 0)) + 1
+		per[e.get("tag", "")] = int(per.get(e.get("tag", ""), 0)) + 1
 		if String(e.id).begins_with("pf_"):
 			for k in ["claim"]:
 				for o in e.options:
