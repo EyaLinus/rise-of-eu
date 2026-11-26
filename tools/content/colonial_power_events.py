@@ -7,8 +7,8 @@ Events "colp_*":
   (effect "col_exhaust", condition "col_exhaust_min") that every finished colony builds up (colonial.gd).
 - exhaustion events (trigger "col_exhaust_min"): the motherland is tired of sending settlers.
 - historical Oceania voyages in their real windows: Mendaña (Solomons 1568), Quirós (Vanuatu 1606), the
-  Duyfken (Cape York 1606), Dirk Hartog (West Australia 1616), Tasman (Tasmania/New Zealand 1642), and for
-  endless play Cook (1770) and Botany Bay (1788). They discover the coasts ("discover") or found the
+  Torres (Torres Strait 1606), the Duyfken (Cape York 1606), Dirk Hartog (West Australia 1616), the Batavia wreck
+  (1629) and Tasman (Tasmania/New Zealand 1642); every window lies inside 1444-1644 (test_event_keys). They discover the coasts ("discover") or found the
   historical settlement ("colony_grant"); "colony_free" keeps them away once the land is taken.
 
 "knows_sea" lists only seas that start unknown (colonial.NEW_SEAS): the Old World seas of Asia are known to
@@ -173,22 +173,22 @@ OCEANIA = [
        ("Die Entdeckungen kartieren.", {"dip": 40, "prestige": 10}),
        ("Kein Handel, keine Gewinne.", {"gold": 50}),
        ai=(10, 70, 20), extra={"knows_sea": ["east_indian", "south_aus", "arafura"]}),
-    oc("cook", "ENG", "Captain Cook im Südmeer",
-       "Ein Kapitän der Flotte kehrt von einer langen Fahrt zurück: er hat die Ostküste eines großen Kontinents "
-       "vermessen und Aotearoa umsegelt. Die Botaniker sind begeistert.",
-       (1700, 1800), ["eora", "turrbal", "northland", "waikato", "hawaii"],
-       ("Gleich Siedler hinterherschicken.", {"gold": -80, "prestige": 5}),
-       ("Die Karten veröffentlichen.", {"dip": 40, "prestige": 10}),
-       ("Die Karten geheim halten.", {"adm": 30}),
-       ai=(15, 60, 25)),
-    oc("botany", "ENG", "Die Erste Flotte",
-       "Die Gefängnisse sind voll, und Amerika nimmt keine Sträflinge mehr. Ein Plan schlägt vor, sie an eine "
-       "Bucht im fernen Süden zu bringen, wo der Kapitän einst Pflanzen gesammelt hat.",
-       (1720, 1830), ["eora", "kamilaroi", "turrbal"],
-       ("Die Flotte nach Botany Bay schicken.", {"gold": -60, "prestige": 5}),
-       ("Nur einen Hafen für Walfänger.", {"dip": 30, "mods": {"trade": 0.01}}),
-       ("Sträflinge bleiben in den Gefängnissen.", {"adm": 30, "stability": -2}),
-       extra={"knows_sea": ["coral", "tasman", "south_aus"]}),
+    oc("torres", "SPA", "Die Torres-Straße",
+       "Luís Váez de Torres hat sich von Quirós getrennt und ist zwischen Neuguinea und einem flachen Südland "
+       "hindurchgesegelt, durch eine Straße voller Riffe, die niemand auf der Karte hat.",
+       (1600, 1640), ["trans_fly", "motu", "cape_york"],
+       ("In Manila Siedler für Neuguinea anwerben.", {"gold": -60, "prestige": 5}),
+       ("Den Bericht in Manila aufbewahren.", {"dip": 30}),
+       ("Die Durchfahrt geheim halten.", {"adm": 30, "mods": {"trade": 0.01}}),
+       ai=(30, 50, 20), extra={"knows_sea": ["melanesia", "coral", "arafura", "south_pacific"]}),
+    oc("batavia", "NED", "Der Untergang der Batavia",
+       "Das neue Flaggschiff der Kompanie ist vor einer kahlen Küste auf ein Riff gelaufen. Die Überlebenden "
+       "warten auf kleinen Inseln, während ein Boot Hilfe aus Java holt.",
+       (1620, 1644), ["gascoyne", "swan", "pilbara", "kimberley"],
+       ("Dort einen Hafen mit Leuchtfeuer bauen.", {"gold": -70, "prestige": 5}),
+       ("Die Riffe genau kartieren lassen.", {"dip": 30}),
+       ("Die Fracht bergen und weitersegeln.", {"gold": 70, "prestige": -5}),
+       ai=(30, 50, 20), extra={"knows_sea": ["east_indian", "indian", "south_aus"]}),
     oc("southland", None, "Terra Australis",
        "Seeleute erzählen von einem großen Südland jenseits der Gewürzinseln. Kartenmacher zeichnen es seit "
        "Jahrhunderten ein, doch niemand hat es betreten.",
