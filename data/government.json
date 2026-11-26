@@ -169,8 +169,9 @@
  ],
  "ai_promote_chance": 0.3,
  "company_slots": 2,
- "company_months": 18,
- "company_min_gold": 60,
+ "company_base_gold": 175,
+ "company_year_scale": 0.01,
+ "company_income_share": 0.03,
  "invest_max_level": 5,
  "invest_step": 0.5,
  "invest_cost_mult": 0.5,
@@ -936,7 +937,14 @@
   "YEM": "Sultanat",
   "ADA": "Sultanat",
   "MAZ": "Sultanat",
-  "NED": "Kaufmannsrepublik"
+  "NED": "Kaufmannsrepublik",
+  "MNG": "Kaiserreich",
+  "ASH": "Shogunat",
+  "INC": "Kaiserreich",
+  "MGL": "Khanat",
+  "AZT": "Stammesföderation",
+  "MLC": "Sultanat",
+  "MAL": "Kaiserreich"
  },
  "form_effects": {
   "Feudalmonarchie": {
@@ -1013,6 +1021,12 @@
    "adm": 0.5,
    "unrest": 0.25
   },
+  "Shogunat": {
+   "combat": 0.05,
+   "army_power": 0.05,
+   "estate_adel": 10,
+   "unrest": 0.25
+  },
   "Erzherzogtum": {
    "dip": 0.5,
    "estate_adel": 5
@@ -1047,7 +1061,8 @@
    "Großfürstentum",
    "Kurfürstentum",
    "Sultanat",
-   "Absolute Monarchie"
+   "Absolute Monarchie",
+   "Shogunat"
   ],
   "republik": [
    "Kaufmannsrepublik",
@@ -1558,6 +1573,378 @@
     "combat": 0.05
    },
    "text": "Feldherr der Grenzmarken gegen Adal."
+  },
+  {
+   "id": "mng_yu_qian",
+   "tag": "MNG",
+   "name": "Yu Qian",
+   "type": "mil",
+   "from": 1444,
+   "to": 1457,
+   "effects": {
+    "combat": 0.05,
+    "army_power": 0.1
+   },
+   "text": "Der Minister, der nach Tumu Peking hielt, als der Kaiser in Gefangenschaft war."
+  },
+  {
+   "id": "mng_zhang_juzheng",
+   "tag": "MNG",
+   "name": "Zhang Juzheng",
+   "type": "adm",
+   "from": 1567,
+   "to": 1582,
+   "effects": {
+    "adm": 2,
+    "tax": 0.05
+   },
+   "text": "Großsekretär und Erzieher des jungen Kaisers: er lässt das Land vermessen und die Steuern in Silber erheben."
+  },
+  {
+   "id": "mng_qi_jiguang",
+   "tag": "MNG",
+   "name": "Qi Jiguang",
+   "type": "mil",
+   "from": 1555,
+   "to": 1587,
+   "effects": {
+    "combat": 0.06,
+    "naval": 0.05
+   },
+   "text": "Er drillt Bauern zu Soldaten und vertreibt die Wokou von der Küste."
+  },
+  {
+   "id": "mng_xu_guangqi",
+   "tag": "MNG",
+   "name": "Xu Guangqi",
+   "type": "adm",
+   "from": 1600,
+   "to": 1633,
+   "effects": {
+    "tech_cost": -0.08
+   },
+   "text": "Gelehrter und Freund der Jesuiten: er übersetzt Euklid und schreibt über Ackerbau."
+  },
+  {
+   "id": "ash_katsumoto",
+   "tag": "ASH",
+   "name": "Hosokawa Katsumoto",
+   "type": "dip",
+   "from": 1445,
+   "to": 1473,
+   "effects": {
+    "dip": 1,
+    "ae_decay": 0.05
+   },
+   "text": "Kanrei des Shōgun und Herr der Hosokawa. Er hält den Hof, solange er lebt."
+  },
+  {
+   "id": "ash_ikkyu",
+   "tag": "ASH",
+   "name": "Ikkyū Sōjun",
+   "type": "adm",
+   "from": 1444,
+   "to": 1481,
+   "effects": {
+    "prestige": 0.5,
+    "unrest": -0.25
+   },
+   "text": "Ein exzentrischer Zen-Mönch, Dichter und Spötter der Mächtigen."
+  },
+  {
+   "id": "ash_rikyu",
+   "tag": "ASH",
+   "name": "Sen no Rikyū",
+   "type": "dip",
+   "from": 1560,
+   "to": 1591,
+   "effects": {
+    "prestige": 1.0,
+    "dip": 1
+   },
+   "text": "Der Teemeister aus Sakai: Schlichtheit als höchste Kunst."
+  },
+  {
+   "id": "ash_hideyoshi",
+   "tag": "ASH",
+   "name": "Ein Sandalenträger aus Owari",
+   "type": "mil",
+   "from": 1560,
+   "to": 1598,
+   "effects": {
+    "combat": 0.08,
+    "siege": 0.2
+   },
+   "text": "Ein Bauernsohn, der vom Sandalenträger zum Feldherrn aufsteigt."
+  },
+  {
+   "id": "inc_tupac",
+   "tag": "INC",
+   "name": "Túpac Yupanqui",
+   "type": "mil",
+   "from": 1450,
+   "to": 1493,
+   "effects": {
+    "combat": 0.06,
+    "manpower": 0.05
+   },
+   "text": "Der Sohn Pachacútecs führt das Heer bis nach Quito und Chile."
+  },
+  {
+   "id": "inc_capac_yupanqui",
+   "tag": "INC",
+   "name": "Cápac Yupanqui",
+   "type": "mil",
+   "from": 1444,
+   "to": 1465,
+   "effects": {
+    "combat": 0.04,
+    "siege": 0.1
+   },
+   "text": "Bruder des Inka und Eroberer des Nordens. Zu erfolgreich für manchen am Hof."
+  },
+  {
+   "id": "inc_quipucamayoc",
+   "tag": "INC",
+   "name": "Oberster Quipucamayoc",
+   "type": "adm",
+   "from": 1444,
+   "to": 1540,
+   "effects": {
+    "tax": 0.05,
+    "coring": -0.1
+   },
+   "text": "Er liest die Knotenschnüre wie andere Bücher."
+  },
+  {
+   "id": "inc_willaq_umu",
+   "tag": "INC",
+   "name": "Willaq Umu, Hohepriester der Sonne",
+   "type": "dip",
+   "from": 1444,
+   "to": 1540,
+   "effects": {
+    "prestige": 0.5,
+    "unrest": -0.5
+   },
+   "text": "Der Hohepriester des Sonnentempels Coricancha."
+  },
+  {
+   "id": "lit_gostautas",
+   "tag": "LIT",
+   "name": "Jonas Goštautas",
+   "type": "adm",
+   "from": 1444,
+   "to": 1458,
+   "effects": {
+    "adm": 1,
+    "unrest": -0.25
+   },
+   "text": "Der Woiwode von Wilna regiert das Großfürstentum, während der König in Krakau sitzt."
+  },
+  {
+   "id": "lit_ostrogski",
+   "tag": "LIT",
+   "name": "Konstanty Ostrogski",
+   "type": "mil",
+   "from": 1497,
+   "to": 1530,
+   "effects": {
+    "combat": 0.07
+   },
+   "text": "Großhetman, Sieger von Orscha, ein orthodoxer Fürst im Dienst des katholischen Großfürsten."
+  },
+  {
+   "id": "lit_radziwill",
+   "tag": "LIT",
+   "name": "Mikołaj Radziwiłł der Schwarze",
+   "type": "dip",
+   "from": 1550,
+   "to": 1565,
+   "effects": {
+    "dip": 1,
+    "religious_unrest": -0.5
+   },
+   "text": "Der mächtigste Magnat Litauens, Kanzler und Calvinist."
+  },
+  {
+   "id": "lit_sapieha",
+   "tag": "LIT",
+   "name": "Lew Sapieha",
+   "type": "adm",
+   "from": 1580,
+   "to": 1633,
+   "effects": {
+    "adm": 1,
+    "tax": 0.04
+   },
+   "text": "Kanzler und Verfasser des dritten Litauischen Statuts."
+  },
+  {
+   "id": "mgl_mandukhai",
+   "tag": "MGL",
+   "name": "Mandukhai die Weise",
+   "type": "mil",
+   "from": 1465,
+   "to": 1510,
+   "effects": {
+    "combat": 0.06,
+    "prestige": 0.5
+   },
+   "text": "Die Königin, die selbst in die Schlacht reitet und die Mongolen wieder eint."
+  },
+  {
+   "id": "mgl_altan",
+   "tag": "MGL",
+   "name": "Altan Khan",
+   "type": "mil",
+   "from": 1530,
+   "to": 1582,
+   "effects": {
+    "combat": 0.05,
+    "trade": 0.05
+   },
+   "text": "Der Herr der Tümed, der Peking belagert und dann Pferdemärkte aushandelt."
+  },
+  {
+   "id": "mgl_sonam",
+   "tag": "MGL",
+   "name": "Sonam Gyatso",
+   "type": "dip",
+   "from": 1570,
+   "to": 1588,
+   "effects": {
+    "prestige": 1.0,
+    "unrest": -0.5
+   },
+   "text": "Der Lama, dem Altan Khan den Titel Dalai Lama gab."
+  },
+  {
+   "id": "mgl_zanabazar",
+   "tag": "MGL",
+   "name": "Gelehrte von Erdene Zuu",
+   "type": "adm",
+   "from": 1586,
+   "to": 1645,
+   "effects": {
+    "tech_cost": -0.05
+   },
+   "text": "Mönche und Schreiber, die tibetische Bücher ins Mongolische übertragen."
+  },
+  {
+   "id": "azt_tlacaelel",
+   "tag": "AZT",
+   "name": "Tlacaelel",
+   "type": "adm",
+   "from": 1444,
+   "to": 1487,
+   "effects": {
+    "adm": 1,
+    "prestige": 0.5
+   },
+   "text": "Der Cihuacóatl hinter drei Herrschern: er schreibt die Geschichte der Mexica neu."
+  },
+  {
+   "id": "azt_nezahualcoyotl",
+   "tag": "AZT",
+   "name": "Nezahualcóyotl von Texcoco",
+   "type": "dip",
+   "from": 1444,
+   "to": 1472,
+   "effects": {
+    "dip": 1,
+    "tech_cost": -0.05
+   },
+   "text": "Dichter, Baumeister und König von Texcoco, Verbündeter im Dreibund."
+  },
+  {
+   "id": "azt_ahuitzotl",
+   "tag": "AZT",
+   "name": "Ahuitzotl",
+   "type": "mil",
+   "from": 1480,
+   "to": 1502,
+   "effects": {
+    "combat": 0.07
+   },
+   "text": "Der Herrscher, der das Reich bis an die Grenze Guatemalas ausdehnt."
+  },
+  {
+   "id": "mlc_tun_perak",
+   "tag": "MLC",
+   "name": "Tun Perak",
+   "type": "adm",
+   "from": 1456,
+   "to": 1498,
+   "effects": {
+    "adm": 1,
+    "naval": 0.05
+   },
+   "text": "Der Bendahara, der vier Sultanen diente und Malakka groß machte."
+  },
+  {
+   "id": "mlc_hang_tuah",
+   "tag": "MLC",
+   "name": "Laksamana Hang Tuah",
+   "type": "mil",
+   "from": 1450,
+   "to": 1511,
+   "effects": {
+    "naval": 0.1,
+    "combat": 0.03
+   },
+   "text": "Der Laksamana, Admiral und Held unzähliger Legenden."
+  },
+  {
+   "id": "mlc_syahbandar",
+   "tag": "MLC",
+   "name": "Syahbandar der Gujarati",
+   "type": "dip",
+   "from": 1444,
+   "to": 1640,
+   "effects": {
+    "trade": 0.1
+   },
+   "text": "Ein Hafenmeister aus Gujarat, der jede Sprache des Hafens spricht."
+  },
+  {
+   "id": "mal_griot",
+   "tag": "MAL",
+   "name": "Oberster Griot",
+   "type": "dip",
+   "from": 1444,
+   "to": 1640,
+   "effects": {
+    "prestige": 0.75,
+    "dip": 1
+   },
+   "text": "Er kennt die Geschichte jedes Clans bis zu Sundiata zurück."
+  },
+  {
+   "id": "mal_qadi",
+   "tag": "MAL",
+   "name": "Qadi von Timbuktu",
+   "type": "adm",
+   "from": 1444,
+   "to": 1590,
+   "effects": {
+    "unrest": -0.5,
+    "tech_cost": -0.03
+   },
+   "text": "Der Richter von Timbuktu, Gelehrter der Sankore-Moschee."
+  },
+  {
+   "id": "mal_farin",
+   "tag": "MAL",
+   "name": "Farin von Kaarta",
+   "type": "mil",
+   "from": 1444,
+   "to": 1640,
+   "effects": {
+    "combat": 0.05,
+    "manpower": 0.05
+   },
+   "text": "Ein Statthalter des Westens mit eigener Reiterei."
   },
   {
    "id": "ned_oldenbarnevelt",
@@ -2187,6 +2574,94 @@
     "production": 0.03
    },
    "text": "Seide aus dem Norden für die Märkte von Aleppo und Bursa."
+  },
+  {
+   "id": "mng_jingdezhen",
+   "tag": "MNG",
+   "name": "Kaiserliche Manufaktur Jingdezhen",
+   "year": 1444,
+   "effects": {
+    "production": 0.15,
+    "trade": 0.03
+   },
+   "text": "Blau-weißes Porzellan für den Hof und die Welt."
+  },
+  {
+   "id": "ash_sakai_merchants",
+   "tag": "ASH",
+   "name": "Kaufmannsrat von Sakai",
+   "year": 1460,
+   "effects": {
+    "trade": 0.15,
+    "income": 0.03
+   },
+   "text": "Die reichste Hafenstadt Japans handelt mit China und den Südbarbaren."
+  },
+  {
+   "id": "inc_qullqa",
+   "tag": "INC",
+   "name": "Die Qullqa-Speicher",
+   "year": 1444,
+   "effects": {
+    "production": 0.12,
+    "manpower": 0.05
+   },
+   "text": "Tausende Vorratshäuser entlang der Straßen."
+  },
+  {
+   "id": "lit_vilnius_merchants",
+   "tag": "LIT",
+   "name": "Kaufmannsgilde von Wilna",
+   "year": 1490,
+   "effects": {
+    "trade": 0.12,
+    "income": 0.03
+   },
+   "text": "Pelze, Wachs und Getreide für Danzig und Riga."
+  },
+  {
+   "id": "mgl_horse_fairs",
+   "tag": "MGL",
+   "name": "Pferdemärkte an der Mauer",
+   "year": 1500,
+   "effects": {
+    "trade": 0.15,
+    "manpower": 0.03
+   },
+   "text": "Pferde gegen Tee und Seide."
+  },
+  {
+   "id": "azt_tlatelolco",
+   "tag": "AZT",
+   "name": "Markt von Tlatelolco",
+   "year": 1444,
+   "effects": {
+    "trade": 0.15,
+    "tax": 0.03
+   },
+   "text": "60 000 Menschen handeln jeden Tag auf dem größten Markt der Neuen Welt."
+  },
+  {
+   "id": "mlc_port_masters",
+   "tag": "MLC",
+   "name": "Die vier Hafenmeister",
+   "year": 1446,
+   "effects": {
+    "trade": 0.2,
+    "naval": 0.03
+   },
+   "text": "Je ein Syahbandar für Gujarat, Java, China und Bengalen."
+  },
+  {
+   "id": "mal_wangara",
+   "tag": "MAL",
+   "name": "Wangara-Goldhändler",
+   "year": 1444,
+   "effects": {
+    "income": 0.12,
+    "trade": 0.05
+   },
+   "text": "Dyula-Kaufleute bringen das Gold aus Bambuk und Akan."
   },
   {
    "id": "ned_voc",

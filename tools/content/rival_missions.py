@@ -41,6 +41,13 @@ STYLE = {
     "QAR": ("die Schwarzen Hammel", "die Weißen Hammel, die Timuriden und die Osmanen", {"manpower": 0.05}),
     "ETH": ("der Kaiser von Äthiopien", "Adal, die Osmanen und die Herren des Roten Meeres", {"combat": 0.02}),
     "NED": ("die Generalstaaten", "die Hanse, Burgund und England", {"trade": 0.03}),
+    "MNG": ("der Sohn des Himmels", "die Mongolen, die Oiraten und die Jurchen", {"army_power": 0.05}),
+    "ASH": ("der Shōgun", "die Yamana, die Ōuchi und alle Daimyō, die selbst Shōgun sein wollen", {"combat": 0.02}),
+    "INC": ("der Sapa Inka", "die Colla, Chimor und die Völker des Nordens", {"manpower": 0.05}),
+    "MGL": ("der Khan", "die Oiraten und die Ming", {"manpower": 0.05}),
+    "AZT": ("der Huey Tlatoani", "Tlaxcala und die Purépecha", {"combat": 0.02}),
+    "MLC": ("der Sultan von Malakka", "Siam, Pasai und die Fremden aus dem Westen", {"trade": 0.03}),
+    "MAL": ("der Mansa", "Songhai, die Mossi und die Tuareg", {"trade": 0.03}),
 }
 
 

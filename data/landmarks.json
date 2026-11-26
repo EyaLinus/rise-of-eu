@@ -2417,5 +2417,305 @@
    "mil",
    6
   ]
+ },
+ "coricancha": {
+  "name": "Coricancha",
+  "prov": "cusco",
+  "kind": "temple",
+  "emoji": "🗿",
+  "start": 2,
+  "local": {
+   "unrest": -0.3,
+   "tax": 0.05
+  },
+  "nation": {
+   "prestige": 0.35
+  },
+  "text": "Der Sonnentempel von Cusco, die Wände mit Gold verkleidet.",
+  "bound": "INC"
+ },
+ "sacsayhuaman": {
+  "name": "Sacsayhuamán",
+  "prov": "cusco",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 0,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Mauern aus tonnenschweren Steinen über der Hauptstadt.",
+  "bound": "INC",
+  "tech": [
+   "mil",
+   2
+  ],
+  "cost": 1.2
+ },
+ "machu_picchu": {
+  "name": "Machu Picchu",
+  "prov": "antisuyu",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 0,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Das Landgut Pachacútecs hoch über dem Urubamba.",
+  "bound": "INC",
+  "tech": [
+   "adm",
+   2
+  ]
+ },
+ "chan_chan": {
+  "name": "Chan Chan",
+  "prov": "chan_chan",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 1,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Die größte Lehmziegelstadt Amerikas."
+ },
+ "forbidden_city": {
+  "name": "Verbotene Stadt",
+  "prov": "beijing",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 2,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.4,
+   "dip": 0.1
+  },
+  "text": "Der Kaiserpalast mit 980 Gebäuden.",
+  "bound": "MNG",
+  "cost": 1.2
+ },
+ "great_wall_badaling": {
+  "name": "Große Mauer bei Badaling",
+  "prov": "xuanfu",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 1,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 1.0,
+   "prestige": 0.1
+  },
+  "text": "Die Steinmauer vor den Pässen nördlich Pekings.",
+  "bound": "MNG",
+  "cost": 1.2
+ },
+ "porcelain_tower": {
+  "name": "Porzellanpagode von Nanjing",
+  "prov": "nanjing",
+  "kind": "temple",
+  "emoji": "🗿",
+  "start": 1,
+  "local": {
+   "unrest": -0.3,
+   "tax": 0.05
+  },
+  "nation": {
+   "prestige": 0.25
+  },
+  "text": "Neun Stockwerke aus glasierten Ziegeln."
+ },
+ "hanlin": {
+  "name": "Hanlin-Akademie",
+  "prov": "beijing",
+  "kind": "school",
+  "emoji": "🎓",
+  "start": 1,
+  "local": {
+   "unrest": -0.2
+  },
+  "nation": {
+   "tech_cost": -0.01,
+   "adm": 0.05,
+   "prestige": 0.1
+  },
+  "text": "Die Gelehrten des Kaisers schreiben Geschichte und prüfen Beamte."
+ },
+ "kinkakuji": {
+  "name": "Goldener Pavillon",
+  "prov": "kyoto",
+  "kind": "temple",
+  "emoji": "🗿",
+  "start": 2,
+  "local": {
+   "unrest": -0.3,
+   "tax": 0.05
+  },
+  "nation": {
+   "prestige": 0.35
+  },
+  "text": "Der Pavillon Ashikaga Yoshimitsus am Spiegelteich.",
+  "bound": "ASH"
+ },
+ "ginkakuji": {
+  "name": "Silberner Pavillon",
+  "prov": "kyoto",
+  "kind": "temple",
+  "emoji": "🗿",
+  "start": 0,
+  "local": {
+   "unrest": -0.3,
+   "tax": 0.05
+  },
+  "nation": {
+   "prestige": 0.25
+  },
+  "text": "Teehaus und Sandgarten am Fuß der Ostberge.",
+  "bound": "ASH",
+  "tech": [
+   "adm",
+   3
+  ]
+ },
+ "himeji": {
+  "name": "Burg Himeji",
+  "prov": "harima",
+  "kind": "fortress",
+  "emoji": "🛡️",
+  "start": 0,
+  "local": {
+   "manpower": 0.15,
+   "unrest": -0.3
+  },
+  "nation": {
+   "force_limit": 0.5,
+   "prestige": 0.1
+  },
+  "text": "Die Burg des Weißen Reihers.",
+  "tech": [
+   "mil",
+   7
+  ]
+ },
+ "erdene_zuu": {
+  "name": "Kloster Erdene Zuu",
+  "prov": "karakorum",
+  "kind": "temple",
+  "emoji": "🗿",
+  "start": 0,
+  "local": {
+   "unrest": -0.3,
+   "tax": 0.05
+  },
+  "nation": {
+   "prestige": 0.25
+  },
+  "text": "Das erste buddhistische Kloster der Mongolei, aus den Steinen Karakorums.",
+  "bound": "MGL",
+  "tech": [
+   "adm",
+   5
+  ]
+ },
+ "karakorum_ruins": {
+  "name": "Ruinen von Karakorum",
+  "prov": "karakorum",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 1,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.4,
+   "dip": 0.1
+  },
+  "text": "Hier stand der Palast der Großkhane.",
+  "bound": "MGL"
+ },
+ "potala": {
+  "name": "Potala",
+  "prov": "lhasa",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 1,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Burg und Palast über Lhasa."
+ },
+ "malacca_port": {
+  "name": "Hafen von Malakka",
+  "prov": "malacca",
+  "kind": "port",
+  "emoji": "⚓",
+  "start": 2,
+  "local": {
+   "trade_power": 0.25,
+   "trade_flat": 1.0
+  },
+  "nation": {
+   "trade": 0.03,
+   "naval": 0.02,
+   "prestige": 0.1
+  },
+  "text": "Hundert Sprachen am Kai der Meerenge.",
+  "bound": "MLC"
+ },
+ "malacca_palace": {
+  "name": "Istana des Sultans",
+  "prov": "malacca",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 0,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.3,
+   "dip": 0.1
+  },
+  "text": "Ein Holzpalast mit siebenstufigem Dach.",
+  "bound": "MLC",
+  "tech": [
+   "adm",
+   2
+  ]
+ },
+ "niani_palace": {
+  "name": "Hof des Mansa",
+  "prov": "niani",
+  "kind": "palace",
+  "emoji": "🏰",
+  "start": 1,
+  "local": {
+   "tax": 0.1
+  },
+  "nation": {
+   "prestige": 0.4,
+   "dip": 0.1
+  },
+  "text": "Thronsaal mit Kuppel, gebaut von einem Baumeister aus Andalusien.",
+  "bound": "MAL"
  }
 }

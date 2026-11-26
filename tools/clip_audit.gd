@@ -8,6 +8,7 @@ var scale := 1.0
 var width := 1280
 var big := false
 var shots := ""
+var tag := "FRA"  # --tag TUR: play this realm (long names like "Osmanisches Reich" overflowed buttons)
 var found := {}  # "panel|text" -> detail
 
 
@@ -23,6 +24,8 @@ func _init() -> void:
 				big = true
 			"--shots":
 				shots = args[i + 1]
+			"--tag":
+				tag = args[i + 1]
 	if shots != "":
 		DirAccess.make_dir_recursive_absolute(shots)
 	_run("--fail" in args)
@@ -40,7 +43,12 @@ func _run(fail: bool) -> void:
 	var m = load("res://scenes/main.tscn").instantiate()
 	root.add_child(m)
 	await create_timer(0.3).timeout
-	m._start_game("FRA")
+	# start menu: every playable realm as a pick button, and the chosen one's card
+	await _check(m, "start")
+	m.start_pick = tag
+	m._show_start_menu()
+	await _check(m, "start_pick")
+	m._start_game(tag)
 	m.settings.tips = false
 	m._close_modal()
 	var g = m.game
@@ -49,7 +57,7 @@ func _run(fail: bool) -> void:
 	g.pending_events.clear()
 	g.pending_peace.clear()
 	# a rich late-game state: big numbers must still fit
-	var n = g.nations.FRA
+	var n = g.nations[tag]
 	n.gold = 123456.0
 	n.adm = 999.0
 	n.dip = 999.0
@@ -75,11 +83,11 @@ func _run(fail: bool) -> void:
 		m._open_panel("tech")
 		m.tech_screen._select(b)
 		await _check(m, "tech/" + b)
-	var own: Array = g.provinces_of("FRA") if g.has_method("provinces_of") else []
+	var own: Array = g.provinces_of(tag) if g.has_method("provinces_of") else []
 	if not own.is_empty():
 		m._open_panel("province", own[0])
 		await _check(m, "province")
-	m._open_panel("other", "ENG")
+	m._open_panel("other", "ENG" if tag != "ENG" else "FRA")
 	await _check(m, "other")
 	m._close_panel()
 	var gv = g.govt
@@ -90,7 +98,7 @@ func _run(fail: bool) -> void:
 	m.gov_screen._pick_reform(gv.reforms[0].id)
 	await _check(m, "reform_picker")
 	m._close_modal()
-	m._confirm_war("ENG")
+	m._confirm_war("ENG" if tag != "ENG" else "FRA")
 	await _check(m, "war_popup")
 	m._close_modal()
 	m.gov_screen._pick_advisor()

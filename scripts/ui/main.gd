@@ -10,6 +10,7 @@ const TechScreen = preload("res://scripts/ui/tech_screen.gd")
 const Tech = preload("res://scripts/core/tech.gd")
 const Faith = preload("res://scripts/core/religion.gd")
 const Colonial = preload("res://scripts/core/colonial.gd")
+const Tribes = preload("res://scripts/core/tribes.gd")
 const Monuments = preload("res://scripts/core/monuments.gd")
 const Landmarks = preload("res://scripts/core/landmarks.gd")
 const Ages = preload("res://scripts/core/ages.gd")
@@ -39,7 +40,7 @@ const HUD_TIPS := {
 	"stability": "Stabilität: −100 % bis +100 %",
 }
 const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP"]
-const EXTRA_PLAYABLE := ["TUR", "POL", "BUR", "NED", "POR", "VEN", "HUN", "MAM", "QAR", "ETH"]  # playable too, listed after the majors (same amount of content since v0.9.5)
+const EXTRA_PLAYABLE := ["TUR", "POL", "BUR", "NED", "POR", "VEN", "HUN", "MAM", "QAR", "ETH", "MNG", "ASH", "LIT", "MGL", "INC", "AZT", "MLC", "MAL"]  # playable too, listed after the majors (same amount of content since v0.9.5)
 
 var data: Dictionary
 var game
@@ -798,7 +799,38 @@ func _nation_btn(tag: String, extra: String, cb: Callable, pre: String = "") -> 
 	if flag != null:
 		b.icon = flag
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_fit_one_line(b)
 	return b
+
+
+## Flag + name on one line: a wrapped label put the flag above the text and both spilled out of the
+## button ("Osmanisches Reich", "Qara Qoyunlu"). Long names shrink their font to fit instead (down to
+## 65 %), and only then end in "…".
+func _fit_one_line(b: Button) -> void:
+	b.autowrap_mode = TextServer.AUTOWRAP_OFF
+	b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	b.custom_minimum_size.x = 0.0
+	var fit := func() -> void:
+		if not b.is_inside_tree() or b.size.x < 1.0:
+			return
+		if not b.has_meta("fit_fs"):  # lambdas capture locals by value: keep the base size on the button
+			b.set_meta("fit_fs", b.get_theme_font_size("font_size"))
+		var base: int = b.get_meta("fit_fs")
+		var font: Font = b.get_theme_font("font")
+		var avail: float = b.size.x
+		var sb: StyleBox = b.get_theme_stylebox("normal")
+		if sb != null:
+			avail -= sb.get_margin(SIDE_LEFT) + sb.get_margin(SIDE_RIGHT)
+		if b.icon != null and not b.expand_icon:
+			avail -= b.icon.get_width() + b.get_theme_constant("h_separation")
+		var need: float = font.get_string_size(b.text, HORIZONTAL_ALIGNMENT_LEFT, -1, base).x
+		var fs: int = base
+		if need > avail and need > 0.0:
+			fs = maxi(int(base * 0.65), int(floor(base * avail / need)))
+		if fs != b.get_theme_font_size("font_size"):
+			b.add_theme_font_size_override("font_size", fs)
+	b.resized.connect(fit)
+	b.tree_entered.connect(func(): fit.call_deferred(), CONNECT_ONE_SHOT)
 
 
 # ---------------------------------------------------------------- game flow
@@ -878,6 +910,7 @@ func _show_start_menu() -> void:
 				sc.set_deferred("scroll_vertical", 0), nd.get("idea", ""))
 		if tag == start_pick:
 			nb.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
+		_fit_one_line(nb)
 		picks.append(nb)
 	while picks.size() % 3 != 0:
 		picks.append(Control.new())
@@ -3506,6 +3539,12 @@ func _panel_native_land(p) -> void:
 						"Mit den Ureinwohnern verhandeln: ihre Stärke halbiert sich, die Siedlung wächst schneller und wird seltener überfallen." + (("\n❌ " + tr) if tr != "" else ""), tr != ""),
 				_btn("✖ Aufgeben", func(): Colonial.abandon_colony(game, me, pid); _refresh(); map.refresh(), "Die Siedler ziehen ab, das Gold ist verloren."),
 			]))
+		return
+	if Tribes.is_native_realm(game, me):
+		var tw: String = Tribes.block_reason(game, me, pid)
+		side_box.add_child(_btn("🪶 Stämme eingliedern %d 🕊️ %d 💰" % [int(ceil(Tribes.dip_cost(game, pid))), int(ceil(Tribes.gold_cost(game, pid)))],
+				func(): _act(Tribes.integrate(game, me, pid), "🪶 Die Stämme schließen sich uns an"); map.refresh(),
+				"Reiche der Ureinwohner gründen keine Kolonien: sie gewinnen die freien Stämme an ihrer Grenze mit Geschenken und Verhandlungen. Die Provinz gehört sofort zum Reich (noch ohne Kernanspruch). Größere und stärkere Stämme kosten mehr Diplomatie." + (("\n❌ " + tw) if tw != "" else ""), tw != ""))
 		return
 	var why: String = Colonial.colony_block_reason(game, me, pid)
 	var cost: int = int(Colonial.colony_cost(game, me, pid))
