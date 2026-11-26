@@ -16,6 +16,7 @@ const Naval = preload("res://scripts/core/naval.gd")
 const Units = preload("res://scripts/core/units.gd")
 const Urban = preload("res://scripts/core/urban.gd")
 const Colonial = preload("res://scripts/core/colonial.gd")
+const Tribes = preload("res://scripts/core/tribes.gd")
 const Trade = preload("res://scripts/core/trade.gd")
 const Landmarks = preload("res://scripts/core/landmarks.gd")
 const Council = preload("res://scripts/core/council.gd")
@@ -1266,6 +1267,7 @@ func _yearly_systems() -> void:
 func _yearly_systems2() -> void:
 	Religion.yearly(self)
 	Colonial.yearly(self)
+	Tribes.ai_yearly(self)
 	Trade.yearly(self)
 	Formables.ai_yearly(self)
 	_pmark("y.systems2")
@@ -1485,7 +1487,7 @@ func _side_power(arms: Array, pid: int) -> float:
 	for a in arms:
 		var m := combat_mult(a.owner)
 		if provinces[pid].owner == a.owner:
-			m += float(bal.home_defense)
+			m += float(bal.home_defense) + mod(nations[a.owner], "defense")  # "defense": fighting on own land
 		m += float(bal.general_bonus) * a.general
 		s += command_regs(a) * m * power_factor(a)
 	return s

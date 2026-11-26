@@ -82,6 +82,9 @@ func _init() -> void:
 		"test_more_goods_and_softer_costs",
 		"test_supply_and_ai_stacks",
 		"test_landmarks", "test_daily_gain",
+		"test_world_playables",
+		"test_tribes",
+		"test_modifier_keys_known",
 		"test_old_save_tech_levels", "test_council", "test_elections", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		if not only.is_empty() and not only.has(t):
@@ -2724,7 +2727,8 @@ func test_ai_uses_government() -> void:
 				spec += 1
 	print("    AI 1484: %d nations, %d advisors, %d companies, %d laws changed, %d special techs" % [alive, adv, comp, laws, spec])
 	check(adv >= alive, "AI hires advisors")
-	check(comp >= alive / 2, "AI founds companies")
+	# since the world map (v1.1, ~200 realms) many are one-to-three-province tribes that cannot pay ~175 gold
+	check(comp >= alive / 3, "AI founds companies")
 	check(laws >= alive / 2, "AI changes laws")
 	check(spec >= 5, "AI researches special techs")
 ## Every emoji in UI code and data/*.json needs a pixel glyph (scripts/ui/pixel_emoji.gd); there is no emoji font.
@@ -4408,7 +4412,7 @@ func test_playable_flavour() -> void:
 	var g = new_game("POR", 5)
 	var per := {}
 	for e in g.event_defs:
-		per[e.tag] = int(per.get(e.tag, 0)) + 1
+		per[e.get("tag", "")] = int(per.get(e.get("tag", ""), 0)) + 1
 		if String(e.id).begins_with("pf_"):
 			for k in ["claim"]:
 				for o in e.options:
@@ -4824,3 +4828,83 @@ func test_daily_gain() -> void:
 	g.tick()
 	check(absf((n.manpower - m0) - gain) < maxf(1.0, gain * 0.05), "a month adds the shown manpower gain (%.1f vs %.1f)" % [n.manpower - m0, gain])
 	check(n.ae < a0 and absf((a0 - n.ae) - dec) < 0.05, "a month removes about the shown AE decay (%.3f vs %.3f)" % [a0 - n.ae, dec])
+
+
+## v1.1.2: China, Japan, Inca, Lithuania, Mongolia, Aztecs, Malacca and Mali are playable with own content.
+func test_world_playables() -> void:
+	var g = new_game("ASH", 3)
+	for t in ["MNG", "ASH", "INC", "LIT", "MGL", "AZT", "MLC", "MAL"]:
+		check(g.nations[t].playable, "%s is playable" % t)
+		var ms: Array = data.missions.get(t, [])
+		var own := 0
+		for x in ms:
+			if String(x.id).contains("_np_"):
+				own += 1
+		check(own >= 6, "%s has national missions (%d)" % [t, own])
+	# the one-province shogun gets the player-only bonus; the AI shogun does not
+	var ai = new_game("FRA", 3)
+	check(g.mod(g.nations.ASH, "manpower") > ai.mod(ai.nations.ASH, "manpower") + 0.3, "player shogun bonus")
+	check(g.nations.ASH.claims.has(g.key_to_pid["kii"]), "shogun starts with claims")
+
+
+## Native realms bring in the free tribes on their border instead of founding colonies (scripts/core/tribes.gd).
+func test_tribes() -> void:
+	var g = new_game("INC", 5)
+	var T = g.Tribes
+	var n = g.nations.INC
+	var jauja: int = g.key_to_pid["jauja"]
+	var far: int = g.key_to_pid["amazonas"]
+	check(g.provinces[jauja].owner == "NAT", "jauja is free native land in 1444")
+	check(T.block_reason(g, "SPA", jauja) != "", "the Old World colonizes instead")
+	check(T.block_reason(g, "INC", far) != "", "only tribes on the border")
+	n.dip = 0.0
+	check(T.block_reason(g, "INC", jauja).contains("Diplomatie"), "costs diplomacy")
+	n.dip = 500.0
+	n.gold = 500.0
+	var cost: float = T.dip_cost(g, jauja)
+	var n0: int = g.provinces_of("INC").size()
+	check(T.integrate(g, "INC", jauja) == "", "the tribe joins")
+	check(g.provinces[jauja].owner == "INC" and g.provinces_of("INC").size() == n0 + 1 and not g.provinces_of("NAT").has(jauja), "owner and indices updated")
+	check(absf(500.0 - cost - n.dip) < 0.01 and g.provinces[jauja].core_months == 0, "paid in diplomacy, not cored yet")
+	check(T.integrate(g, "INC", jauja) != "", "no second time")
+	# AI: only playable native realms, and only with power to spare
+	var ai = new_game("FRA", 5)
+	ai.nations.INC.dip = 900.0
+	ai.nations.INC.gold = 900.0
+	ai.nations.MAY.dip = 900.0
+	ai.nations.MAY.gold = 900.0
+	var may0: int = ai.provinces_of("MAY").size()
+	ai.bal.ai_tribe_chance = 1.0
+	ai.Tribes.ai_yearly(ai)
+	check(ai.provinces_of("INC").size() == 4, "the AI Inca take in one tribe a year")
+	check(ai.provinces_of("MAY").size() == may0, "non-playable natives do not")
+
+
+## Every modifier key in the data is one the game knows (Uesugi's "defense" did nothing until v1.1.2).
+func test_modifier_keys_known() -> void:
+	var bad := []
+	for t in data.nations:
+		for k in data.nations[t].get("bonus", {}).keys() + data.nations[t].get("player_bonus", {}).keys():
+			if not Tech.LABELS.has(k):
+				bad.append("%s:%s" % [t, k])
+	for e in data.events:
+		for o in e.options:
+			for k in o.effects.get("mods", {}):
+				if not Tech.LABELS.has(k):
+					bad.append("%s:%s" % [e.id, k])
+	for t in data.missions:
+		for x in data.missions[t]:
+			for k in x.reward.get("mods", {}):
+				if not Tech.LABELS.has(k):
+					bad.append("%s:%s" % [x.id, k])
+	check(bad.is_empty(), "unknown modifier keys: %s" % ", ".join(bad.slice(0, 10)))
+	# "defense" (Uesugi +10 %) adds to the strength of armies fighting on their own land
+	var g = new_game("FRA", 3)
+	var mine: Array = g.armies.filter(func(x): return x.owner == "UES")
+	check(not mine.is_empty(), "Uesugi has an army")
+	if not mine.is_empty():
+		var home: int = g.nations.UES.capital
+		var d: float = g.mod(g.nations.UES, "defense")
+		var p1: float = g._side_power([mine[0]], home)
+		g.nations.UES.bonus["test"] = {"defense": -d}
+		check(d > 0.05 and g._side_power([mine[0]], home) < p1, "defense bonus counts at home")

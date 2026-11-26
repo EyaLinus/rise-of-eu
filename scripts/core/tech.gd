@@ -12,7 +12,9 @@ const LABELS := {
 	"build_cost": ["Baukosten", true, false], "develop_cost": ["Entwicklungskosten", true, false],
 	"maintenance": ["Armeeunterhalt", true, false], "manpower": ["Mannschaften", true, true],
 	"combat": ["Kampfkraft", true, true], "force_limit": ["Truppenlimit", false, true],
-	"naval": ["Flottenstärke", true, true],
+	"naval": ["Flottenstärke", true, true], "defense": ["Verteidigung im eigenen Land", true, true],
+	"colony_cost": ["Koloniekosten", true, false], "colonists": ["Siedler", false, true],
+	"col_exhaust_gain": ["Kolonialerschöpfung (Zuwachs)", true, false], "col_exhaust_decay": ["Abbau der Kolonialerschöpfung", true, true],
 	"adm": ["Verwaltung/Monat", false, true], "dip": ["Diplomatie/Monat", false, true], "mil": ["Militär/Monat", false, true],
 	"ae_decay": ["AE-Abbau", true, true], "ae_gen": ["Aggressive Expansion", true, false],
 	"tech_cost": ["Technologiekosten", true, false], "siege": ["Belagerungstempo", true, true],
@@ -33,7 +35,7 @@ const DESCS := {
 	"income": "alle Einnahmen", "tax": "Steuern aus Provinzen", "production": "Wert der produzierten Güter",
 	"trade": "Einnahmen aus Handel", "merchants": "zusätzliche Händler", "build_cost": "Gold für Gebäude",
 	"develop_cost": "Verwaltungspunkte für Entwicklung", "maintenance": "Gold für stehende Armeen",
-	"manpower": "maximale Mannschaften", "combat": "Stärke in Schlachten", "naval": "Stärke der Flotte in Seeschlachten und um die Seeherrschaft", "force_limit": "Regimenter ohne Strafe",
+	"manpower": "maximale Mannschaften", "combat": "Stärke in Schlachten", "naval": "Stärke der Flotte in Seeschlachten und um die Seeherrschaft", "defense": "Kampfkraft in Schlachten auf eigenem Land", "colony_cost": "Gold für eine neue Kolonie", "colonists": "Siedlergruppen, die gleichzeitig Kolonien gründen", "col_exhaust_gain": "wie schnell neue Kolonien das Reich erschöpfen", "col_exhaust_decay": "wie schnell die Kolonialerschöpfung wieder sinkt", "force_limit": "Regimenter ohne Strafe",
 	"adm": "Verwaltungspunkte pro Monat", "dip": "Diplomatiepunkte pro Monat", "mil": "Militärpunkte pro Monat",
 	"ae_decay": "wie schnell Aggressive Expansion abklingt", "ae_gen": "AE bei Eroberungen und Kriegserklärungen",
 	"stability": "Wert, zu dem die Stabilität langsam zurückkehrt", "diplo_cap": "Plätze für Bündnisse und Vasallen",
@@ -58,7 +60,7 @@ const AI_WEIGHTS := {
 	"adm": 6.0, "dip": 5.0, "mil": 5.0, "ae_decay": 15.0, "ae_gen": -20.0, "tech_cost": -60.0, "siege": 12.0,
 	"unrest": -2.5, "coring": -12.0, "prestige": 2.0, "company_slots": 8.0, "advisor_slots": 8.0,
 	"estate_adel": 0.03, "estate_klerus": 0.03, "estate_buerger": 0.03, "army_power": 60.0, "army_power_regen": 15.0,
-	"religious_unrest": -3.0, "conversion": 3.0, "command": 40.0, "general_start": 25.0,
+	"religious_unrest": -3.0, "conversion": 3.0, "command": 40.0, "general_start": 25.0, "defense": 50.0, "colony_cost": -10.0, "colonists": 20.0, "col_exhaust_gain": -10.0, "col_exhaust_decay": 10.0,
 	"recruit_cost": -20.0, "ship_cost": -10.0,
 }
 
