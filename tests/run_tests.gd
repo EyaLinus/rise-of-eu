@@ -4017,13 +4017,19 @@ func test_formables() -> void:
 	var g = new_game("NAP")
 	for id in g.formable_defs:
 		var f: Dictionary = g.formable_defs[id]
+		check(not g.nations.has(id), "formable id %s collides with a nation tag (flags would mix)" % id)
+		check(ResourceLoader.exists("res://assets/art/icons/flag_%s.png" % id), "formable %s has a flag" % id)
+		check(g.event_by_id.has("form_" + id.to_lower()), "formable %s has its event" % id)
 		for t in f.from:
-			check(g.nations.has(t), "formable %s: unknown nation %s" % [id, t])
-		for k in f.provinces:
+			check(t == "*" or g.nations.has(t), "formable %s: unknown nation %s" % [id, t])
+		for k in g.Formables.all_provinces(g, id) + f.get("capital_in", []):
 			check(g.key_to_pid.has(k), "formable %s: unknown province %s" % [id, k])
-		check(int(f.need) <= f.provinces.size(), "formable %s: need too high" % id)
+		for gr in g.Formables.groups(g, id):
+			check(int(gr.need) <= gr.provinces.size(), "formable %s: need too high" % id)
+		for k in f.get("bonus", {}):
+			check(UiTheme.label(k)[0] != k, "formable %s: bonus key %s has no label" % [id, k])
 		for t in g.order:
-			if t in f.from:
+			if g.nations[t].alive and ("*" in f.from or t in f.from):
 				check(g.Formables.block_reason(g, t, id) != "", "%s can form %s at the start" % [t, id])
 	check("ITA" in g.Formables.options(g, "NAP"), "Naples may form Italy")
 	check(not "ITA" in g.Formables.options(g, "FRA"), "France may not form Italy")
@@ -4040,10 +4046,48 @@ func test_formables() -> void:
 	check(n.formed == "ITA" and n.name == "Italien" and n.prestige > pr and n.bonus.has("formed"), "new identity and bonus")
 	check(n.claims.has(g.key_to_pid["bologna"]), "claim on the missing province")
 	check(g.pending_events.has("form_ita"), "the player gets the formation event")
-	check(g.Formables.options(g, "NAP").is_empty() and g.Formables.block_reason(g, "VEN", "ITA") != "", "only one formation")
+	check(g.Formables.options(g, "NAP").all(func(id): return g.Formables.tier(g, id) >= 2) and g.Formables.block_reason(g, "VEN", "ITA") != "", "only one regional formation")
 	var g2 = new_game("NAP")
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
 	check(g2.nations.NAP.name == "Italien" and g2.nations.NAP.bonus.has("formed"), "formed realm survives save/load")
+	check(n.rank >= 3, "Italy is at least a kingdom")
+	# tier 2: a formed realm may still proclaim a great empire; Europe needs rank, year and 9 capitals
+	check(not "EUR" in g.Formables.options(g, "NAP"), "Europe is not listed while far out of reach")
+	check(g.Formables.block_reason(g, "NAP", "EUR").contains("1500"), "Europe waits for 1500")
+	g.month = (1500 - 1444) * 12
+	check(g.Formables.block_reason(g, "NAP", "EUR").contains("Rang"), "Europe needs the empire rank")
+	n.rank = 4
+	var reqs: Array = g.Formables.requirements(g, "NAP", "EUR")
+	check(reqs.any(func(r): return not r[0] and str(r[1]).contains("Hauptstädte")), "checklist shows the missing capitals")
+	for k in ["london", "paris", "toledo", "lisbon", "wien", "prague", "buda", "krakow"]:
+		var p = g.provinces[g.key_to_pid[k]]
+		p.owner = "NAP"
+		p.controller = "NAP"
+	g._rebuild_owned()
+	n.adm = 999.0
+	check("EUR" in g.Formables.options(g, "NAP"), "Italy may still aim for Europe")
+	check(g.Formables.block_reason(g, "NAP", "EUR") == "", "Europe can be proclaimed: " + g.Formables.block_reason(g, "NAP", "EUR"))
+	check(g.Formables.form(g, "NAP", "EUR") == "" and n.formed == "EUR" and n.rank == 5, "Imperium Europa: hegemon rank")
+	check(n.flags.formed_hist == ["ITA"] and float(n.bonus.formed.get("trade", 0.0)) > 0.15, "Italy's bonus stays on top of Europe's")
+	check(g.Formables.block_reason(g, "VEN", "ITA") != "", "Italy stays taken after the second formation")
+	# USA: any non-native realm with its capital on the North American east coast
+	var u = g.nations.ENG
+	check(g.Formables.block_reason(g, "ENG", "USA").contains("Hauptstadt"), "England (capital London) cannot form the USA")
+	check(not "USA" in g.Formables.options(g, "IRO"), "natives do not form the USA")
+	var na: Array = g.formable_defs.USA.groups[0].provinces
+	for k in na:
+		var p = g.provinces[g.key_to_pid[k]]
+		p.owner = "ENG"
+		p.controller = "ENG"
+	g._rebuild_owned()
+	u.capital = g.key_to_pid["massachusett"]
+	u.adm = 999.0
+	check(g.is_at_war("ENG") or (g.Formables.form(g, "ENG", "USA") == "" and u.name == "Vereinigte Staaten"), "USA proclaimed")
+	# old saves: the Maghreb was stored as MAG (Maguindanao's tag)
+	var m = g.nations.MOR
+	m.formed = "MAG"
+	g.Formables.apply_identity(g, m)
+	check(m.formed == "MGB" and m.name == "Maghreb", "old MAG formation is read as the Maghreb")
 
 
 func test_chronicle() -> void:
