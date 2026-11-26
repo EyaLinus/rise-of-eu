@@ -2269,7 +2269,17 @@ func _show_event(event_id: String) -> void:
 	var pic := _event_picture(e)
 	if pic != null:
 		modal_box.add_child(pic)
-	modal_box.add_child(_lbl("📯 " + e.title, 28))
+	var kind: Array = event_kind(e)
+	if kind.is_empty():
+		modal_box.add_child(_lbl("📯 " + e.title, 28))
+	else:
+		modal_box.add_child(_lbl("%s %s" % [kind[0], e.title], 28))
+		var band := PanelContainer.new()
+		band.add_theme_stylebox_override("panel", UiTheme.card("", 6))
+		var bl := _lbl("%s  %s\n%s" % [kind[0], kind[1], kind[2]], 15, kind[3])
+		bl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		band.add_child(bl)
+		modal_box.add_child(band)
 	modal_box.add_child(_lbl(e.text, 18))
 	for i in e.options.size():
 		var o: Dictionary = e.options[i]
@@ -2277,6 +2287,31 @@ func _show_event(event_id: String) -> void:
 		if e.options.size() == 1:  # one way out: the confirm key takes it (several options are a decision)
 			ob.get_child(0).set_meta("confirm", true)
 		modal_box.add_child(ob)
+
+
+## Event categories with their own icon and explanation line: [icon, name, what it means, colour], [] = plain event.
+## "kind" in events.json, age decisions (age_q_*) by id.
+func event_kind(e: Dictionary) -> Array:
+	var k: String = str(e.get("kind", ""))
+	if k == "" and str(e.get("id", "")).begins_with("age_q_"):
+		k = "decision"
+	match k:
+		"decision":
+			var q: Dictionary = game.age_q.get(str(e.id).substr(6), {})
+			var age := ""
+			for a in game.age_cfg.get("ages", []):
+				if a.id == q.get("age", ""):
+					age = "Zeitalter: %s · " % a.name
+			return ["⚖️", "Historische Entscheidung", "%sDie Antwort gilt für den Rest des Spiels und lässt sich unter Technologie ⚖ zweimal vertiefen." % age, UiTheme.GOLD]
+		"alliance":
+			return ["🤝", "Bündniswahl", "Einmalig zu Spielbeginn. Historische Partner sind markiert, jeder Nachbar ist möglich. Verbündete treten deinen Kriegen bei.", Color(0.7, 0.85, 1.0)]
+		"poison":
+			return ["☠️", "Wahl zwischen Übeln", "Jede Antwort kostet etwas. Wähle das kleinere Übel für dein Reich.", Color(0.95, 0.6, 0.55)]
+		"warning":
+			return ["⚠️", "Drohende Katastrophe", "Noch lässt sie sich abwenden. Wer jetzt spart, riskiert, dass sie in den nächsten Jahren ausbricht.", Color(1.0, 0.8, 0.4)]
+		"disaster":
+			return ["🔥", "Katastrophe", "Die Warnung kam zu spät oder wurde überhört. Jetzt geht es darum, den Schaden zu begrenzen.", Color(1.0, 0.5, 0.4)]
+	return []
 
 
 var _event_motifs = null
@@ -3722,7 +3757,7 @@ func _panel_nation() -> void:
 
 
 const MOD_SOURCES := {"": "Nationalgeist & Ereignisse", "goods": "Handelsgüter", "buildings": "Gebäude", "rank": "Rang",
-		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "landmarks": "Historische Bauwerke", "rivals": "Rivalen", "embargo": "Embargos", "blockade": "Blockaden", "escort": "Handelsschutz", "formed": "Reichsgründung", "ages": "Weichen der Zeitalter", "stability": "Stabilität"}
+		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte", "landmarks": "Historische Bauwerke", "rivals": "Rivalen", "embargo": "Embargos", "blockade": "Blockaden", "escort": "Handelsschutz", "formed": "Reichsgründung", "ages": "Weichen der Zeitalter", "stability": "Stabilität", "tmods": "Befristete Folgen von Ereignissen"}
 const MOD_GROUPS := [
 	["💰 Wirtschaft", ["income", "tax", "production", "trade", "merchants", "build_cost", "develop_cost"]],
 	["⚔️ Militär", ["combat", "army_power", "army_power_regen", "manpower", "force_limit", "maintenance", "siege", "naval"]],
@@ -5365,6 +5400,10 @@ func effect_parts(e: Dictionary) -> Array:
 			else:
 				var val: float = game.tree.effect_value(game.govt.trait_effects(str(v)))
 				parts.append(["👑 %s wird %s" % [who, game.govt.trait_name(str(v))], 1 if val > 0.0 else -1])
+		elif k == "tmods":
+			var yrs: int = maxi(1, roundi(int(v.get("months", 60)) / 12.0))
+			for r in UiTheme.mod_rows(v.get("mods", {})):
+				parts.append(["%s %s (%d J.)" % [r[1], r[0], yrs], 1 if r[2] else -1])
 	return parts
 
 

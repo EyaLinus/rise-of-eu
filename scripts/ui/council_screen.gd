@@ -90,7 +90,7 @@ func _seat_card(g, n, s: Dictionary) -> Control:
 	pc.mouse_filter = Control.MOUSE_FILTER_STOP
 	var me: String = n.tag
 	if mem.is_empty():
-		var b: Button = m._btn("Berufen", _pick.bind(id), "Drei Kandidaten zur Auswahl")
+		var b: Button = m._btn("Berufen", _pick.bind(id), "Drei Kandidaten mit verschiedenen Eigenschaften zur Auswahl")
 		b.size_flags_horizontal = Control.SIZE_SHRINK_END
 		b.disabled = n.gold < Council.hire_cost(g, n, 1)
 		var h := HBoxContainer.new()
@@ -102,6 +102,9 @@ func _seat_card(g, n, s: Dictionary) -> Control:
 	var lvl: int = int(mem.skill)
 	var exp_left := Council.experience_left(g, n, id)
 	var sub := "%s · Stufe %d/%d" % [mem.name, lvl, Council.max_skill(g)]
+	var td := Council.trait_def(g, id, Council.trait_of(n, id))
+	if not td.is_empty():
+		sub += " · %s" % td.name
 	if exp_left > 0:
 		sub += " · Aufstieg durch Erfahrung in %d J." % exp_left
 	var pb: Button = m._btn("➕%d%s" % [int(Council.promote_cost(g, n, id)), Icons.emoji(s.power)], func():
@@ -119,7 +122,7 @@ func _seat_card(g, n, s: Dictionary) -> Control:
 	h.add_child(xb)
 	v.add_child(h)
 	v.add_child(m._lbl(sub, 13, MUTED))
-	v.add_child(TechScreen.effects_rich(Council.seat_effects(g, id, lvl), 14))
+	v.add_child(TechScreen.effects_rich(Council.seat_effects(g, id, lvl, Council.trait_of(n, id)), 14))
 	# automation: switch plus one button per limit
 	var on := Council.auto_on(n, id)
 	var ab: Button = m._btn("🤖 Automatik %s" % ("an" if on else "aus"), func():
@@ -175,8 +178,11 @@ func _pick(id: String) -> void:
 		pc.add_child(h)
 		var v := VBoxContainer.new()
 		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		v.add_child(m._lbl("%s · Stufe %d" % [p.name, int(p.skill)], 17))
-		v.add_child(TechScreen.effects_rich(Council.seat_effects(g, id, int(p.skill)), 14))
+		var ptd := Council.trait_def(g, id, str(p.get("trait", "")))
+		v.add_child(m._lbl("%s · Stufe %d" % [p.name, int(p.skill)] + ("" if ptd.is_empty() else " · " + str(ptd.name)), 17))
+		if not ptd.is_empty():
+			v.add_child(m._lbl(str(ptd.text), 13, MUTED))
+		v.add_child(TechScreen.effects_rich(Council.seat_effects(g, id, int(p.skill), str(p.get("trait", ""))), 14))
 		if err != "":
 			v.add_child(m._lbl(err, 13, Color(0.95, 0.6, 0.55)))
 		h.add_child(v)
