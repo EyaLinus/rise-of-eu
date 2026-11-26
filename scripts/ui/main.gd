@@ -1749,6 +1749,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		act = "slower"
 	elif act == "" and k == KEY_H:
 		act = "help"
+	elif act == "" and (k == KEY_ENTER or k == KEY_KP_ENTER):
+		act = "confirm"  # Enter works like the confirm key
 	if act == "confirm":
 		if not _confirm():
 			return
@@ -1798,9 +1800,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif k == KEY_ESCAPE:
 		if quick.visible:
 			quick.close()
+		elif modal.visible:
+			# Esc closes a popup that is only information; events and peace offers need an answer
+			if not game.pending_events.is_empty() or not game.pending_peace.is_empty():
+				return
+			_close_modal()
 		elif side_panel.visible:
 			_close_panel()
-		elif not modal.visible:
+		else:
 			_show_menu()
 	else:
 		return
