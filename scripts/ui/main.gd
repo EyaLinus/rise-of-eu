@@ -171,6 +171,7 @@ func _ready() -> void:
 	map.army_tapped.connect(_on_army_tapped)
 	map.province_long_pressed.connect(_on_province_info)
 	map.province_context.connect(_on_province_context)
+	map.sea_tapped.connect(_on_sea_tapped)
 	map.label_scale = 1.2 if _big() else 1.0
 	hud = Control.new()
 	hud.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -2573,6 +2574,7 @@ func _open_panel(mode: String, arg = null, remember: bool = true) -> void:
 		map.selected_army = -1
 	if mode != "province":
 		map.selected_pid = -1
+	map.select_sea(str(arg) if mode == "sea" else "")
 	if mode == "peace":
 		peace_selection = {}
 	_refresh()
@@ -2600,6 +2602,7 @@ func _close_panel() -> void:
 	selected_army = -1
 	map.selected_army = -1
 	map.selected_pid = -1
+	map.select_sea("")
 	map.refresh()
 
 
@@ -2624,6 +2627,8 @@ func _refresh() -> void:
 			_panel_wars()
 		"navy":
 			_panel_navy()
+		"sea":
+			_panel_sea(panel_arg)
 		"peace":
 			_panel_peace(panel_arg)
 		"missions":
@@ -4377,6 +4382,112 @@ func _panel_navy() -> void:
 		]))
 	if game.wars_of(me).is_empty():
 		side_box.add_child(_lbl("Im Frieden: Handelsschutz bringt etwas Handelseinkommen, sobald ein Viertel des Flottenlimits auf See ist.", 15, Color(0.75, 0.8, 0.88)))
+
+
+## A tap on open water: the sea region's panel (an own army selected for a sea order keeps waiting for a coast).
+func _on_sea_tapped(sea: String) -> void:
+	if game == null or not game.sea_by_id.has(sea):
+		return
+	if selected_army >= 0:
+		return
+	_open_panel("sea", sea)
+
+
+## Sea region: who sails and rules here, its coasts and straits, neighbouring seas, station the fleet.
+func _panel_sea(sea: String) -> void:
+	var s = game.sea_by_id[sea]
+	var me: String = game.player
+	var n = game.nations[me]
+	side_title.text = "⚓ " + str(s.name)
+	var kind: String = ["Randmeer", "Meer", "Ozean"][map._sea_tier(sea)]
+	side_box.add_child(_lbl("%s · %d Küstenprovinzen · %d Nachbarmeere" % [kind, s.provinces.size(), s.adj.size()], 15, Color(0.75, 0.8, 0.88)))
+	# fleets in this sea
+	var fleets := []
+	for tag in game._fleet:
+		var ships: float = float(game._fleet[tag].get(sea, 0.0))
+		if ships >= 0.5 and game.nations[tag].alive:
+			fleets.append([ships, tag])
+	fleets.sort_custom(func(a, b): return a[0] > b[0])
+	if _section("sea_fleets", "⛵ Flotten hier (%d)" % fleets.size(), true, "Schiffe kreuzen auf den Meeren an den Küsten ihres Reiches, verteilt nach Küstenentwicklung, oder gebündelt, wenn das Reich sie hier stationiert."):
+		if fleets.is_empty():
+			side_box.add_child(_lbl("Keine Kriegsflotte kreuzt hier.", 15, Color(0.7, 0.72, 0.76)))
+		var chips := []
+		for f in fleets.slice(0, 8):
+			var t: String = f[1]
+			var k := "good" if t == me else ("bad" if game.at_war(me, t) else "")
+			chips.append(_chip("%s %d" % [nname(t), int(round(f[0]))], "%s: %d Schiffe in %s (Kampfwert ×%.2f)." % [game.nations[t].name, int(round(f[0])), s.name, Naval.power_mult(game, t)], k))
+		if chips.size() % 2 == 1:
+			chips.append(Control.new())
+		if not chips.is_empty():
+			side_box.add_child(_grid(chips))
+	# the sea war
+	for w in game.wars_of(me):
+		var att: bool = game.is_attacker(w, me)
+		var us := Naval.side_power(game, game.side_tags(w, att), sea)
+		var them := Naval.side_power(game, game.side_tags(w, not att), sea)
+		var c := Naval.control(game, w, sea)
+		var ours: bool = c == ("att" if att else "def")
+		var txt := "beherrscht von uns" if ours else ("beherrscht vom Feind" if c != "" else "umkämpft / frei")
+		side_box.add_child(_chip("🔥 %s: %s (%s : %s)" % [w.name, txt, Naval.fmt(us), Naval.fmt(them)],
+				"Mit %.1f-facher Überzahl beherrscht eine Seite das Meer: Überfahrten sperren, Küsten blockieren." % float(game.bal.sea_control_ratio),
+				"good" if ours else ("bad" if c != "" else "")))
+	# station the own fleet here
+	var mine: bool = Naval.coast_weights(game, me).has(sea)
+	if Naval.limit(game, me) > 0.0:
+		var acts := []
+		if mine and n.fleet_sea != sea:
+			acts.append(_btn("📍 Flotte hier bündeln", func(): _act(Naval.station(game, me, sea), "📍 Die Flotte kreuzt jetzt in %s" % s.name),
+					"Alle Schiffe in %s zusammenziehen: hier stark, an deinen anderen Küsten fehlen sie." % s.name))
+		elif mine:
+			acts.append(_btn("📍 Flotte verteilen", func(): _act(Naval.station(game, me, ""), "📍 Die Flotte verteilt sich auf alle Küstenmeere"),
+					"Die Schiffe wieder über alle deine Küstenmeere verteilen."))
+		else:
+			acts.append(_btn("📍 Flotte hier bündeln", func(): pass, "", true))
+			acts[-1].tooltip_text = "Keine eigene Küste an %s: deine Flotte kann hier nicht stationiert werden." % s.name
+		acts.append(_btn("⚓ Marine", func(): _open_panel("navy"), "Flotte bauen, Auftrag und Station wählen."))
+		side_box.add_child(_grid(acts))
+	# coasts
+	var coast := []
+	for pid in s.provinces:
+		if map.known(pid):
+			coast.append(pid)
+	coast.sort_custom(func(a, b): return game.provinces[a].dev > game.provinces[b].dev)
+	if not coast.is_empty() and _section("sea_coast", "🏰 Küsten (%d)" % coast.size(), coast.size() <= 10, "Provinzen an diesem Meer, nach Entwicklung. Antippen öffnet die Provinz."):
+		var bs := []
+		for pid in coast.slice(0, 16):
+			var p = game.provinces[pid]
+			var mark := " ⚓" if Naval.is_blockaded(game, pid) else ""
+			var pp: int = pid
+			var b := _btn("%s %s%s" % [PixelEmoji.nation(p.owner, game.nations[p.owner].emoji), p.name, mark], func(): _open_province_info(pp),
+					"%s (%s), Entwicklung %d%s" % [p.name, game.nations[p.owner].name, p.dev, ", blockiert" if mark != "" else ""])
+			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			bs.append(b)
+		if bs.size() % 2 == 1:
+			bs.append(Control.new())
+		side_box.add_child(_grid(bs))
+		if coast.size() > 16:
+			side_box.add_child(_lbl("… und %d weitere" % (coast.size() - 16), 14, Color(0.7, 0.72, 0.76)))
+	# straits (army crossings) in this sea
+	var straits := []
+	for k in game.strait_sea:
+		if game.strait_sea[k] == sea:
+			var ka: int = int(k) / 10000
+			var kb: int = int(k) % 10000
+			if map.known(ka) and map.known(kb):
+				straits.append("%s ↔ %s" % [game.provinces[ka].name, game.provinces[kb].name])
+	if not straits.is_empty():
+		side_box.add_child(_lbl("⛵ Überfahrten: " + ", ".join(straits), 14, Color(0.75, 0.8, 0.88)))
+	# neighbouring seas
+	var adj := []
+	for o in s.adj:
+		if game.sea_by_id.has(o) and map.knows_sea(o):
+			var oid: String = o
+			adj.append(_btn(str(game.sea_by_id[o].name), func(): _open_panel("sea", oid), "Zum Nachbarmeer."))
+	if not adj.is_empty():
+		side_box.add_child(_lbl("🌍 Nachbarmeere", 16, Color(0.7, 0.8, 0.9)))
+		if adj.size() % 2 == 1:
+			adj.append(Control.new())
+		side_box.add_child(_grid(adj))
 
 
 func _panel_wars() -> void:

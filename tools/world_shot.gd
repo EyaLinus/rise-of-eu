@@ -7,6 +7,7 @@ var out := "user://world_shots"
 var spots := []
 var mode := 0
 var reveal := false
+var sea := ""  # --sea <id>: open that sea's panel (selection) before the shots
 var size := Vector2i(1600, 900)
 
 
@@ -26,6 +27,9 @@ func _init() -> void:
 				i += 1
 			"--reveal":
 				reveal = true
+			"--sea":
+				sea = args[i + 1]
+				i += 1
 			"--size":
 				var p: PackedStringArray = args[i + 1].split("x")
 				size = Vector2i(int(p[0]), int(p[1]))
@@ -54,6 +58,8 @@ func _run(m) -> void:
 	if reveal:
 		load("res://scripts/core/debug_tools.gd").reveal_world(g, "FRA")
 	m.map.map_mode = mode
+	if sea != "":
+		m._open_panel("sea", sea)
 	for s in spots:
 		var parts: PackedStringArray = str(s).split(":")
 		var at := Vector2.ZERO

@@ -115,6 +115,8 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "navy", "missions", "log", "ranking", "hre", "advice"]:
 		m._open_panel(mode)
 		n += 1
+	m._open_panel("sea", m.game.seas[month % m.game.seas.size()].id)  # a sea region panel
+	n += 1
 	if month % 60 == 12:  # debug panel (debug mode), with the event search filled in
 		m.settings.debug = true
 		m.debug_screen.event_filter = "war_"

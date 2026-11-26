@@ -73,6 +73,132 @@ assets:
     source: assets/src/pixel/icons/army_unit.txt
     status: done
     updated: '2026-10-25'
+  sea_boat_0:
+    created: '2026-11-26'
+    kind: icon
+    note: sea_boat_0 – small fishing boat with a lateen sail
+    outputs:
+    - assets/art/icons/sea_boat_0.png
+    source: assets/src/pixel/icons/sea_boat_0.txt
+    status: done
+    updated: '2026-11-26'
+  sea_boat_1:
+    created: '2026-11-26'
+    kind: icon
+    note: sea_boat_1 – small fishing boat with a lateen sail
+    outputs:
+    - assets/art/icons/sea_boat_1.png
+    source: assets/src/pixel/icons/sea_boat_1.txt
+    status: done
+    updated: '2026-11-26'
+  sea_fish_0:
+    created: '2026-11-26'
+    kind: icon
+    note: sea_fish_0 – jumping fish (leap / dive with splash)
+    outputs:
+    - assets/art/icons/sea_fish_0.png
+    source: assets/src/pixel/icons/sea_fish_0.txt
+    status: done
+    updated: '2026-11-26'
+  sea_fish_1:
+    created: '2026-11-26'
+    kind: icon
+    note: sea_fish_1 – jumping fish (leap / dive with splash)
+    outputs:
+    - assets/art/icons/sea_fish_1.png
+    source: assets/src/pixel/icons/sea_fish_1.txt
+    status: done
+    updated: '2026-11-26'
+  sea_gulls_0:
+    created: '2026-11-26'
+    kind: icon
+    note: sea_gulls_0 – two gulls flapping (wings up / down)
+    outputs:
+    - assets/art/icons/sea_gulls_0.png
+    source: assets/src/pixel/icons/sea_gulls_0.txt
+    status: done
+    updated: '2026-11-26'
+  sea_gulls_1:
+    created: '2026-11-26'
+    kind: icon
+    note: sea_gulls_1 – two gulls flapping (wings up / down)
+    outputs:
+    - assets/art/icons/sea_gulls_1.png
+    source: assets/src/pixel/icons/sea_gulls_1.txt
+    status: done
+    updated: '2026-11-26'
+  sea_kraken_0:
+    created: '2026-11-26'
+    kind: icon
+    note: sea_kraken_0 – kraken rising from the waves, old sea-chart sea monster for open oceans
+    outputs:
+    - assets/art/icons/sea_kraken_0.png
+    source: assets/src/pixel/icons/sea_kraken_0.txt
+    status: done
+    updated: '2026-11-26'
+  sea_kraken_1:
+    created: '2026-11-26'
+    kind: icon
+    note: sea_kraken_1 – kraken rising from the waves, old sea-chart sea monster for open oceans
+    outputs:
+    - assets/art/icons/sea_kraken_1.png
+    source: assets/src/pixel/icons/sea_kraken_1.txt
+    status: done
+    updated: '2026-11-26'
+  sea_poseidon_0:
+    created: '2026-11-26'
+    kind: icon
+    note: sea_poseidon_0 – Poseidon with trident and crown rising from the sea
+    outputs:
+    - assets/art/icons/sea_poseidon_0.png
+    source: assets/src/pixel/icons/sea_poseidon_0.txt
+    status: done
+    updated: '2026-11-26'
+  sea_poseidon_1:
+    created: '2026-11-26'
+    kind: icon
+    note: sea_poseidon_1 – Poseidon with trident and crown rising from the sea
+    outputs:
+    - assets/art/icons/sea_poseidon_1.png
+    source: assets/src/pixel/icons/sea_poseidon_1.txt
+    status: done
+    updated: '2026-11-26'
+  sea_ship_0:
+    created: '2026-11-26'
+    kind: icon
+    note: sea_ship_0 – carrack with sails and castles riding the swell
+    outputs:
+    - assets/art/icons/sea_ship_0.png
+    source: assets/src/pixel/icons/sea_ship_0.txt
+    status: done
+    updated: '2026-11-26'
+  sea_ship_1:
+    created: '2026-11-26'
+    kind: icon
+    note: sea_ship_1 – carrack with sails and castles riding the swell
+    outputs:
+    - assets/art/icons/sea_ship_1.png
+    source: assets/src/pixel/icons/sea_ship_1.txt
+    status: done
+    updated: '2026-11-26'
+  sea_whale_0:
+    created: '2026-11-26'
+    kind: icon
+    note: sea_whale_0 – whale with spout
+    outputs:
+    - assets/art/icons/sea_whale_0.png
+    source: assets/src/pixel/icons/sea_whale_0.txt
+    status: done
+    updated: '2026-11-26'
+  sea_whale_1:
+    created: '2026-11-26'
+    kind: icon
+    note: sea_whale_1 – whale with spout
+    outputs:
+    - assets/art/icons/sea_whale_1.png
+    source: assets/src/pixel/icons/sea_whale_1.txt
+    status: done
+    updated: '2026-11-26'
   city_city:
     created: '2026-11-14'
     kind: icon
