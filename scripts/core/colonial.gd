@@ -517,6 +517,7 @@ static func _finish(g, p) -> void:
 	g.Economy.refresh_local(g, p)
 	for a in p.adj:
 		reveal(g, tag, a)
+	g.Subjects.on_colony_finished(g, p)  # next to the realm's colonial nation: it joins that nation
 	g.stats.colonies = int(g.stats.get("colonies", 0)) + 1
 	g.log_msg("🏕 %s: Die Kolonie %s ist gewachsen und gehört nun fest zum Reich." % [n.name, p.name], [tag])
 

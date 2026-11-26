@@ -77,7 +77,7 @@ func _init() -> void:
 		"test_goods_events",
 		"test_playable_flavour",
 		"test_hungary_powerhouse",
-		"test_colonial_events",
+		"test_colonial_events", "test_subjects",
 		"test_event_balance",
 		"test_more_goods_and_softer_costs",
 		"test_supply_and_ai_stacks",
@@ -120,6 +120,8 @@ func test_data_references() -> void:
 		check(tags.has(p.owner), "owner %s of %s is a nation" % [p.owner, p.key])
 		owners[p.owner] = true
 	for tag in tags:
+		if tags[tag].has("dormant"):
+			continue  # pool nations for colonial nations and appanages (Subjects) start without land
 		check(owners.has(tag), "%s owns at least one province" % tag)
 	var refs := []
 	for e in data.events:
@@ -2747,12 +2749,16 @@ func test_emoji_coverage() -> void:
 			if (c >= 0x2300 and c < 0x2500) or (c >= 0x25A0 and c < 0x2C00) or c >= 0x1F000:
 				check(have.has("%x" % c), "%s: no pixel glyph for %s (U+%X), add it in tools/art/emoji_icons.py" % [path, char(c), c])
 	for tag in data.nations:
+		if data.nations[tag].has("dormant"):
+			continue  # pool nations fly their overlord's flag (Icons.flag_alias)
 		check(ResourceLoader.exists("res://assets/art/icons/flag_%s.png" % tag), "nation %s has no flag" % tag)
 	# every flag is a glyph of the pixel font, registered before any text is drawn
 	var PE = load("res://scripts/ui/pixel_emoji.gd")
 	PE.install()
 	PE.add_nations(data.nations.keys())
 	for tag in data.nations:
+		if data.nations[tag].has("dormant"):
+			continue
 		var f: String = PE.nation(tag)
 		check(f.length() == 1 and f.unicode_at(0) >= PE.PUA and PE.font.has_char(f.unicode_at(0)), "flag of %s is a pixel glyph" % tag)
 	check(PE.nation("XXX") == "🏳" and have.has("1f3f3"), "a nation without flag shows the white flag glyph")
@@ -4440,6 +4446,84 @@ func test_colonial_events() -> void:
 		if String(ev.id).begins_with("col_"):
 			check(g.nations.has(ev.tag) and data.nations[ev.tag].has("colonial"), "%s belongs to a colonial nation" % ev.id)
 			check(ev.options[0].effects.has("colony_grant") and ev.trigger.has("colony_free"), "%s grants a colony" % ev.id)
+
+
+## Subject types: colonial nations form from overseas colonies, dominions and appanages (Subjects).
+func test_subjects() -> void:
+	var g = new_game("FRA", 5)
+	var S = g.Subjects
+	check(g.subject_pool.colony.size() >= 12 and g.subject_pool.appanage.size() >= 6, "subject pools loaded")
+	for t in g.subject_pool.colony + g.subject_pool.appanage:
+		check(not g.nations[t].alive and g.provinces_of(t).is_empty(), "%s dormant at start" % t)
+	check(not g.armies.any(func(a): return S.is_pool(g, a.owner)), "pool nations have no armies")
+	var keys := ["powhatan", "nanticoke", "secotan", "tuscarora", "lenape"]
+	for k in keys:
+		g.apply_effects("ENG", {"colony_grant": [k]})
+	var used: int = g.diplo_used("ENG")
+	S.yearly(g)
+	var cn := ""
+	for v in g.vassals_of("ENG"):
+		if g.nations[v].subject == "colony":
+			cn = v
+	check(cn != "", "five connected colonies form a colonial nation")
+	if cn == "":
+		return
+	var c = g.nations[cn]
+	check(c.name == "Neuengland" and g.provinces_of(cn).size() == 5 and g.Colonial.colonies_owned(g, "ENG") == 0, "Neuengland takes the land (%s, %d)" % [c.name, g.provinces_of(cn).size()])
+	check(c.religion == g.nations.ENG.religion and c.techs.size() == g.nations.ENG.techs.size(), "inherits faith and techs")
+	check(g.diplo_used("ENG") == used and not S.can_annex(g, cn) and g.annex_vassal("ENG", cn) != "", "takes no slot, cannot be annexed")
+	check(is_equal_approx(S.tribute_share(g, cn), float(g.bal.sub_colony_tribute)), "colonial tariff")
+	check(g.mod(g.nations.ENG, "trade") > 0.0 and g.nations.ENG.bonus.has("subjects"), "overlord earns from its colonial nation")
+	check(g.atlantic_tags.has(cn) and S.colonies_with_subjects(g, "ENG") == 5, "colonial nation colonizes on its own")
+	g.apply_effects("ENG", {"colony_grant": ["susquehannock"]})
+	check(g.provinces[g.key_to_pid["susquehannock"]].owner == cn, "a new colony next to it joins the colonial nation")
+	# save / load keeps name, kind and colour
+	var text := JSON.stringify(g.to_dict())
+	var g2 = new_game("FRA", 99)
+	g2.from_dict(JSON.parse_string(text))
+	check(g2.nations[cn].name == "Neuengland" and g2.nations[cn].subject == "colony" and g2.nations[cn].overlord == "ENG", "colonial nation survives a save")
+	check(JSON.stringify(g2.to_dict()) == text, "save round trip with subjects is identical")
+	# dominion: a grown colonial nation
+	for pid in g.provinces_of(cn):
+		g.provinces[pid].dev = 10
+	g._update_cached(c)
+	g.nations.ENG.dip = 500.0
+	check(S.convert_subject(g, "ENG", cn, "dominion") == "", "colonial nation becomes a dominion")
+	check(c.subject == "dominion" and g.diplo_used("ENG") == used + 1 and c.bonus.has("subject"), "dominion takes a slot and governs itself")
+	check(S.convert_block_reason(g, "ENG", cn, "appanage") != "", "a dominion cannot become an appanage")
+	g._vassalize("FRA", "BRI", true)
+	g.nations.FRA.dip = 500.0
+	check(S.convert_block_reason(g, "FRA", "BRI", "dominion") != "", "a vassal next door cannot become a dominion")
+	# independence: the subject kind is cleared, a former colony is remembered
+	c.subject = "colony"
+	S.released(g, cn)
+	c.overlord = ""
+	check(c.subject == "" and c.flags.has("former_colony"), "independent former colony")
+	# appanage
+	var f = g.nations.FRA
+	f.prestige = 50.0
+	var pid: int = -1
+	for q in g.provinces_of("FRA"):
+		if q != f.capital and S.appanage_block_reason(g, "FRA", q) == "" and S.appanage_lands(g, "FRA", q).size() >= 2:
+			pid = q
+			break
+	check(pid >= 0, "France has land for an appanage")
+	if pid < 0:
+		return
+	var n_prov: int = g.provinces_of("FRA").size()
+	var stab: float = f.stability
+	var lands: Array = S.appanage_lands(g, "FRA", pid)
+	check(S.create_appanage(g, "FRA", pid) == "", "appanage granted")
+	var ap: String = g.provinces[pid].owner
+	check(S.is_pool(g, ap) and g.nations[ap].subject == "appanage" and g.nations[ap].overlord == "FRA", "cadet branch rules %s" % g.nations[ap].name)
+	check(g.provinces_of("FRA").size() == n_prov - lands.size() and f.stability > stab, "land handed over, stability up")
+	check(g.diplo_used("FRA") == g.nations.FRA.allies.size() + (g.vassals_of("FRA").size() - S.count(g, "FRA", "appanage")), "appanage takes no slot")
+	check(g.annex_months_left(ap) == int(g.bal.sub_appanage_annex_years) * 12, "appanage returns after %d years" % int(g.bal.sub_appanage_annex_years))
+	check(g.annex_cost(ap) < g.nations[ap].dev_total * float(g.bal.annex_dip_per_dev), "reintegration is cheaper")
+	check(g.liberty(ap) < g.liberty(ap) + S.loyalty(g, ap) and S.loyalty(g, ap) > 0.0, "appanages are loyal")
+	for i in 2:
+		g.tick()
+	check(g.nations[ap].alive and g.provinces[pid].owner == ap, "appanage survives ticks")
 
 
 ## Balance pass: manpower is counted in regiments (no more "+1500" that refills the pool), no option is
