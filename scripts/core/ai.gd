@@ -194,7 +194,7 @@ func _spend_gold(g, n) -> void:
 			while ci < cands.size():
 				var c: Array = cands[ci]
 				ci += 1
-				if n.gold >= c[3] and Eco._build_block_no_gold(g, tag, g.provinces[c[1]], c[2]) == "":
+				if n.gold >= c[3] and Eco._can_build(g, tag, g.provinces[c[1]], c[2]):
 					best = [c[1], c[2]]
 					break
 			if best.is_empty() or n.gold <= g.Economy.building_cost(g, tag, best[0], best[1]) + reserve + margin:

@@ -188,6 +188,40 @@ static func _build_block_no_gold(g, tag: String, p, bid: String, counts = null) 
 	return _block_dev(g, p, bid)
 
 
+## _build_block_no_gold(...) == "" without building the message strings (the AI asks this for every building
+## in every province; formatting the refusal texts was most of the cost). Keep both in sync (test_can_build).
+static func _can_build(g, tag: String, p, bid: String, counts = null) -> bool:
+	var d: Dictionary = g.buildings_def.get(bid, {})
+	if d.is_empty() or p.owner != tag or p.controller != tag or not p.constructing.is_empty():
+		return false
+	var lvl: int = int(p.buildings.get(bid, 0))
+	if lvl >= int(d.get("max_level", g.bal.building_max_level)):
+		return false
+	var has: bool = p.buildings.has(bid)
+	if not has and p.buildings.size() >= slots(g, p):
+		return false
+	if d.get("coastal", false) and not p.coastal:
+		return false
+	if d.has("requires") and not p.buildings.has(d.requires):
+		return false
+	var lt: Dictionary = d.get("level_tech", {})
+	if not lt.is_empty():
+		var tech := str(lt.get(str(lvl + 1), ""))
+		if tech != "" and not g.nations[tag].techs.has(tech):
+			return false
+	if d.has("max_count") and not has:
+		var c: int
+		if counts == null:
+			c = count_in_realm(g, tag, bid)
+		else:
+			if not counts.has(bid):
+				counts[bid] = count_in_realm(g, tag, bid)
+			c = counts[bid]
+		if c >= int(d.max_count):
+			return false
+	return p.dev >= maxi(int(d.get("min_dev", 0)), lvl * int(g.bal.dev_per_building_level))
+
+
 static func _block_dev(g, p, bid: String) -> String:
 	if p.dev < level_dev(g, p, bid):
 		return "Braucht Entwicklung %d." % level_dev(g, p, bid)
@@ -510,17 +544,36 @@ static func province_trade_power(g, p) -> float:
 
 ## Recomputed every month: value and trade power per nation in every market.
 static func update_markets(g) -> void:
+	var st := markets_begin(g)
+	markets_add(g, st, 0, g.provinces.size())
+	markets_finish(g, st)
+
+
+## update_markets in parts (the stepped month runs the province loop in chunks, same order, same sums).
+static func markets_begin(g) -> Dictionary:
 	var c := {}
 	for m in g.markets:
 		c[m] = {"value": 0.0, "power": {}, "total": 0.0}
-	var nms := {}  # owner -> nation_mods, shared by all its provinces (they cannot change during this loop)
-	for p in g.provinces:
+	# owner -> nation_mods, shared by all its provinces (nothing between the chunks changes them)
+	return {"c": c, "nms": {}}
+
+
+static func markets_add(g, st: Dictionary, from: int, to: int) -> void:
+	var c: Dictionary = st.c
+	var nms: Dictionary = st.nms
+	var tvm := float(g.bal.trade_value_mult)
+	for i in range(from, mini(to, g.provinces.size())):
+		var p = g.provinces[i]
 		var e: Dictionary = c[p.market]
 		if not nms.has(p.owner):
 			nms[p.owner] = nation_mods(g, g.nations[p.owner])
-		e.value += production_value(g, p, nms[p.owner]) * float(g.bal.trade_value_mult) * g.Trade.value_mult(g, p)
+		e.value += production_value(g, p, nms[p.owner]) * tvm * g.Trade.value_mult(g, p)
 		if p.controller == p.owner and g.nations[p.owner].alive:  # uncolonized native land holds no trade power
 			e.power[p.owner] = e.power.get(p.owner, 0.0) + province_trade_power(g, p)
+
+
+static func markets_finish(g, st: Dictionary) -> void:
+	var c: Dictionary = st.c
 	for tag in g.order:
 		var n = g.nations[tag]
 		if not n.alive:
@@ -778,7 +831,7 @@ static func building_candidates(g, n, war: bool, only_best := false) -> Array:
 			if full and not p.buildings.has(bid):
 				continue  # no free slot: _build_block_no_gold would refuse it too
 			var cost: float = round(float(g.buildings_def[bid].cost) * cm * pow(level(p, bid) + 1, ex) * dev_mult * mult)
-			if n.gold < cost or _build_block_no_gold(g, n.tag, p, bid, counts) != "":  # gold first: the cheap test
+			if n.gold < cost or not _can_build(g, n.tag, p, bid, counts):  # gold first: the cheap test
 				continue
 			var s := _building_value(g, n, p, bid, war, ctx) / cost
 			if not p.buildings.has(bid):

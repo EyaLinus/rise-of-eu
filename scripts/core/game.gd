@@ -898,7 +898,10 @@ var _step_i: int = 0
 func tick_begin() -> bool:
 	if game_over:
 		return false
-	_steps = [_t_markets]
+	_steps = [_t_markets_begin]
+	for i in range(0, provinces.size(), MARKET_CHUNK):
+		_steps.append(_t_markets_add.bind(i))
+	_steps.append(_t_markets_finish)
 	for tag in order:
 		_steps.append(_t_economy.bind(tag))
 	_steps += [_t_naval, _t_voyages, _t_colonial, _t_landmarks, _t_trade, _t_armies, _t_wars]
@@ -936,8 +939,23 @@ func finish_tick() -> void:
 		pass
 
 
-func _t_markets() -> void:
-	Economy.update_markets(self)
+const MARKET_CHUNK := 300  # provinces per market step (all 1200 in one step were up to 25 ms)
+var _mkt := {}
+
+
+func _t_markets_begin() -> void:
+	_mkt = Economy.markets_begin(self)
+	_pmark("markets")
+
+
+func _t_markets_add(from: int) -> void:
+	Economy.markets_add(self, _mkt, from, from + MARKET_CHUNK)
+	_pmark("markets")
+
+
+func _t_markets_finish() -> void:
+	Economy.markets_finish(self, _mkt)
+	_mkt = {}
 	_pmark("markets")
 
 
