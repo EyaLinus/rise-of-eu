@@ -39,6 +39,7 @@ func _init() -> void:
 		var worst := 0
 		var worst_step := 0
 		var worst_step_name := ""
+		var step_max := {}  # step method -> [max usec, steps over 16 ms]
 		for m in mini(every, years - block) * 12:
 			var a := Time.get_ticks_usec()
 			if "_steps" in g:
@@ -49,6 +50,9 @@ func _init() -> void:
 						var sa := Time.get_ticks_usec()
 						var more: bool = g.tick_step()
 						var sd := Time.get_ticks_usec() - sa
+						var sk: String = nxt.get_method()
+						var sm: Array = step_max.get(sk, [0, 0])
+						step_max[sk] = [maxi(sm[0], sd), sm[1] + (1 if sd > 16000 else 0)]
 						if sd > worst_step:
 							worst_step = sd
 							worst_step_name = nxt.get_method()
@@ -69,6 +73,12 @@ func _init() -> void:
 				wall / 1000.0 / n, worst / 1000.0])
 		if worst_step > 0:
 			print("  longest single step: %s %.1f ms" % [worst_step_name, worst_step / 1000.0])
+			var sks: Array = step_max.keys()
+			sks.sort_custom(func(x, y): return step_max[x][0] > step_max[y][0])
+			var parts := []
+			for sk in sks.slice(0, 8):
+				parts.append("%s %.1f (%d>16ms)" % [sk, step_max[sk][0] / 1000.0, step_max[sk][1]])
+			print("  steps by max ms: " + ", ".join(parts))
 		var pr: Dictionary = g.prof if "prof" in g else {}
 		var keys: Array = pr.keys()
 		keys.sort_custom(func(x, y): return pr[x] > pr[y])

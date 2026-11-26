@@ -1,1 +1,0 @@
-- **Esc und Enter am PC:** Esc schließt jetzt offene Info-Popups (Events und Friedensangebote bleiben, sie brauchen eine Antwort), danach wie bisher Seitenleiste und Menü. Enter wirkt wie die Bestätigen-Taste.

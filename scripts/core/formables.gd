@@ -33,10 +33,11 @@ static func _allowed(g, tag: String, id: String) -> bool:
 
 
 ## Formables this nation could ever proclaim (shown in the UI), in data order.
-static func options(g, tag: String, taken: Dictionary = {}) -> Array:
+## `reach` (optional): progress_by_owner() per realm id, for scans over all nations.
+static func options(g, tag: String, taken = null, reach: Dictionary = {}) -> Array:
 	var r := []
 	var n = g.nations[tag]
-	if taken.is_empty():
+	if taken == null:  # (an empty dict is a valid answer: nobody formed anything yet)
 		taken = taken_ids(g)
 	var cur := tier(g, n.formed)
 	for id in g.formable_defs:
@@ -44,7 +45,7 @@ static func options(g, tag: String, taken: Dictionary = {}) -> Array:
 			continue
 		if g.formable_defs[id].get("no_native", false) and g.nation_data_native.has(tag):
 			continue
-		if "*" in g.formable_defs[id].from and not _within_reach(g, tag, id):
+		if "*" in g.formable_defs[id].from and not _within_reach(g, tag, id, reach):
 			continue
 		r.append(id)
 	return r
@@ -52,13 +53,33 @@ static func options(g, tag: String, taken: Dictionary = {}) -> Array:
 
 ## Realms open to everyone ("*") only show up for nations that are on their way: capital in place or a third
 ## of the provinces held. Keeps Europe and the USA out of every small realm's list.
-static func _within_reach(g, tag: String, id: String) -> bool:
+static func _within_reach(g, tag: String, id: String, reach: Dictionary = {}) -> bool:
 	var f: Dictionary = g.formable_defs[id]
 	var n = g.nations[tag]
 	if f.has("capital_in"):
 		return n.capital >= 0 and g.provinces[n.capital].key in f.capital_in
+	if reach.has(id):
+		return int(reach[id].held.get(tag, 0)) * 3 >= int(reach[id].need)
 	var pr := progress(g, tag, id)
 	return pr[0] * 3 >= pr[1]
+
+
+## progress() of realm `id` for every owner at once: {held: {tag: held}, need}. One pass over the provinces
+## instead of one per nation (the yearly AI scan asked every realm in the world).
+static func progress_by_owner(g, id: String) -> Dictionary:
+	var held := {}
+	var need := 0
+	for gr in groups(g, id):
+		var per := {}
+		for key in gr.provinces:
+			var pid: int = g.key_to_pid.get(key, -1)
+			if pid >= 0 and g.provinces[pid].owner == g.provinces[pid].controller:
+				var o: String = g.provinces[pid].owner
+				per[o] = per.get(o, 0) + 1
+		for o in per:
+			held[o] = held.get(o, 0) + mini(per[o], int(gr.need))
+		need += int(gr.need)
+	return {"held": held, "need": need}
 
 
 ## Realms that someone (alive) already proclaimed, also earlier steps of a nation's history.
@@ -151,7 +172,8 @@ static func requirements(g, tag: String, id: String) -> Array:
 	return r
 
 
-static func block_reason(g, tag: String, id: String) -> String:
+## `taken` (optional): taken_ids(g), for scans over many nations.
+static func block_reason(g, tag: String, id: String, taken = null) -> String:
 	if not g.formable_defs.has(id):
 		return "Unbekanntes Reich."
 	var n = g.nations[tag]
@@ -162,7 +184,7 @@ static func block_reason(g, tag: String, id: String) -> String:
 		return "Nur für: %s." % ", ".join(f.from.map(func(t): return g.nations[t].name if g.nations.has(t) else t))
 	if f.get("no_native", false) and g.nation_data_native.has(tag):
 		return "Nicht für Stammesreiche."
-	if _taken(g, id):
+	if (taken.has(id) if taken != null else _taken(g, id)):
 		return "Dieses Reich gibt es schon."
 	if n.overlord != "":
 		return "Ein Vasall kann kein Reich ausrufen."
@@ -233,12 +255,17 @@ static func apply_identity(g, n) -> void:
 ## Yearly: the AI proclaims a realm as soon as it can (the player decides in the realm panel).
 static func ai_yearly(g) -> void:
 	var taken := taken_ids(g)
+	var reach := {}
+	for id in g.formable_defs:
+		var f: Dictionary = g.formable_defs[id]
+		if "*" in f.from and not f.has("capital_in"):
+			reach[id] = progress_by_owner(g, id)
 	for tag in g.order:
 		var n = g.nations[tag]
 		if not n.alive or tag == g.player or n.overlord != "":
 			continue
-		for id in options(g, tag, taken):
-			if block_reason(g, tag, id) == "":
+		for id in options(g, tag, taken, reach):
+			if block_reason(g, tag, id, taken) == "":
 				form(g, tag, id)
 				taken[id] = tag
 				break

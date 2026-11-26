@@ -976,6 +976,7 @@ func _slot_path(slot: String) -> String:
 
 
 func _save_meta() -> Dictionary:
+	_wait_save()
 	var f := FileAccess.open(SAVE_META_PATH, FileAccess.READ)
 	if f:
 		var d = JSON.parse_string(f.get_as_text())
@@ -1010,6 +1011,7 @@ func _load_game(slot: String = "auto") -> void:
 
 ## Parsed save file, or null when it is missing or broken.
 func _read_save(path: String):
+	_wait_save()
 	if not FileAccess.file_exists(path):
 		return null
 	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
@@ -1017,17 +1019,45 @@ func _read_save(path: String):
 
 
 ## Writes the running game into a slot ("auto" = the yearly autosave) and notes what is in it.
-func _save_game(slot: String = "auto") -> bool:
+## `background`: only the state snapshot is taken now; JSON text and file writing run on a worker thread
+## (on a phone the whole autosave was a ~0.3 s hitch once a year). The return value then means "started".
+func _save_game(slot: String = "auto", background := false) -> bool:
 	if game == null or game.game_over:
 		return false
 	game.finish_tick()  # never save half a month
-	# crash-safe: write a temp file, keep the last good save as .bak, then swap the new one in,
-	# so a crash or a full disk while saving never leaves only a broken save behind
+	_wait_save()  # one writer at a time (and the meta file read below must be the finished one)
+	var meta := _save_meta()
+	meta[slot] = {"name": game.nations[game.player].name, "date": game.date_string(), "score": game.score(game.player),
+			"difficulty": game.difficulty}
+	var d: Dictionary = game.to_dict()
 	var path := _slot_path(slot)
+	if background and not OS.has_feature("web"):
+		var t := Thread.new()
+		# to_dict shares some arrays with the live game: the thread gets its own deep copy
+		if t.start(_write_save.bind(path, d.duplicate(true), meta)) == OK:
+			_save_thread = t
+			return true
+	return _write_save(path, d, meta)
+
+
+var _save_thread: Thread = null
+
+
+## Waits for a background save still writing (before the next save, loading or quitting).
+func _wait_save() -> void:
+	if _save_thread != null:
+		_save_thread.wait_to_finish()
+		_save_thread = null
+
+
+## Crash-safe write: a temp file first, the last good save stays as .bak, then the new one is swapped in,
+## so a crash or a full disk while saving never leaves only a broken save behind. Runs on any thread
+## (touches only its arguments and files).
+func _write_save(path: String, d: Dictionary, meta: Dictionary) -> bool:
 	var f := FileAccess.open(path + ".tmp", FileAccess.WRITE)
 	if f == null:
 		return false
-	f.store_string(JSON.stringify(game.to_dict()))
+	f.store_string(JSON.stringify(d))
 	f.close()
 	if f.get_error() != OK:
 		return false
@@ -1036,9 +1066,6 @@ func _save_game(slot: String = "auto") -> bool:
 		DirAccess.rename_absolute(path, path + ".bak")
 	if DirAccess.rename_absolute(path + ".tmp", path) != OK:
 		return false
-	var meta := _save_meta()
-	meta[slot] = {"name": game.nations[game.player].name, "date": game.date_string(), "score": game.score(game.player),
-			"difficulty": game.difficulty}
 	var mf := FileAccess.open(SAVE_META_PATH, FileAccess.WRITE)
 	if mf:
 		mf.store_string(JSON.stringify(meta))
@@ -1345,7 +1372,7 @@ func _run_month(behind: bool) -> void:
 		return
 	debug_screen.note_tick(_month_us, _month_frames)
 	if game.month % 12 == 0 and Time.get_ticks_msec() - _last_autosave_ms >= AUTOSAVE_MS:
-		_save_game()
+		_save_game("auto", true)
 		_last_autosave_ms = Time.get_ticks_msec()
 	_after_tick()
 
@@ -1820,6 +1847,7 @@ func _notification(what: int) -> void:
 		_save_game()
 		get_tree().quit()
 	elif what == NOTIFICATION_EXIT_TREE:
+		_wait_save()
 		debug_screen.end_session()  # clean quit (window closed, menu "Beenden")
 	elif what == NOTIFICATION_APPLICATION_RESUMED:
 		debug_screen.resume_session()

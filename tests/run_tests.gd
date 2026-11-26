@@ -85,6 +85,7 @@ func _init() -> void:
 		"test_landmarks", "test_daily_gain",
 		"test_world_playables",
 		"test_tribes",
+		"test_perf_caches",
 		"test_modifier_keys_known",
 		"test_old_save_tech_levels", "test_council", "test_council_traits", "test_start_alliance", "test_hardship_events", "test_elections", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
@@ -5111,6 +5112,47 @@ func test_modifier_keys_known() -> void:
 		var p1: float = g._side_power([mine[0]], home)
 		g.nations.UES.bonus["test"] = {"defense": -d}
 		check(d > 0.05 and g._side_power([mine[0]], home) < p1, "defense bonus counts at home")
+
+
+## The performance shortcuts (v1.1.2) must give the same answers as the plain scans they replace.
+func test_perf_caches() -> void:
+	var g = new_game("FRA", 7)
+	for i in 36:
+		g.tick()
+	var E = g.Economy
+	var bad := 0
+	var tried := 0
+	for tag in ["FRA", "ENG", "TUR", "MNG", "DLH", "AZT"]:
+		if not g.nations.has(tag):
+			continue
+		g.nations[tag].gold = 1e6
+		for pid in g.provinces_of(tag):
+			for bid in g.buildings_def:
+				tried += 1
+				if E._can_build(g, tag, g.provinces[pid], bid) != (E._build_block_no_gold(g, tag, g.provinces[pid], bid) == ""):
+					bad += 1
+	check(tried > 100 and bad == 0, "_can_build matches _build_block_no_gold (%d of %d differ)" % [bad, tried])
+	# army index: same armies in the same order as a scan, also after direct list changes
+	var ok := true
+	for tag in g.order:
+		var scan: Array = g.armies.filter(func(a): return a.owner == tag)
+		if g.armies_of(tag) != scan:
+			ok = false
+	check(ok, "armies_of matches a scan of all armies")
+	var a = g.spawn_army("FRA", g.nations.FRA.capital, 2.0)
+	check(g.armies_of("FRA").has(a), "a new army is in the index")
+	g.armies.erase(a)
+	check(not g.armies_of("FRA").has(a), "the index notices a removed army")
+	# rival index
+	var ok2 := true
+	for tag in g.order:
+		var scan := []
+		for t in g.order:
+			if g.nations[t].alive and g.nations[t].rivals.has(tag):
+				scan.append(t)
+		if g.rivaled_by(tag) != scan:
+			ok2 = false
+	check(ok2, "rivaled_by matches a scan of all rivals")
 
 
 ## Start of the game: the player chooses an ally among historical partners and neighbours (StartAlly).
